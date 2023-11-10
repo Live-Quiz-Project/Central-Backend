@@ -1,0 +1,25 @@
+package user
+
+import (
+	"github.com/Live-Quiz-Project/Backend/internal/middleware"
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
+	"github.com/gin-gonic/gin"
+)
+
+func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
+	r.POST("/login", h.LogIn)
+	r.GET("/logout", h.LogOut)
+	r.POST("/refresh", h.RefreshToken)
+	r.POST("/decode", h.DecodeToken)
+
+	userR := r.Group("/users")
+	userR.POST("", h.CreateUser)
+	userR.Use(middleware.UserRequiredAuthentication)
+	userR.GET("", h.GetUsers)
+	userR.GET("/:id", h.GetUserByID)
+	userR.PATCH("/:id", h.UpdateUser)
+	userR.DELETE("/:id", h.DeleteUser)
+
+	admin := r.Group("/admin")
+	admin.GET("/restore/:id", h.RestoreUser)
+}
