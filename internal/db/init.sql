@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS "user" (
   id UUID PRIMARY KEY NOT NULL,
+  googleId UUID,
   name TEXT,
   email TEXT UNIQUE,
   password TEXT,
@@ -8,6 +9,8 @@ CREATE TABLE IF NOT EXISTS "user" (
   display_emoji TEXT,
   display_color TEXT,
   account_status TEXT,
+  suspension_start_at TIMESTAMPTZ,
+  suspension_end_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -129,7 +132,6 @@ CREATE TABLE IF NOT EXISTS option_matching (
   question_id UUID NOT NULL REFERENCES question (id),
   prompt_id UUID,
   option_id UUID,
-  mark INT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -140,7 +142,6 @@ CREATE TABLE IF NOT EXISTS option_matching_history (
   question_id UUID NOT NULL REFERENCES question_history (id),
   prompt_id UUID,
   option_id UUID,
-  mark INT,
   created_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ,
   deleted BOOL DEFAULT FALSE,
@@ -151,6 +152,7 @@ CREATE TABLE IF NOT EXISTS option_matching_prompt (
   option_matching_id UUID NOT NULL REFERENCES option_matching (id),
   content TEXT,
   "order" INT,
+  mark INT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -161,6 +163,7 @@ CREATE TABLE IF NOT EXISTS option_matching_prompt_history (
   option_matching_id UUID NOT NULL REFERENCES option_matching_history (id),
   content TEXT,
   "order" INT,
+  mark INT,
   created_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ,
   deleted BOOL DEFAULT FALSE,
@@ -212,7 +215,7 @@ CREATE TABLE IF NOT EXISTS option_pin_history (
 );
 CREATE TABLE IF NOT EXISTS live_quiz_session (
   id UUID PRIMARY KEY NOT NULL,
-  host_id UUID NOT NULL REFERENCES "user" (id),
+  user_id UUID NOT NULL REFERENCES "user" (id),
   quiz_id UUID NOT NULL REFERENCES quiz (id),
   status TEXT NOT NULL,
   exempted_question_ids TEXT,
@@ -222,9 +225,8 @@ CREATE TABLE IF NOT EXISTS live_quiz_session (
 );
 CREATE TABLE IF NOT EXISTS participant (
   id UUID PRIMARY KEY NOT NULL,
-  user_id UUID REFERENCES "user" (id),
+  user_id UUID NOT NULL REFERENCES "user" (id),
   live_quiz_session_id UUID NOT NULL REFERENCES live_quiz_session (id),
-  status TEXT NOT NULL,
   name TEXT,
   marks INT
 );

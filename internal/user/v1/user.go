@@ -11,6 +11,7 @@ import (
 // ---------- User related models ---------- //
 type User struct {
 	ID            uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	GoogleId      uuid.UUID      `json:"googleId" gorm:"column:googleId;type:uuid"`
 	Name          string         `json:"name" gorm:"column:name;type:text"`
 	Email         string         `json:"email" gorm:"column:email;type:text;unique"`
 	Password      string         `json:"password" gorm:"column:password;type:text"`
