@@ -556,3 +556,110 @@ func (r *repository) DeleteTextOptionHistory(ctx context.Context, id uuid.UUID) 
 
 	return nil
 }
+
+// Matching related repository methods
+func (r *repository) CreateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error) {
+	res := r.db.WithContext(ctx).Create(optionMatching)
+	if res.Error != nil {
+		return &MatchingOption{}, res.Error
+	}
+	return optionMatching, nil
+}
+
+func (r *repository) GetMachingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error) {
+	var optionMatching MatchingOption
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&optionMatching)
+	if res.Error != nil {
+		return &MatchingOption{}, res.Error
+	}
+	return &optionMatching, nil
+}
+
+func (r *repository) GetMatchingOptionByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error) {
+	var optionMatchings []MatchingOption
+	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&optionMatchings)
+	if res.Error != nil {
+		return []MatchingOption{}, res.Error
+	}
+	return optionMatchings, nil
+}
+
+func (r *repository) UpdateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error) {
+	res := r.db.WithContext(ctx).Save(optionMatching)
+	if res.Error != nil {
+		return &MatchingOption{}, res.Error
+	}
+	return optionMatching, nil
+}
+
+func (r *repository) DeleteMatchingOption(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&MatchingOption{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+
+func (r *repository) RestoreMatchingOption(ctx context.Context, id uuid.UUID) (*MatchingOption, error) {
+	var optionMatching MatchingOption
+	res := r.db.WithContext(ctx).Unscoped().First(&optionMatching, id)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	res = r.db.WithContext(ctx).Unscoped().Model(&optionMatching).Updates(MatchingOption{DeletedAt: gorm.DeletedAt{}})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &optionMatching, nil
+}
+
+func (r *repository) CreateMatchingOptionHistory(ctx context.Context, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error) {
+	res := r.db.WithContext(ctx).Create(optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return optionMatchingHistory, nil
+}
+
+func (r *repository) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistory, error) {
+	var optionMatchingHistory MatchingOptionHistory
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return &optionMatchingHistory, nil
+}
+
+func (r *repository) GetOptionMatchingHistories(ctx context.Context) ([]MatchingOptionHistory, error) {
+	var optionMatchingHistories []MatchingOptionHistory
+	res := r.db.WithContext(ctx).Find(&optionMatchingHistories)
+	if res.Error != nil {
+		return []MatchingOptionHistory{}, res.Error
+	}
+	return optionMatchingHistories, nil
+}
+
+func (r *repository) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistory, error) {
+	var optionMatchingHistories []MatchingOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&optionMatchingHistories)
+	if res.Error != nil {
+		return []MatchingOptionHistory{}, res.Error
+	}
+	return optionMatchingHistories, nil
+}
+
+func (r *repository) UpdateMatchingOptionHistory(ctx context.Context, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error) {
+	res := r.db.WithContext(ctx).Save(optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return optionMatchingHistory, nil
+}
+
+func (r *repository) DeleteMatchingOptionHistory(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&MatchingOptionHistory{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
