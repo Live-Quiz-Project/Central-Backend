@@ -8,4 +8,5 @@ const (
 	Questioning     = "QUESTIONING"
 	Answering       = "ANSWERING"
 	RevealingAnswer = "REVEALING_ANSWER"
+	Leaderboard     = "LEADERBOARD"
 )

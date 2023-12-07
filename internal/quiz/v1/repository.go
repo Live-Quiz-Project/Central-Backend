@@ -22,6 +22,7 @@ func (r *repository) CreateQuiz(ctx context.Context, quiz *Quiz) (*Quiz, error) 
 	if res.Error != nil {
 		return &Quiz{}, res.Error
 	}
+
 	return quiz, nil
 }
 
@@ -31,6 +32,7 @@ func (r *repository) GetQuizzesByUserID(ctx context.Context, uid uuid.UUID) ([]Q
 	if res.Error != nil {
 		return []Quiz{}, res.Error
 	}
+
 	return quizzes, nil
 }
 
@@ -40,6 +42,7 @@ func (r *repository) GetQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, erro
 	if res.Error != nil {
 		return &Quiz{}, res.Error
 	}
+
 	return &quiz, nil
 }
 
@@ -48,6 +51,7 @@ func (r *repository) UpdateQuiz(ctx context.Context, quiz *Quiz) (*Quiz, error) 
 	if res.Error != nil {
 		return &Quiz{}, res.Error
 	}
+
 	return quiz, nil
 }
 
@@ -56,6 +60,7 @@ func (r *repository) DeleteQuiz(ctx context.Context, id uuid.UUID) error {
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -65,10 +70,12 @@ func (r *repository) RestoreQuiz(ctx context.Context, id uuid.UUID) (*Quiz, erro
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	res = r.db.WithContext(ctx).Unscoped().Model(&quiz).Updates(Quiz{DeletedAt: gorm.DeletedAt{}})
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	return &quiz, nil
 }
 
@@ -77,6 +84,7 @@ func (r *repository) CreateQuizHistory(ctx context.Context, quizHistory *QuizHis
 	if res.Error != nil {
 		return &QuizHistory{}, res.Error
 	}
+
 	return quizHistory, nil
 }
 
@@ -86,6 +94,7 @@ func (r *repository) GetQuizHistories(ctx context.Context) ([]QuizHistory, error
 	if res.Error != nil {
 		return []QuizHistory{}, res.Error
 	}
+
 	return quizHistories, nil
 }
 
@@ -95,6 +104,7 @@ func (r *repository) GetQuizHistoryByID(ctx context.Context, id uuid.UUID) (*Qui
 	if res.Error != nil {
 		return &QuizHistory{}, res.Error
 	}
+
 	return &quizHistory, nil
 }
 
@@ -104,6 +114,7 @@ func (r *repository) GetQuizHistoriesByQuizID(ctx context.Context, quizID uuid.U
 	if res.Error != nil {
 		return []QuizHistory{}, res.Error
 	}
+
 	return quizHistories, nil
 }
 
@@ -113,6 +124,7 @@ func (r *repository) GetQuizHistoryByQuizIDAndCreatedDate(ctx context.Context, q
 	if res.Error != nil {
 		return &QuizHistory{}, res.Error
 	}
+
 	return &quizHistory, nil
 }
 
@@ -121,6 +133,7 @@ func (r *repository) UpdateQuizHistory(ctx context.Context, quizHistory *QuizHis
 	if res.Error != nil {
 		return &QuizHistory{}, res.Error
 	}
+
 	return quizHistory, nil
 }
 
@@ -129,6 +142,7 @@ func (r *repository) DeleteQuizHistory(ctx context.Context, id uuid.UUID) error 
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -138,6 +152,7 @@ func (r *repository) CreateQuestion(ctx context.Context, question *Question) (*Q
 	if res.Error != nil {
 		return &Question{}, res.Error
 	}
+
 	return question, nil
 }
 
@@ -147,6 +162,7 @@ func (r *repository) GetQuestions(ctx context.Context) ([]Question, error) {
 	if res.Error != nil {
 		return []Question{}, res.Error
 	}
+
 	return questions, nil
 }
 
@@ -156,6 +172,7 @@ func (r *repository) GetQuestionByID(ctx context.Context, id uuid.UUID) (*Questi
 	if res.Error != nil {
 		return &Question{}, res.Error
 	}
+
 	return &question, nil
 }
 
@@ -165,16 +182,28 @@ func (r *repository) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID)
 	if res.Error != nil {
 		return []Question{}, res.Error
 	}
+
 	return questions, nil
 }
 
-func (r *repository) GetQuestionByQuizID(ctx context.Context, quizID uuid.UUID, order int) (*Question, error) {
+func (r *repository) GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error) {
 	var question Question
-	res := r.db.WithContext(ctx).Where("quiz_id = ? AND order = ?", quizID, order).First(&question)
+	res := r.db.WithContext(ctx).Where(`quiz_id = ? AND "order" = ?`, quizID, order).First(&question)
 	if res.Error != nil {
 		return &Question{}, res.Error
 	}
+
 	return &question, nil
+}
+
+func (r *repository) GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error) {
+	var count int64
+	res := r.db.WithContext(ctx).Model(&Question{}).Where("quiz_id = ?", quizID).Count(&count)
+	if res.Error != nil {
+		return 0, res.Error
+	}
+
+	return int(count), nil
 }
 
 func (r *repository) UpdateQuestion(ctx context.Context, question *Question) (*Question, error) {
@@ -182,6 +211,7 @@ func (r *repository) UpdateQuestion(ctx context.Context, question *Question) (*Q
 	if res.Error != nil {
 		return &Question{}, res.Error
 	}
+
 	return question, nil
 }
 
@@ -190,6 +220,7 @@ func (r *repository) DeleteQuestion(ctx context.Context, id uuid.UUID) error {
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -199,10 +230,12 @@ func (r *repository) RestoreQuestion(ctx context.Context, id uuid.UUID) (*Questi
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	res = r.db.WithContext(ctx).Unscoped().Model(&question).Updates(Question{DeletedAt: gorm.DeletedAt{}})
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	return &question, nil
 }
 
@@ -211,6 +244,7 @@ func (r *repository) CreateQuestionHistory(ctx context.Context, questionHistory 
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}
+
 	return questionHistory, nil
 }
 
@@ -220,6 +254,7 @@ func (r *repository) GetQuestionHistories(ctx context.Context) ([]QuestionHistor
 	if res.Error != nil {
 		return []QuestionHistory{}, res.Error
 	}
+
 	return questionHistories, nil
 }
 
@@ -229,6 +264,7 @@ func (r *repository) GetQuestionHistoryByID(ctx context.Context, id uuid.UUID) (
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}
+
 	return &questionHistory, nil
 }
 
@@ -238,6 +274,7 @@ func (r *repository) GetQuestionHistoriesByQuestionID(ctx context.Context, quest
 	if res.Error != nil {
 		return []QuestionHistory{}, res.Error
 	}
+
 	return questionHistories, nil
 }
 
@@ -247,6 +284,7 @@ func (r *repository) GetQuestionHistoryByQuestionIDAndCreatedDate(ctx context.Co
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}
+
 	return &questionHistory, nil
 }
 
@@ -255,6 +293,7 @@ func (r *repository) UpdateQuestionHistory(ctx context.Context, questionHistory 
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}
+
 	return questionHistory, nil
 }
 
@@ -263,6 +302,7 @@ func (r *repository) DeleteQuestionHistory(ctx context.Context, id uuid.UUID) er
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -273,6 +313,7 @@ func (r *repository) CreateChoiceOption(ctx context.Context, optionChoice *Choic
 	if res.Error != nil {
 		return &ChoiceOption{}, res.Error
 	}
+
 	return optionChoice, nil
 }
 
@@ -282,6 +323,7 @@ func (r *repository) GetChoiceOptionByID(ctx context.Context, id uuid.UUID) (*Ch
 	if res.Error != nil {
 		return &ChoiceOption{}, res.Error
 	}
+
 	return &optionChoice, nil
 }
 
@@ -291,6 +333,17 @@ func (r *repository) GetChoiceOptionsByQuestionID(ctx context.Context, questionI
 	if res.Error != nil {
 		return []ChoiceOption{}, res.Error
 	}
+
+	return optionChoices, nil
+}
+
+func (r *repository) GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error) {
+	var optionChoices []ChoiceOption
+	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionChoices)
+	if res.Error != nil {
+		return []ChoiceOption{}, res.Error
+	}
+
 	return optionChoices, nil
 }
 
@@ -299,6 +352,7 @@ func (r *repository) UpdateChoiceOption(ctx context.Context, optionChoice *Choic
 	if res.Error != nil {
 		return &ChoiceOption{}, res.Error
 	}
+
 	return optionChoice, nil
 }
 
@@ -307,6 +361,7 @@ func (r *repository) DeleteChoiceOption(ctx context.Context, id uuid.UUID) error
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -316,10 +371,12 @@ func (r *repository) RestoreChoiceOption(ctx context.Context, id uuid.UUID) (*Ch
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	res = r.db.WithContext(ctx).Unscoped().Model(&optionChoice).Updates(ChoiceOption{DeletedAt: gorm.DeletedAt{}})
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	return &optionChoice, nil
 }
 
@@ -328,6 +385,7 @@ func (r *repository) CreateChoiceOptionHistory(ctx context.Context, optionChoice
 	if res.Error != nil {
 		return &ChoiceOptionHistory{}, res.Error
 	}
+
 	return optionChoiceHistory, nil
 }
 
@@ -337,6 +395,7 @@ func (r *repository) GetChoiceOptionHistoryByID(ctx context.Context, id uuid.UUI
 	if res.Error != nil {
 		return &ChoiceOptionHistory{}, res.Error
 	}
+
 	return &optionChoiceHistory, nil
 }
 
@@ -346,6 +405,7 @@ func (r *repository) GetOptionChoiceHistories(ctx context.Context) ([]ChoiceOpti
 	if res.Error != nil {
 		return []ChoiceOptionHistory{}, res.Error
 	}
+
 	return optionChoiceHistories, nil
 }
 
@@ -355,6 +415,7 @@ func (r *repository) GetChoiceOptionHistoriesByQuestionID(ctx context.Context, q
 	if res.Error != nil {
 		return []ChoiceOptionHistory{}, res.Error
 	}
+
 	return optionChoiceHistories, nil
 }
 
@@ -363,6 +424,7 @@ func (r *repository) UpdateChoiceOptionHistory(ctx context.Context, optionChoice
 	if res.Error != nil {
 		return &ChoiceOptionHistory{}, res.Error
 	}
+
 	return optionChoiceHistory, nil
 }
 
@@ -371,6 +433,7 @@ func (r *repository) DeleteChoiceOptionHistory(ctx context.Context, id uuid.UUID
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -380,6 +443,7 @@ func (r *repository) CreateTextOption(ctx context.Context, optionText *TextOptio
 	if res.Error != nil {
 		return &TextOption{}, res.Error
 	}
+
 	return optionText, nil
 }
 
@@ -389,6 +453,7 @@ func (r *repository) GetTextOptionByID(ctx context.Context, id uuid.UUID) (*Text
 	if res.Error != nil {
 		return &TextOption{}, res.Error
 	}
+
 	return &optionText, nil
 }
 
@@ -398,6 +463,17 @@ func (r *repository) GetTextOptionsByQuestionID(ctx context.Context, questionID 
 	if res.Error != nil {
 		return []TextOption{}, res.Error
 	}
+
+	return optionTexts, nil
+}
+
+func (r *repository) GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
+	var optionTexts []TextOption
+	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionTexts)
+	if res.Error != nil {
+		return []TextOption{}, res.Error
+	}
+
 	return optionTexts, nil
 }
 
@@ -406,6 +482,7 @@ func (r *repository) UpdateTextOption(ctx context.Context, optionText *TextOptio
 	if res.Error != nil {
 		return &TextOption{}, res.Error
 	}
+
 	return optionText, nil
 }
 
@@ -414,6 +491,7 @@ func (r *repository) DeleteTextOption(ctx context.Context, id uuid.UUID) error {
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }
 
@@ -423,10 +501,12 @@ func (r *repository) RestoreTextOption(ctx context.Context, id uuid.UUID) (*Text
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	res = r.db.WithContext(ctx).Unscoped().Model(&optionText).Updates(TextOption{DeletedAt: gorm.DeletedAt{}})
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	return &optionText, nil
 }
 
@@ -435,6 +515,7 @@ func (r *repository) CreateTextOptionHistory(ctx context.Context, optionTextHist
 	if res.Error != nil {
 		return &TextOptionHistory{}, res.Error
 	}
+
 	return optionTextHistory, nil
 }
 
@@ -444,6 +525,7 @@ func (r *repository) GetTextOptionHistoryByID(ctx context.Context, id uuid.UUID)
 	if res.Error != nil {
 		return &TextOptionHistory{}, res.Error
 	}
+
 	return &optionTextHistory, nil
 }
 
@@ -453,6 +535,7 @@ func (r *repository) GetTextOptionHistoriesByQuestionID(ctx context.Context, que
 	if res.Error != nil {
 		return []TextOptionHistory{}, res.Error
 	}
+
 	return optionTextHistories, nil
 }
 
@@ -461,6 +544,7 @@ func (r *repository) UpdateTextOptionHistory(ctx context.Context, optionTextHist
 	if res.Error != nil {
 		return &TextOptionHistory{}, res.Error
 	}
+
 	return optionTextHistory, nil
 }
 
@@ -469,5 +553,6 @@ func (r *repository) DeleteTextOptionHistory(ctx context.Context, id uuid.UUID) 
 	if res.Error != nil {
 		return res.Error
 	}
+
 	return nil
 }

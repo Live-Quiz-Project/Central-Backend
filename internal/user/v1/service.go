@@ -48,10 +48,10 @@ func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse,
 	}
 
 	return &LogInResponse{
-		ID:          u.ID,
-		Name:        u.Name,
-		Image:       u.Image,
-		AccessToken: accessToken,
+		ID:    u.ID,
+		Name:  u.Name,
+		Image: u.Image,
+		Token: accessToken,
 	}, refreshToken, nil
 }
 
@@ -109,7 +109,7 @@ func (s *service) CreateUser(ctx context.Context, req *CreateUserRequest) (*Crea
 			DisplayEmoji: r.DisplayEmoji,
 			DisplayColor: r.DisplayColor,
 		},
-		AccessToken: res.AccessToken,
+		AccessToken: res.Token,
 	}, refreshToken, nil
 }
 

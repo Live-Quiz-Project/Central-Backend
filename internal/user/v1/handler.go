@@ -38,23 +38,25 @@ func (h *Handler) LogIn(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("jwt", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
+	c.SetCookie("token", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
 	c.JSON(http.StatusOK, res)
 }
 
 func (h *Handler) LogOut(c *gin.Context) {
-	c.SetCookie("jwt", "", -1, "", "", false, true)
+	c.SetCookie("token", "", -1, "", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }
 
 func (h *Handler) RefreshToken(c *gin.Context) {
-	refreshToken, err := c.Cookie("jwt")
+	refreshToken, err := c.Cookie("token")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
+
+	// Check if the refresh token is valid
 
 	claims, err := util.DecodeToken(refreshToken, os.Getenv("REFRESH_TOKEN_SECRET"))
 	if err != nil {
@@ -72,8 +74,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("jwt", accessToken, 60*60*24, "/", os.Getenv("HOST"), false, true)
-	c.JSON(http.StatusOK, gin.H{"message": "Successfully refreshed token"})
+	c.JSON(http.StatusOK, gin.H{"token": accessToken})
 }
 
 func (h *Handler) DecodeToken(c *gin.Context) {
@@ -114,7 +115,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("jwt", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
+	c.SetCookie("token", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
 	c.JSON(http.StatusOK, res)
 }
 
