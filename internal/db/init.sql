@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   display_emoji TEXT,
   display_color TEXT,
   account_status TEXT,
+  google_id UUID,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -69,10 +70,6 @@ CREATE TABLE IF NOT EXISTS question_history (
   font_size INT,
   layout_idx INT,
   selected_up_to INT,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_choice (
   id UUID PRIMARY KEY NOT NULL,
@@ -95,10 +92,6 @@ CREATE TABLE IF NOT EXISTS option_choice_history (
   mark INT,
   color TEXT,
   correct BOOL,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_text (
   id UUID PRIMARY KEY NOT NULL,
@@ -119,10 +112,6 @@ CREATE TABLE IF NOT EXISTS option_text_history (
   content TEXT,
   mark INT,
   case_sensitive BOOL,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_matching (
   id UUID PRIMARY KEY NOT NULL,
@@ -141,10 +130,6 @@ CREATE TABLE IF NOT EXISTS option_matching_history (
   prompt_id UUID,
   option_id UUID,
   mark INT,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_matching_prompt (
   id UUID PRIMARY KEY NOT NULL,
@@ -161,10 +146,6 @@ CREATE TABLE IF NOT EXISTS option_matching_prompt_history (
   option_matching_id UUID NOT NULL REFERENCES option_matching_history (id),
   content TEXT,
   "order" INT,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_matching_option (
   id UUID PRIMARY KEY NOT NULL,
@@ -183,10 +164,6 @@ CREATE TABLE IF NOT EXISTS option_matching_option_history (
   content TEXT,
   "order" INT,
   eliminated BOOL,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS option_pin (
   id UUID PRIMARY KEY NOT NULL,
@@ -205,10 +182,6 @@ CREATE TABLE IF NOT EXISTS option_pin_history (
   x_axis INT,
   y_axis INT,
   mark INT,
-  created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
 );
 CREATE TABLE IF NOT EXISTS live_quiz_session (
   id UUID PRIMARY KEY NOT NULL,

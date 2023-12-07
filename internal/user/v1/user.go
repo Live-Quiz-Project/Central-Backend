@@ -58,10 +58,10 @@ type LogInRequest struct {
 	Password string `json:"password"`
 }
 type LogInResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Image       string    `json:"image"`
-	AccessToken string    `json:"accessToken"`
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Image string    `json:"image"`
+	Token string    `json:"token"`
 }
 type DecodeTokenRequest struct {
 	Token string `json:"token"`

@@ -7,8 +7,6 @@ import (
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/quiz"
 	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
-	"github.com/Live-Quiz-Project/Backend/internal/response"
-	res "github.com/Live-Quiz-Project/Backend/internal/response/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/user"
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/gin-contrib/cors"
@@ -17,13 +15,13 @@ import (
 
 var r *gin.Engine
 
-func Initialize(userHandler *u.Handler, quizHandler *q.Handler, responseHandler *res.Handler, liveHandler *l.Handler) {
+func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler) {
 	r = gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowHeaders:     []string{"Content-Type"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
@@ -36,7 +34,6 @@ func Initialize(userHandler *u.Handler, quizHandler *q.Handler, responseHandler 
 	user.UserRoutes(v1, userHandler)
 	quiz.QuizRoutes(v1, quizHandler)
 	live.LiveRoutes(v1, liveHandler)
-	response.ResponseRoutes(v1, responseHandler)
 }
 
 func Run(addr string) error {

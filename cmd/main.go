@@ -11,7 +11,6 @@ import (
 	"github.com/Live-Quiz-Project/Backend/internal/env"
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
 	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
-	r "github.com/Live-Quiz-Project/Backend/internal/response/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/router"
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 )
@@ -47,15 +46,12 @@ func main() {
 
 	hub := l.NewHub()
 	lRepo := l.NewRepository(dbConn.GetDB(), cacheConn.GetCache())
-	lServ := l.NewService(qRepo, lRepo)
-	liveHandler := l.NewHandler(hub, lServ)
+	lServ := l.NewService(lRepo)
 
-	rRepo := r.NewRepository(dbConn.GetDB())
-	rServ := r.NewService(lRepo, rRepo)
-	responseHandler := r.NewHandler(rServ)
+	liveHandler := l.NewHandler(hub, lServ, qServ)
 
 	go hub.Run()
-	router.Initialize(userHandler, quizHandler, responseHandler, liveHandler)
+	router.Initialize(userHandler, quizHandler, liveHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

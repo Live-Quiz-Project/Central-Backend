@@ -4,21 +4,18 @@ import (
 	"context"
 	"time"
 
-	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 )
 
 type service struct {
-	quiz q.Repository
 	Repository
 	timeout time.Duration
 }
 
-func NewService(qRepo q.Repository, lRepo Repository) Service {
+func NewService(r Repository) Service {
 	return &service{
-		quiz:       qRepo,
-		Repository: lRepo,
+		Repository: r,
 		timeout:    time.Duration(3) * time.Second,
 	}
 }
@@ -44,11 +41,6 @@ func (s *service) CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuiz
 	lqs := &LiveQuizSession{
 		Session: *sess,
 		Code:    code,
-	}
-
-	er := s.Repository.CreateLiveQuizSessionCache(c, lqs)
-	if er != nil {
-		return &CreateLiveQuizSessionResponse{}, er
 	}
 
 	return &CreateLiveQuizSessionResponse{
@@ -117,18 +109,6 @@ func (s *service) GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UU
 	}, nil
 }
 
-func (s *service) GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	lqs, err := s.Repository.GetLiveQuizSessionCache(c, code)
-	if err != nil {
-		return &Cache{}, err
-	}
-
-	return lqs, nil
-}
-
 func (s *service) UpdateLiveQuizSession(ctx context.Context, req *UpdateLiveQuizSessionRequest, id uuid.UUID) (*LiveQuizSessionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -176,23 +156,95 @@ func (s *service) DeleteLiveQuizSession(ctx context.Context, id uuid.UUID) error
 	return nil
 }
 
-func (s *service) GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*q.Question, error) {
+func (s *service) CreateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	ques, err := s.quiz.GetQuestionByQuizID(c, quizID, order)
+	err := s.Repository.CreateLiveQuizSessionCache(c, code, cache)
 	if err != nil {
-		return &q.Question{}, err
+		return err
 	}
 
-	return ques, nil
+	return nil
 }
 
-func (s *service) CreateLiveQuizSessionCache(ctx context.Context, lqs *LiveQuizSession) error {
+func (s *service) GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.CreateLiveQuizSessionCache(c, lqs)
+	lqs, err := s.Repository.GetLiveQuizSessionCache(c, code)
+	if err != nil {
+		return &Cache{}, err
+	}
+
+	return lqs, nil
+}
+
+func (s *service) UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.UpdateLiveQuizSessionCache(c, code, cache)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) FlushLiveQuizSessionCache(ctx context.Context, code string) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.FlushLiveQuizSessionCache(c, code)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) CreateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.CreateLiveQuizSessionResponseCache(c, code, response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) GetLiveQuizSessionResponseCache(ctx context.Context, code string) (any, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	res, err := s.Repository.GetLiveQuizSessionResponseCache(c, code)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (s *service) UpdateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.UpdateLiveQuizSessionResponseCache(c, code, response)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) FlushLiveQuizSessionResponseCache(ctx context.Context, code string) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.FlushLiveQuizSessionResponseCache(c, code)
 	if err != nil {
 		return err
 	}
@@ -227,11 +279,11 @@ func (s *service) GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID 
 	}, nil
 }
 
-func (s *service) DoesParticipantExists(ctx context.Context, userID uuid.UUID) (bool, error) {
+func (s *service) DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	exists, err := s.Repository.DoesParticipantExists(c, userID)
+	exists, err := s.Repository.DoesParticipantExists(c, uid, lqsID)
 	if err != nil {
 		return false, err
 	}
@@ -239,14 +291,109 @@ func (s *service) DoesParticipantExists(ctx context.Context, userID uuid.UUID) (
 	return exists, nil
 }
 
-func (s *service) UpdateParticipantStatus(ctx context.Context, userID uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error) {
+func (s *service) UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	p, err := s.Repository.UpdateParticipantStatus(c, userID, lqsID, status)
+	p, err := s.Repository.UpdateParticipantStatus(c, uid, lqsID, status)
 	if err != nil {
 		return &Participant{}, err
 	}
 
 	return p, nil
+}
+
+func (s *service) UnregisterParticipants(ctx context.Context, lqsID uuid.UUID) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	err := s.Repository.UnregisterParticipants(c, lqsID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ---------- Response related service methods ---------- //
+// Choice response related methods
+func (s *service) CreateChoiceResponse(ctx context.Context, req *CreateChoiceResponseRequest, uid uuid.UUID) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	cr := &ChoiceResponse{
+		ID:             uuid.New(),
+		ParticipantID:  uid,
+		OptionChoiceID: req.OptionChoiceID,
+	}
+
+	_, err := s.Repository.CreateChoiceResponse(c, cr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponseResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	choiceResponses, err := s.Repository.GetChoiceResponsesByParticipantID(c, participantID)
+	if err != nil {
+		return []ChoiceResponseResponse{}, err
+	}
+
+	var choiceResponsesRes []ChoiceResponseResponse
+	for _, cr := range choiceResponses {
+		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
+	}
+
+	return choiceResponsesRes, nil
+}
+
+func (s *service) GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponseResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	choiceResponses, err := s.Repository.GetChoiceResponsesByQuizID(c, quizID)
+	if err != nil {
+		return []ChoiceResponseResponse{}, err
+	}
+
+	var choiceResponsesRes []ChoiceResponseResponse
+	for _, cr := range choiceResponses {
+		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
+	}
+
+	return choiceResponsesRes, nil
+}
+
+func (s *service) GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponseResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	choiceResponses, err := s.Repository.GetChoiceResponsesByQuestionID(c, questionID)
+	if err != nil {
+		return []ChoiceResponseResponse{}, err
+	}
+
+	var choiceResponsesRes []ChoiceResponseResponse
+	for _, cr := range choiceResponses {
+		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
+	}
+
+	return choiceResponsesRes, nil
+}
+
+func (s *service) GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponseResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	cr, err := s.Repository.GetChoiceResponseByParticipantIDAndQuestionID(c, participantID, questionID)
+	if err != nil {
+		return &ChoiceResponseResponse{}, err
+	}
+
+	return &ChoiceResponseResponse{ChoiceResponse: *cr}, nil
 }
