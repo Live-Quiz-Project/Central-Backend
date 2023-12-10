@@ -227,6 +227,60 @@ func (s *service) DeleteUser(ctx context.Context, uid uuid.UUID) error {
 	return nil
 }
 
+func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*User, error) {
+	// Verify the Google ID token and extract user info
+	tokenInfo, err := util.VerifyGoogleIDToken(idToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to find the user by Google ID
+	user, err := s.Repository.GetUserByGoogleID(ctx, tokenInfo.GoogleID)
+	if err != nil {
+		return nil, err // Handle the error appropriately
+	}
+
+	// If the user doesn't exist, create a new one
+	if user == nil {
+		formattedName := util.AbbreviateName(tokenInfo.Name)
+
+		newUser := &User{
+			ID:            uuid.New(),
+			GoogleId:      tokenInfo.GoogleID,
+			Name:          tokenInfo.Name,
+			Email:         tokenInfo.Email,
+			Image:         "default.png", // You might want to use the profile picture from Google
+			DisplayName:   formattedName,
+			DisplayEmoji:  util.SmileyFace,
+			DisplayColor:  util.Gray,
+			AccountStatus: util.Active,
+		}
+
+		// Check again before inserting to avoid duplicate key error
+		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
+		if err != nil {
+			return nil, err // Handle the error appropriately
+		}
+
+		if existingUser == nil {
+			user, err = s.Repository.CreateUser(ctx, newUser)
+			if err != nil {
+				return nil, err // Handle the error appropriately
+			}
+		} else {
+			// If the user was created by another concurrent request, use the existing user
+			user = existingUser
+		}
+	}
+
+	// Generate JWT token for the user
+	// jwtToken := ... your logic to generate JWT ...
+
+	// Optionally, you might want to return more than just the User struct,
+	// for example, a struct that includes both the user info and the JWT token.
+	return user, nil
+}
+
 // ---------- Admin related service methods ---------- //
 func (s *service) RestoreUser(ctx context.Context, uid uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)

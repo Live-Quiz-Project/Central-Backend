@@ -247,6 +247,24 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GoogleSignIn(c *gin.Context) {
+	var request struct {
+		Token string `json:"token"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userResponse, err := h.Service.GoogleSignIn(c.Request.Context(), request.Token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, userResponse)
+}
+
 // ---------- Admin related handlers ---------- //
 func (h *Handler) RestoreUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))

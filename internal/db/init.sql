@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "user" (
   id UUID PRIMARY KEY NOT NULL,
-  googleId UUID,
+  google_id TEXT UNIQUE,
   name TEXT,
   email TEXT UNIQUE,
   password TEXT,

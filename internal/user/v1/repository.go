@@ -87,6 +87,18 @@ func (r *repository) RestoreUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (r *repository) GetUserByGoogleID(ctx context.Context, googleId string) (*User, error) {
+	var user User
+	res := r.db.WithContext(ctx).Where("google_id = ?", googleId).First(&user)
+	if res.Error != nil {
+		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, res.Error
+	}
+	return &user, nil
+}
+
 // ---------- Admin related repository methods ---------- //
 func (r *repository) CreateAdmin(ctx context.Context, admin *Admin) (*Admin, error) {
 	res := r.db.WithContext(ctx).Create(admin)
