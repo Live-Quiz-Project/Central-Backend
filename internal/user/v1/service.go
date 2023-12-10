@@ -227,17 +227,16 @@ func (s *service) DeleteUser(ctx context.Context, uid uuid.UUID) error {
 	return nil
 }
 
-func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*User, error) {
+func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInResponse, string, error) {
 	// Verify the Google ID token and extract user info
 	tokenInfo, err := util.VerifyGoogleIDToken(idToken)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	// Try to find the user by Google ID
 	user, err := s.Repository.GetUserByGoogleID(ctx, tokenInfo.GoogleID)
 	if err != nil {
-		return nil, err // Handle the error appropriately
+		return nil, "", err
 	}
 
 	// If the user doesn't exist, create a new one
@@ -249,7 +248,7 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*User, erro
 			GoogleId:      tokenInfo.GoogleID,
 			Name:          tokenInfo.Name,
 			Email:         tokenInfo.Email,
-			Image:         "default.png", // You might want to use the profile picture from Google
+			Image:         "default.png",
 			DisplayName:   formattedName,
 			DisplayEmoji:  util.SmileyFace,
 			DisplayColor:  util.Gray,
@@ -259,13 +258,13 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*User, erro
 		// Check again before inserting to avoid duplicate key error
 		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
 		if err != nil {
-			return nil, err // Handle the error appropriately
+			return nil, "", err
 		}
 
 		if existingUser == nil {
 			user, err = s.Repository.CreateUser(ctx, newUser)
 			if err != nil {
-				return nil, err // Handle the error appropriately
+				return nil, "", err
 			}
 		} else {
 			// If the user was created by another concurrent request, use the existing user
@@ -273,12 +272,24 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*User, erro
 		}
 	}
 
+	accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
+	refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
 	// Generate JWT token for the user
 	// jwtToken := ... your logic to generate JWT ...
-
-	// Optionally, you might want to return more than just the User struct,
-	// for example, a struct that includes both the user info and the JWT token.
-	return user, nil
+	return &LogInResponse{
+		ID:          user.ID,
+		Name:        user.Name,
+		Image:       user.Image,
+		AccessToken: accessToken,
+	}, refreshToken, nil
 }
 
 // ---------- Admin related service methods ---------- //

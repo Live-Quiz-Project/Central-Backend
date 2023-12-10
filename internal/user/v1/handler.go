@@ -256,13 +256,17 @@ func (h *Handler) GoogleSignIn(c *gin.Context) {
 		return
 	}
 
-	userResponse, err := h.Service.GoogleSignIn(c.Request.Context(), request.Token)
+	userResponse, refreshToken, err := h.Service.GoogleSignIn(c.Request.Context(), request.Token)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, userResponse)
+	c.SetCookie("jwt", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
+	c.JSON(http.StatusOK, gin.H{
+		"user":          userResponse,
+		"refresh_token": refreshToken,
+	})
 }
 
 // ---------- Admin related handlers ---------- //

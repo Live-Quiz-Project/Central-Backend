@@ -111,7 +111,7 @@ type Service interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponse, error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, id uuid.UUID) (*UserResponse, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
-	GoogleSignIn(context.Context, string) (*User, error)
+	GoogleSignIn(context.Context, string) (*LogInResponse, string, error)
 
 	// ---------- Admin related service methods ---------- //
 	RestoreUser(ctx context.Context, id uuid.UUID) error
