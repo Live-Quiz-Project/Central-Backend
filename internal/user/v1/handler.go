@@ -263,10 +263,7 @@ func (h *Handler) GoogleSignIn(c *gin.Context) {
 	}
 
 	c.SetCookie("jwt", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
-	c.JSON(http.StatusOK, gin.H{
-		"user":          userResponse,
-		"refresh_token": refreshToken,
-	})
+	c.JSON(http.StatusOK, userResponse)
 }
 
 // ---------- Admin related handlers ---------- //

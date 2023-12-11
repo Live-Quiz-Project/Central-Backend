@@ -282,8 +282,6 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 		return &LogInResponse{}, "", err
 	}
 
-	// Generate JWT token for the user
-	// jwtToken := ... your logic to generate JWT ...
 	return &LogInResponse{
 		ID:          user.ID,
 		Name:        user.Name,
