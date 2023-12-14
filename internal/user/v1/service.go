@@ -239,7 +239,6 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 		return nil, "", err
 	}
 
-	// If the user doesn't exist, create a new one
 	if user == nil {
 		formattedName := util.AbbreviateName(tokenInfo.Name)
 
@@ -255,7 +254,6 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 			AccountStatus: util.Active,
 		}
 
-		// Check again before inserting to avoid duplicate key error
 		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
 		if err != nil {
 			return nil, "", err
@@ -267,7 +265,6 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 				return nil, "", err
 			}
 		} else {
-			// If the user was created by another concurrent request, use the existing user
 			user = existingUser
 		}
 	}
