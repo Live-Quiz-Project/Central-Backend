@@ -280,10 +280,10 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 	}
 
 	return &LogInResponse{
-		ID:          user.ID,
-		Name:        user.Name,
-		Image:       user.Image,
-		AccessToken: accessToken,
+		ID:    user.ID,
+		Name:  user.Name,
+		Image: user.Image,
+		Token: accessToken,
 	}, refreshToken, nil
 }
 
