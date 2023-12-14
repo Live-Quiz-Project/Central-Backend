@@ -9,7 +9,7 @@ import (
 func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.POST("/login", h.LogIn)
 	r.GET("/logout", h.LogOut)
-	r.POST("/refresh", h.RefreshToken)
+	r.GET("/refresh", h.RefreshToken)
 	r.POST("/decode", h.DecodeToken)
 	r.POST("/google-signin", h.GoogleSignIn)
 

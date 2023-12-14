@@ -32,37 +32,21 @@ func (h *Hub) Run() {
 				}
 			}
 		case cl := <-h.Unregister:
-			if cl.IsHost {
-				h.Broadcast <- &Message{
-					Content: Content{
-						Type:    util.EndLQS,
-						Payload: "Host has left the session.",
-					},
-					LiveQuizSessionID: cl.LiveQuizSessionID,
-					UserID:            cl.ID,
-				}
-				if _, ok := h.LiveQuizSessions[cl.LiveQuizSessionID]; ok {
+			if _, ok := h.LiveQuizSessions[cl.LiveQuizSessionID]; ok {
+				if _, ok := h.LiveQuizSessions[cl.LiveQuizSessionID].Clients[cl.ID]; ok {
+					if len(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients) != 0 {
+						h.Broadcast <- &Message{
+							Content: Content{
+								Type:    util.LeftLQS,
+								Payload: nil,
+							},
+							LiveQuizSessionID: cl.LiveQuizSessionID,
+							UserID:            cl.ID,
+						}
+					}
 					delete(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients, cl.ID)
 					close(cl.Message)
 					cl.Conn.Close()
-				}
-			} else {
-				if _, ok := h.LiveQuizSessions[cl.LiveQuizSessionID]; ok {
-					if _, ok := h.LiveQuizSessions[cl.LiveQuizSessionID].Clients[cl.ID]; ok {
-						if len(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients) != 0 {
-							h.Broadcast <- &Message{
-								Content: Content{
-									Type:    util.LeftLQS,
-									Payload: nil,
-								},
-								LiveQuizSessionID: cl.LiveQuizSessionID,
-								UserID:            cl.ID,
-							}
-						}
-						delete(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients, cl.ID)
-						close(cl.Message)
-						cl.Conn.Close()
-					}
 				}
 			}
 		case m := <-h.Broadcast:

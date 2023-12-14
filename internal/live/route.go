@@ -7,6 +7,8 @@ import (
 )
 
 func LiveRoutes(r *gin.RouterGroup, h *l.Handler) {
+	r.GET("live/join/:code", h.JoinLiveQuizSession)
+
 	liveR := r.Group("/live")
 	liveR.Use(middleware.UserRequiredAuthentication)
 	liveR.POST("", h.CreateLiveQuizSession)
@@ -16,8 +18,6 @@ func LiveRoutes(r *gin.RouterGroup, h *l.Handler) {
 	// liveR.DELETE("/:id", h.DeleteLiveQuizSession)
 	liveR.GET("/:id/end", h.EndLiveQuizSession)
 	liveR.GET("/:id/check", h.CheckLiveQuizSessionAvailability)
-	liveR.GET("/host", h.GetHost)
-	liveR.GET("/participants", h.GetParticipants)
-
-	r.GET("live/join/:code", h.JoinLiveQuizSession)
+	liveR.GET("/:id/host", h.GetHost)
+	liveR.GET("/:id/participants", h.GetParticipants)
 }

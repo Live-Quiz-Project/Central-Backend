@@ -310,7 +310,8 @@ type Repository interface {
 	GetQuestions(ctx context.Context) ([]Question, error)
 	GetQuestionByID(ctx context.Context, id uuid.UUID) (*Question, error)
 	GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error)
-	GetQuestionByQuizID(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
+	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
+	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, question *Question) (*Question, error)
 	DeleteQuestion(ctx context.Context, id uuid.UUID) error
 	RestoreQuestion(ctx context.Context, id uuid.UUID) (*Question, error)
@@ -327,6 +328,7 @@ type Repository interface {
 	CreateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
 	GetChoiceOptionByID(ctx context.Context, id uuid.UUID) (*ChoiceOption, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
+	GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
 	UpdateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
 	DeleteChoiceOption(ctx context.Context, id uuid.UUID) error
 	RestoreChoiceOption(ctx context.Context, id uuid.UUID) (*ChoiceOption, error)
@@ -340,6 +342,7 @@ type Repository interface {
 	CreateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
 	GetTextOptionByID(ctx context.Context, id uuid.UUID) (*TextOption, error)
 	GetTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
+	GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	UpdateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
 	DeleteTextOption(ctx context.Context, id uuid.UUID) error
 	RestoreTextOption(ctx context.Context, id uuid.UUID) (*TextOption, error)
@@ -488,6 +491,8 @@ type Service interface {
 	// ---------- Question related service methods ---------- //
 	CreateQuestion(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
 	GetQuestionsByQuizID(ctx context.Context, id uuid.UUID) ([]QuestionResponse, error)
+	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
+	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
 	DeleteQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
@@ -496,6 +501,7 @@ type Service interface {
 	// Choice related service methods
 	CreateChoiceOption(ctx context.Context, req *CreateChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
+	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
 	UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptionRequest, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
 	DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
@@ -503,6 +509,7 @@ type Service interface {
 	// Text related service methods
 	CreateTextOption(ctx context.Context, req *CreateTextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
+	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	UpdateTextOption(ctx context.Context, req *UpdateTextOptionRequest, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
 	DeleteTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)

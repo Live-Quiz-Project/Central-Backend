@@ -331,6 +331,30 @@ func (s *service) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([
 	return res, nil
 }
 
+func (s *service) GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	ques, err := s.Repository.GetQuestionByQuizIDAndOrder(c, quizID, order)
+	if err != nil {
+		return &Question{}, err
+	}
+
+	return ques, nil
+}
+
+func (s *service) GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	count, err := s.Repository.GetQuestionCountByQuizID(c, quizID)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -594,6 +618,31 @@ func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID u
 	return res, nil
 }
 
+func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionChoices, err := s.Repository.GetChoiceAnswersByQuestionID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []ChoiceOptioneResponse
+	for _, oc := range optionChoices {
+		res = append(res, ChoiceOptioneResponse{
+			ID:         oc.ID,
+			QuestionID: oc.QuestionID,
+			Order:      oc.Order,
+			Content:    oc.Content,
+			Mark:       oc.Mark,
+			Color:      oc.Color,
+			Correct:    oc.Correct,
+		})
+	}
+
+	return res, nil
+}
+
 func (s *service) UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptionRequest, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -780,6 +829,30 @@ func (s *service) GetTextOptionsByQuestionID(ctx context.Context, questionID uui
 	defer cancel()
 
 	optionTexts, err := s.Repository.GetTextOptionsByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []TextOptionResponse
+	for _, ot := range optionTexts {
+		res = append(res, TextOptionResponse{
+			ID:            ot.ID,
+			QuestionID:    ot.QuestionID,
+			Order:         ot.Order,
+			Content:       ot.Content,
+			Mark:          ot.Mark,
+			CaseSensitive: ot.CaseSensitive,
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionTexts, err := s.Repository.GetTextAnswersByQuestionID(c, id)
 	if err != nil {
 		return nil, err
 	}

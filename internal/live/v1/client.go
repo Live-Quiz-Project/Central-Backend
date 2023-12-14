@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
@@ -50,19 +51,35 @@ func (c *Client) writeMessage() {
 
 func (c *Client) readMessage(h *Handler) {
 	defer func() {
-		h.hub.Unregister <- c
+		if c.IsHost {
+			h.hub.Broadcast <- &Message{
+				Content: Content{
+					Type:    util.EndLQS,
+					Payload: "Host has left the session.",
+				},
+				LiveQuizSessionID: c.LiveQuizSessionID,
+				UserID:            c.ID,
+			}
+			h.UnregisterParticipants(c)
+		} else {
+			_, err := h.Service.UpdateParticipantStatus(context.Background(), c.ID, c.LiveQuizSessionID, util.LeftLQS)
+			if err != nil {
+				log.Printf("Error occured: %v", err)
+			}
+			h.hub.Unregister <- c
+		}
 		c.Conn.Close()
 	}()
 
 	for {
 		_, m, err := c.Conn.ReadMessage()
+
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("Error occured: %v", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("Error occured: %v from isHost:%v", err, c.IsHost)
 				break
 			}
 		}
-		log.Printf("Message received: %s", m)
 
 		var mstr Content
 		if err := json.Unmarshal(m, &mstr); err != nil {
@@ -73,16 +90,14 @@ func (c *Client) readMessage(h *Handler) {
 		switch mstr.Type {
 		case util.JoinedLQS, util.LeftLQS:
 			h.SendMessage(c, mstr)
-		// case util.StartLQS:
-		// 	h.startLiveQuizSession(c, mstr.Payload)
-		// case util.DistQuestion:
-		// 	h.distributeQuestion(mstr.Payload, false)
-		// case util.NextQuestion:
-		// 	h.distributeQuestion(mstr.Payload, true)
-		// case util.DistOptions:
-		// 	h.distributeOptions(mstr.Payload, "1", "choice")
-		// case util.RevealAnswer:
-		// 	h.revealAnswer(mstr.Payload, "1", "choice")
+		case util.StartLQS:
+			h.StartLiveQuizSession(c.LiveQuizSessionID)
+		case util.DistQuestion, util.NextQuestion:
+			h.DistributeQuestion(c.LiveQuizSessionID)
+		case util.DistOptions:
+			h.DistributeOptions(c.LiveQuizSessionID)
+		case util.RevealAnswer:
+			h.RevealAnswer(c.LiveQuizSessionID)
 		default:
 			h.SendMessage(c, mstr)
 		}
