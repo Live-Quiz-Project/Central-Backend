@@ -25,7 +25,7 @@ func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.H
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
-			return origin == "http://localhost:5173" || origin == "http://localhost:5174" || origin == "http://localhost:3000"
+			return origin == "http://localhost:5173" || origin == "http://localhost:5174" || origin == "http://localhost:3000" || origin == "http://127.0.0.1:5173"
 		},
 		MaxAge: 12 * time.Hour,
 	}))

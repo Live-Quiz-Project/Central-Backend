@@ -11,6 +11,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.GET("/logout", h.LogOut)
 	r.GET("/refresh", h.RefreshToken)
 	r.POST("/decode", h.DecodeToken)
+	r.POST("/google-signin", h.GoogleSignIn)
 
 	userR := r.Group("/users")
 	userR.POST("", h.CreateUser)

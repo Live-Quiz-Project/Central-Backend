@@ -11,6 +11,7 @@ import (
 // ---------- User related models ---------- //
 type User struct {
 	ID            uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	GoogleId      string         `json:"googleId" gorm:"column:google_id;type:text"`
 	Name          string         `json:"name" gorm:"column:name;type:text"`
 	Email         string         `json:"email" gorm:"column:email;type:text;unique"`
 	Password      string         `json:"password" gorm:"column:password;type:text"`
@@ -47,6 +48,7 @@ type Repository interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	UpdateUser(ctx context.Context, user *User) (*User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetUserByGoogleID(ctx context.Context, googleId string) (*User, error)
 
 	// ---------- Admin related repository methods ---------- //
 	RestoreUser(ctx context.Context, id uuid.UUID) error
@@ -109,6 +111,7 @@ type Service interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponse, error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, id uuid.UUID) (*UserResponse, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GoogleSignIn(context.Context, string) (*LogInResponse, string, error)
 
 	// ---------- Admin related service methods ---------- //
 	RestoreUser(ctx context.Context, id uuid.UUID) error

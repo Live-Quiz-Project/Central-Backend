@@ -227,6 +227,66 @@ func (s *service) DeleteUser(ctx context.Context, uid uuid.UUID) error {
 	return nil
 }
 
+func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInResponse, string, error) {
+	// Verify the Google ID token and extract user info
+	tokenInfo, err := util.VerifyGoogleIDToken(idToken)
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := s.Repository.GetUserByGoogleID(ctx, tokenInfo.GoogleID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if user == nil {
+		formattedName := util.AbbreviateName(tokenInfo.Name)
+
+		newUser := &User{
+			ID:            uuid.New(),
+			GoogleId:      tokenInfo.GoogleID,
+			Name:          tokenInfo.Name,
+			Email:         tokenInfo.Email,
+			Image:         "default.png",
+			DisplayName:   formattedName,
+			DisplayEmoji:  util.SmileyFace,
+			DisplayColor:  util.Gray,
+			AccountStatus: util.Active,
+		}
+
+		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if existingUser == nil {
+			user, err = s.Repository.CreateUser(ctx, newUser)
+			if err != nil {
+				return nil, "", err
+			}
+		} else {
+			user = existingUser
+		}
+	}
+
+	accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
+	refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
+	return &LogInResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Image: user.Image,
+		Token: accessToken,
+	}, refreshToken, nil
+}
+
 // ---------- Admin related service methods ---------- //
 func (s *service) RestoreUser(ctx context.Context, uid uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
