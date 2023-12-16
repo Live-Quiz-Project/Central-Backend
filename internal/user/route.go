@@ -20,6 +20,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	userR.GET("/:id", h.GetUserByID)
 	userR.PATCH("/:id", h.UpdateUser)
 	userR.DELETE("/:id", h.DeleteUser)
+	userR.PATCH("/reset-password/:id", h.ChangePassword)
 
 	admin := r.Group("/admin")
 	admin.GET("/restore/:id", h.RestoreUser)

@@ -248,6 +248,44 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	})
 }
 
+func (h *Handler) ChangePassword(c *gin.Context) {
+	var request struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.NewPassword != request.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New password and confirm password do not match"})
+		return
+	}
+
+	if err := h.Service.VerifyPassword(c.Request.Context(), id, request.CurrentPassword); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
+		return
+	}
+
+	if err := h.Service.ChangePassword(c.Request.Context(), id, request.NewPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
 func (h *Handler) GoogleSignIn(c *gin.Context) {
 	var request struct {
 		Token string `json:"token"`

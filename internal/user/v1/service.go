@@ -8,6 +8,7 @@ import (
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -222,6 +223,27 @@ func (s *service) DeleteUser(ctx context.Context, uid uuid.UUID) error {
 	err := s.Repository.DeleteUser(c, uid)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *service) ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	return s.Repository.ChangePassword(ctx, id, newPassword)
+}
+
+func (s *service) VerifyPassword(ctx context.Context, userID uuid.UUID, currentPassword string) error {
+	user, err := s.Repository.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+		return errors.New("incorrect password")
 	}
 
 	return nil
