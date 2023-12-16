@@ -165,6 +165,22 @@ func (s *service) GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponse,
 	}, nil
 }
 
+func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	user, err := s.Repository.GetUserByEmail(c, email)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	return user, err
+}
+
 func (s *service) UpdateUser(ctx context.Context, req *UpdateUserRequest, uid uuid.UUID) (*UserResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()

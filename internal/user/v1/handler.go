@@ -305,6 +305,41 @@ func (h *Handler) GoogleSignIn(c *gin.Context) {
 	c.JSON(http.StatusOK, userResponse)
 }
 
+func (h *Handler) SendConfirmationCode(c *gin.Context) {
+	var request struct {
+		Email string `json:"email"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.Service.GetUserByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	confirmationCode, err := util.GenerateConfirmationCode()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := util.SendConfirmationCode(request.Email, confirmationCode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Confirmation code sent successfully"})
+}
+
 // ---------- Admin related handlers ---------- //
 func (h *Handler) RestoreUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
