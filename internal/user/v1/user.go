@@ -49,6 +49,7 @@ type Repository interface {
 	UpdateUser(ctx context.Context, user *User) (*User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetUserByGoogleID(ctx context.Context, googleId string) (*User, error)
+	ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error
 
 	// ---------- Admin related repository methods ---------- //
 	RestoreUser(ctx context.Context, id uuid.UUID) error
@@ -112,6 +113,8 @@ type Service interface {
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, id uuid.UUID) (*UserResponse, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GoogleSignIn(context.Context, string) (*LogInResponse, string, error)
+	ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error
+	VerifyPassword(ctx context.Context, userID uuid.UUID, currentPassword string) error
 
 	// ---------- Admin related service methods ---------- //
 	RestoreUser(ctx context.Context, id uuid.UUID) error

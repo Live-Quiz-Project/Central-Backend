@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -84,6 +85,27 @@ func (r *repository) RestoreUser(ctx context.Context, id uuid.UUID) error {
 	if res.Error != nil {
 		return res.Error
 	}
+	return nil
+}
+
+func (r *repository) ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	var user User
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&user)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	hashedPassword, err := util.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	res = r.db.WithContext(ctx).Save(&user)
+	if res.Error != nil {
+		return res.Error
+	}
+
 	return nil
 }
 
