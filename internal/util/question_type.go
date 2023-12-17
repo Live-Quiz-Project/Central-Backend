@@ -7,5 +7,4 @@ const (
 	Paragraph = "PARAGRAPH"
 	ShortText = "SHORT_TEXT"
 	Matching  = "MATCHING"
-	Pin       = "PIN"
 )

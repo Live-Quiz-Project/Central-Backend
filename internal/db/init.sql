@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS quiz (
   title TEXT DEFAULT 'Untitled',
   description TEXT,
   cover_image TEXT,
+  visibility TEXT,
+  time_limit INT,
+  have_time_factor BOOLEAN,
+  time_factor INT,
+  font_size INT,
+  mark INT,
+  select_up_to INT,
+  case_sensitive BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -30,10 +38,17 @@ CREATE TABLE IF NOT EXISTS quiz_history (
   title TEXT DEFAULT 'Untitled',
   description TEXT,
   cover_image TEXT,
+  visibility TEXT,
+  time_limit INT,
+  have_time_factor BOOLEAN,
+  time_factor INT,
+  font_size INT,
+  mark INT,
+  select_up_to INT,
+  case_sensitive BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ,
-  deleted BOOL DEFAULT FALSE,
-  updated_by UUID NOT NULL REFERENCES "user" (id)
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS question_pool (
   id UUID PRIMARY KEY NOT NULL,
@@ -42,9 +57,10 @@ CREATE TABLE IF NOT EXISTS question_pool (
   note TEXT,
   media TEXT,
   time_limit INT,
-  have_time_factor BOOL,
+  have_time_factor BOOLEAN,
   time_factor INT,
   font_size INT,
+  mark INT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -52,15 +68,17 @@ CREATE TABLE IF NOT EXISTS question_pool (
 CREATE TABLE IF NOT EXISTS question_pool_history (
   id UUID PRIMARY KEY NOT NULL,
   question_pool_id UUID NOT NULL REFERENCES question_pool (id),
-  quiz_id UUID NOT NULL REFERENCES quiz (id),
+  quiz_id UUID NOT NULL REFERENCES quiz_history (id),
   content TEXT,
   note TEXT,
   media TEXT,
   time_limit INT,
-  have_time_factor BOOL,
+  have_time_factor BOOLEAN,
   time_factor INT,
   font_size INT,
-  layout_idx INT
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS question (
   id UUID PRIMARY KEY NOT NULL,
@@ -71,12 +89,13 @@ CREATE TABLE IF NOT EXISTS question (
   content TEXT,
   note TEXT,
   media TEXT,
+  use_template BOOLEAN,
   time_limit INT,
-  have_time_factor BOOL,
+  have_time_factor BOOLEAN,
   time_factor INT,
   font_size INT,
   layout_idx INT,
-  selected_up_to INT,
+  select_up_to INT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -91,12 +110,16 @@ CREATE TABLE IF NOT EXISTS question_history (
   content TEXT,
   note TEXT,
   media TEXT,
+  use_template BOOLEAN,
   time_limit INT,
-  have_time_factor BOOL,
+  have_time_factor BOOLEAN,
   time_factor INT,
   font_size INT,
   layout_idx INT,
-  selected_up_to INT
+  select_up_to INT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS option_choice (
   id UUID PRIMARY KEY NOT NULL,
@@ -105,7 +128,7 @@ CREATE TABLE IF NOT EXISTS option_choice (
   content TEXT,
   mark INT,
   color TEXT,
-  correct BOOL,
+  correct BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -118,7 +141,10 @@ CREATE TABLE IF NOT EXISTS option_choice_history (
   content TEXT,
   mark INT,
   color TEXT,
-  correct BOOL
+  correct BOOLEAN,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS option_text (
   id UUID PRIMARY KEY NOT NULL,
@@ -126,7 +152,7 @@ CREATE TABLE IF NOT EXISTS option_text (
   "order" INT,
   content TEXT,
   mark INT,
-  case_sensitive BOOL,
+  case_sensitive BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -138,13 +164,17 @@ CREATE TABLE IF NOT EXISTS option_text_history (
   "order" INT,
   content TEXT,
   mark INT,
-  case_sensitive BOOL
+  case_sensitive BOOLEAN,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS option_matching (
   id UUID PRIMARY KEY NOT NULL,
   question_id UUID NOT NULL REFERENCES question (id),
   content TEXT,
   "order" INT,
+  eliminate BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
@@ -154,7 +184,11 @@ CREATE TABLE IF NOT EXISTS option_matching_history (
   option_matching_id UUID NOT NULL REFERENCES option_matching (id),
   question_id UUID NOT NULL REFERENCES question_history (id),
   content TEXT,
-  "order" INT
+  "order" INT,
+  eliminate BOOLEAN,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS answer_matching (
   id UUID PRIMARY KEY NOT NULL,
@@ -172,7 +206,10 @@ CREATE TABLE IF NOT EXISTS answer_matching_history (
   question_id UUID NOT NULL REFERENCES question_history (id),
   prompt_id UUID,
   option_id UUID,
-  mark INT
+  mark INT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS live_quiz_session (
   id UUID PRIMARY KEY NOT NULL,
@@ -190,28 +227,43 @@ CREATE TABLE IF NOT EXISTS participant (
   live_quiz_session_id UUID NOT NULL REFERENCES live_quiz_session (id),
   status TEXT NOT NULL,
   name TEXT,
-  marks INT
+  marks INT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS response_choice (
   id UUID PRIMARY KEY NOT NULL,
   participant_id UUID NOT NULL REFERENCES participant (id),
-  option_choice_id UUID NOT NULL REFERENCES option_choice (id)
+  option_choice_id UUID NOT NULL REFERENCES option_choice (id),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS response_text (
   id UUID PRIMARY KEY NOT NULL,
   participant_id UUID NOT NULL REFERENCES participant (id),
   option_text_id UUID NOT NULL REFERENCES option_text (id),
-  content TEXT
+  content TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS response_matching (
   id UUID PRIMARY KEY NOT NULL,
   participant_id UUID NOT NULL REFERENCES participant (id),
   option_matching_id UUID NOT NULL REFERENCES option_matching (id),
   prompt_id UUID NOT NULL REFERENCES option_matching (id),
-  option_id UUID NOT NULL REFERENCES option_matching (id)
+  option_id UUID NOT NULL REFERENCES option_matching (id),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS admin (
   id UUID PRIMARY KEY NOT NULL,
   email TEXT UNIQUE,
-  password TEXT
+  password TEXT,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  deleted_at TIMESTAMPTZ
 );

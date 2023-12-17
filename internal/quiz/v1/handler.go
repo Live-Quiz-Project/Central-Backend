@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
@@ -20,6 +21,7 @@ func NewHandler(s Service) *Handler {
 
 // ---------- Quiz related handlers ---------- //
 func (h *Handler) CreateQuiz(c *gin.Context) {
+
 	var req CreateQuizRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -44,12 +46,43 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		return
 	}
 
+	
+
+	var qpResID *uuid.UUID = nil
+	var qphResID *uuid.UUID = nil
+
 	for _, q := range req.Questions {
-		qRes, err := h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, userID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		var qRes *CreateQuestionResponse
+		var qpRes *CreateQuestionPoolResponse
+
+		log.Println(res)
+
+		if q.Type == util.Pool {
+			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), &q, res.ID, res.QuizHistoryID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			log.Println("Create Question Pool PASS")
+			qpResID = &qpRes.ID
+			qphResID = &qpRes.QuestionPoolHistoryID
 		}
+
+		if q.IsInPool == true{
+			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, qpResID, qphResID , userID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, nil, nil , userID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
+		log.Println(qRes)
 
 		for _, qt := range qRes.Options {
 			if qst, ok := qt.(map[string]any); ok {
@@ -81,32 +114,47 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		}
 
 		res.Questions = append(res.Questions, QuestionResponse{
-			ID:             qRes.ID,
-			QuizID:         qRes.QuizID,
-			ParentID:       qRes.ParentID,
-			Type:           qRes.Type,
-			Order:          qRes.Order,
-			Content:        qRes.Content,
-			Note:           qRes.Note,
-			Media:          qRes.Media,
-			TimeLimit:      qRes.TimeLimit,
-			HaveTimeFactor: qRes.HaveTimeFactor,
-			TimeFactor:     qRes.TimeFactor,
-			FontSize:       qRes.FontSize,
-			LayoutIdx:      qRes.LayoutIdx,
-			SelectedUpTo:   qRes.SelectedUpTo,
-			SubQuestions:   qRes.SubQuestions,
-			Options:        qRes.Options,
+			Question: Question{
+				ID:             qRes.ID,
+				QuizID:         qRes.QuizID,
+				QuestionPoolID: qRes.QuestionPoolID,
+				Type:           qRes.Type,
+				Order:          qRes.Order,
+				Content:        qRes.Content,
+				Note:           qRes.Note,
+				Media:          qRes.Media,
+				UseTemplate:    qRes.UseTemplate,
+				TimeLimit:      qRes.TimeLimit,
+				HaveTimeFactor: qRes.HaveTimeFactor,
+				TimeFactor:     qRes.TimeFactor,
+				FontSize:       qRes.FontSize,
+				LayoutIdx:      qRes.LayoutIdx,
+				SelectUpTo:     qRes.SelectUpTo,
+				CreatedAt:      qRes.CreatedAt,
+				UpdatedAt:      qRes.UpdatedAt,
+				DeletedAt:      qRes.DeletedAt,
+			},
+			Options: qRes.Options,
 		})
 	}
 
 	c.JSON(http.StatusCreated, &QuizResponse{
-		ID:          res.ID,
-		CreatorID:   res.CreatorID,
-		Title:       res.Title,
-		Description: res.Description,
-		CoverImage:  res.CoverImage,
-		Questions:   res.Questions,
+		Quiz: Quiz{
+			ID:             res.ID,
+			CreatorID:      res.CreatorID,
+			Title:          res.Title,
+			Description:    res.Description,
+			CoverImage:     res.CoverImage,
+			Visibility:     res.Visibility,
+			TimeLimit:      res.TimeLimit,
+			HaveTimeFactor: res.HaveTimeFactor,
+			TimeFactor:     res.TimeFactor,
+			FontSize:       res.FontSize,
+			Mark:           res.Mark,
+			SelectUpTo:     res.SelectUpTo,
+			CaseSensitive:  res.CaseSensitive,
+		},
+		Questions: res.Questions,
 	})
 }
 
@@ -164,22 +212,27 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 				}
 
 				q.Questions = append(q.Questions, QuestionResponse{
-					ID:             qr.ID,
-					QuizID:         qr.QuizID,
-					ParentID:       qr.ParentID,
-					Type:           qr.Type,
-					Order:          qr.Order,
-					Content:        qr.Content,
-					Note:           qr.Note,
-					Media:          qr.Media,
-					TimeLimit:      qr.TimeLimit,
-					HaveTimeFactor: qr.HaveTimeFactor,
-					TimeFactor:     qr.TimeFactor,
-					FontSize:       qr.FontSize,
-					LayoutIdx:      qr.LayoutIdx,
-					SelectedUpTo:   qr.SelectedUpTo,
-					SubQuestions:   qr.SubQuestions,
-					Options:        oc,
+					Question: Question{
+						ID:             qr.ID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+
+					Options: oc,
 				})
 			} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
 				otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
@@ -202,22 +255,26 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 				}
 
 				q.Questions = append(q.Questions, QuestionResponse{
-					ID:             qr.ID,
-					QuizID:         qr.QuizID,
-					ParentID:       qr.ParentID,
-					Type:           qr.Type,
-					Order:          qr.Order,
-					Content:        qr.Content,
-					Note:           qr.Note,
-					Media:          qr.Media,
-					TimeLimit:      qr.TimeLimit,
-					HaveTimeFactor: qr.HaveTimeFactor,
-					TimeFactor:     qr.TimeFactor,
-					FontSize:       qr.FontSize,
-					LayoutIdx:      qr.LayoutIdx,
-					SelectedUpTo:   qr.SelectedUpTo,
-					SubQuestions:   qr.SubQuestions,
-					Options:        ot,
+					Question: Question{
+						ID:             qr.ID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: ot,
 				})
 			}
 		}
@@ -282,22 +339,26 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			res.Questions = append(res.Questions, QuestionResponse{
-				ID:             qr.ID,
-				QuizID:         qr.QuizID,
-				ParentID:       qr.ParentID,
-				Type:           qr.Type,
-				Order:          qr.Order,
-				Content:        qr.Content,
-				Note:           qr.Note,
-				Media:          qr.Media,
-				TimeLimit:      qr.TimeLimit,
-				HaveTimeFactor: qr.HaveTimeFactor,
-				TimeFactor:     qr.TimeFactor,
-				FontSize:       qr.FontSize,
-				LayoutIdx:      qr.LayoutIdx,
-				SelectedUpTo:   qr.SelectedUpTo,
-				SubQuestions:   qr.SubQuestions,
-				Options:        oc,
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: oc,
 			})
 		} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
 			otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
@@ -318,22 +379,26 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			res.Questions = append(res.Questions, QuestionResponse{
-				ID:             qr.ID,
-				QuizID:         qr.QuizID,
-				ParentID:       qr.ParentID,
-				Type:           qr.Type,
-				Order:          qr.Order,
-				Content:        qr.Content,
-				Note:           qr.Note,
-				Media:          qr.Media,
-				TimeLimit:      qr.TimeLimit,
-				HaveTimeFactor: qr.HaveTimeFactor,
-				TimeFactor:     qr.TimeFactor,
-				FontSize:       qr.FontSize,
-				LayoutIdx:      qr.LayoutIdx,
-				SelectedUpTo:   qr.SelectedUpTo,
-				SubQuestions:   qr.SubQuestions,
-				Options:        ot,
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: ot,
 			})
 		}
 	}

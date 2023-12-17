@@ -25,21 +25,36 @@ func (s *service) CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uu
 	defer cancel()
 
 	q := &Quiz{
-		ID:          uuid.New(),
-		CreatorID:   uid,
-		Title:       req.Title,
-		Description: req.Description,
-		CoverImage:  "default.png",
+		ID:             uuid.New(),
+		CreatorID:      uid,
+		Title:          req.Title,
+		Description:    req.Description,
+		CoverImage:     "default.png",
+		Visibility:     req.Visibility,
+		TimeLimit:      req.TimeLimit,
+		HaveTimeFactor: req.HaveTimeFactor,
+		TimeFactor:     req.TimeFactor,
+		FontSize:       req.FontSize,
+		Mark:           req.Mark,
+		SelectUpTo:     req.SelectUpTo,
+		CaseSensitive:  req.CaseSensitive,
 	}
 
 	qh := &QuizHistory{
-		ID:          uuid.New(),
-		QuizID:      q.ID,
-		CreatorID:   q.CreatorID,
-		Title:       q.Title,
-		Description: q.Description,
-		CoverImage:  q.CoverImage,
-		UpdatedBy:   q.CreatorID,
+		ID:             uuid.New(),
+		QuizID:         q.ID,
+		CreatorID:      q.CreatorID,
+		Title:          q.Title,
+		Description:    q.Description,
+		CoverImage:     q.CoverImage,
+		Visibility:     q.Visibility,
+		TimeLimit:      q.TimeLimit,
+		HaveTimeFactor: q.HaveTimeFactor,
+		TimeFactor:     q.TimeFactor,
+		FontSize:       q.FontSize,
+		Mark:           q.Mark,
+		SelectUpTo:     q.SelectUpTo,
+		CaseSensitive:  q.CaseSensitive,
 	}
 
 	quiz, err := s.Repository.CreateQuiz(c, q)
@@ -53,11 +68,24 @@ func (s *service) CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uu
 
 	return &CreateQuizResponse{
 		QuizResponse: QuizResponse{
-			ID:          quiz.ID,
-			CreatorID:   quiz.CreatorID,
-			Title:       quiz.Title,
-			Description: quiz.Description,
-			CoverImage:  quiz.CoverImage,
+			Quiz: Quiz{
+				ID:             quiz.ID,
+				CreatorID:      quiz.CreatorID,
+				Title:          quiz.Title,
+				Description:    quiz.Description,
+				CoverImage:     quiz.CoverImage,
+				Visibility:     quiz.Visibility,
+				TimeLimit:      quiz.TimeLimit,
+				HaveTimeFactor: quiz.HaveTimeFactor,
+				TimeFactor:     quiz.TimeFactor,
+				FontSize:       quiz.FontSize,
+				Mark:           quiz.Mark,
+				SelectUpTo:     quiz.SelectUpTo,
+				CaseSensitive:  quiz.CaseSensitive,
+				CreatedAt:      quiz.CreatedAt,
+				UpdatedAt:      quiz.UpdatedAt,
+				DeletedAt:      quiz.DeletedAt,
+			},
 		},
 		QuizHistoryID: quizH.ID,
 	}, nil
@@ -75,11 +103,24 @@ func (s *service) GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse
 	var res []QuizResponse
 	for _, q := range quizzes {
 		res = append(res, QuizResponse{
-			ID:          q.ID,
-			CreatorID:   q.CreatorID,
-			Title:       q.Title,
-			Description: q.Description,
-			CoverImage:  q.CoverImage,
+			Quiz: Quiz{
+				ID:             q.ID,
+				CreatorID:      q.CreatorID,
+				Title:          q.Title,
+				Description:    q.Description,
+				CoverImage:     q.CoverImage,
+				Visibility:     q.Visibility,
+				TimeLimit:      q.TimeLimit,
+				HaveTimeFactor: q.HaveTimeFactor,
+				TimeFactor:     q.TimeFactor,
+				FontSize:       q.FontSize,
+				Mark:           q.Mark,
+				SelectUpTo:     q.SelectUpTo,
+				CaseSensitive:  q.CaseSensitive,
+				CreatedAt:      q.CreatedAt,
+				UpdatedAt:      q.UpdatedAt,
+				DeletedAt:      q.DeletedAt,
+			},
 		})
 	}
 
@@ -96,11 +137,24 @@ func (s *service) GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 	}
 
 	return &QuizResponse{
-		ID:          quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
+		Quiz: Quiz{
+			ID:             quiz.ID,
+			CreatorID:      quiz.CreatorID,
+			Title:          quiz.Title,
+			Description:    quiz.Description,
+			CoverImage:     quiz.CoverImage,
+			Visibility:     quiz.Visibility,
+			TimeLimit:      quiz.TimeLimit,
+			HaveTimeFactor: quiz.HaveTimeFactor,
+			TimeFactor:     quiz.TimeFactor,
+			FontSize:       quiz.FontSize,
+			Mark:           quiz.Mark,
+			SelectUpTo:     quiz.SelectUpTo,
+			CaseSensitive:  quiz.CaseSensitive,
+			CreatedAt:      quiz.CreatedAt,
+			UpdatedAt:      quiz.UpdatedAt,
+			DeletedAt:      quiz.DeletedAt,
+		},
 	}, nil
 }
 
@@ -123,13 +177,20 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uui
 	}
 
 	qh := &QuizHistory{
-		ID:          uuid.New(),
-		QuizID:      quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
-		UpdatedBy:   uid,
+		ID:             uuid.New(),
+		QuizID:         quiz.ID,
+		CreatorID:      quiz.CreatorID,
+		Title:          quiz.Title,
+		Description:    quiz.Description,
+		CoverImage:     quiz.CoverImage,
+		Visibility:     quiz.Visibility,
+		TimeLimit:      quiz.TimeLimit,
+		HaveTimeFactor: quiz.HaveTimeFactor,
+		TimeFactor:     quiz.TimeFactor,
+		FontSize:       quiz.FontSize,
+		Mark:           quiz.Mark,
+		SelectUpTo:     quiz.SelectUpTo,
+		CaseSensitive:  quiz.CaseSensitive,
 	}
 
 	quiz, er := s.Repository.UpdateQuiz(c, quiz)
@@ -143,11 +204,24 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uui
 	}
 
 	return &QuizResponse{
-		ID:          quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
+		Quiz: Quiz{
+			ID:             quiz.ID,
+			CreatorID:      quiz.CreatorID,
+			Title:          quiz.Title,
+			Description:    quiz.Description,
+			CoverImage:     quiz.CoverImage,
+			Visibility:     quiz.Visibility,
+			TimeLimit:      quiz.TimeLimit,
+			HaveTimeFactor: quiz.HaveTimeFactor,
+			TimeFactor:     quiz.TimeFactor,
+			FontSize:       quiz.FontSize,
+			Mark:           quiz.Mark,
+			SelectUpTo:     quiz.SelectUpTo,
+			CaseSensitive:  quiz.CaseSensitive,
+			CreatedAt:      quiz.CreatedAt,
+			UpdatedAt:      quiz.UpdatedAt,
+			DeletedAt:      quiz.DeletedAt,
+		},
 	}, nil
 }
 
@@ -161,14 +235,20 @@ func (s *service) DeleteQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) e
 	}
 
 	qh := &QuizHistory{
-		ID:          uuid.New(),
-		QuizID:      quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
-		UpdatedBy:   uid,
-		Deleted:     true,
+		ID:             uuid.New(),
+		QuizID:         quiz.ID,
+		CreatorID:      quiz.CreatorID,
+		Title:          quiz.Title,
+		Description:    quiz.Description,
+		CoverImage:     quiz.CoverImage,
+		Visibility:     quiz.Visibility,
+		TimeLimit:      quiz.TimeLimit,
+		HaveTimeFactor: quiz.HaveTimeFactor,
+		TimeFactor:     quiz.TimeFactor,
+		FontSize:       quiz.FontSize,
+		Mark:           quiz.Mark,
+		SelectUpTo:     quiz.SelectUpTo,
+		CaseSensitive:  quiz.CaseSensitive,
 	}
 
 	_, er := s.Repository.CreateQuizHistory(c, qh)
@@ -194,14 +274,20 @@ func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 	}
 
 	qh := &QuizHistory{
-		ID:          uuid.New(),
-		QuizID:      quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
-		UpdatedBy:   uid,
-		Deleted:     false,
+		ID:             uuid.New(),
+		QuizID:         quiz.ID,
+		CreatorID:      quiz.CreatorID,
+		Title:          quiz.Title,
+		Description:    quiz.Description,
+		CoverImage:     quiz.CoverImage,
+		Visibility:     quiz.Visibility,
+		TimeLimit:      quiz.TimeLimit,
+		HaveTimeFactor: quiz.HaveTimeFactor,
+		TimeFactor:     quiz.TimeFactor,
+		FontSize:       quiz.FontSize,
+		Mark:           quiz.Mark,
+		SelectUpTo:     quiz.SelectUpTo,
+		CaseSensitive:  quiz.CaseSensitive,
 	}
 
 	_, er := s.Repository.CreateQuizHistory(c, qh)
@@ -215,25 +301,35 @@ func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 	}
 
 	return &QuizResponse{
-		ID:          quiz.ID,
-		CreatorID:   quiz.CreatorID,
-		Title:       quiz.Title,
-		Description: quiz.Description,
-		CoverImage:  quiz.CoverImage,
+		Quiz: Quiz{
+			ID:             quiz.ID,
+			CreatorID:      quiz.CreatorID,
+			Title:          quiz.Title,
+			Description:    quiz.Description,
+			CoverImage:     quiz.CoverImage,
+			Visibility:     quiz.Visibility,
+			TimeLimit:      quiz.TimeLimit,
+			HaveTimeFactor: quiz.HaveTimeFactor,
+			TimeFactor:     quiz.TimeFactor,
+			FontSize:       quiz.FontSize,
+			Mark:           quiz.Mark,
+			SelectUpTo:     quiz.SelectUpTo,
+			CaseSensitive:  quiz.CaseSensitive,
+			CreatedAt:      quiz.CreatedAt,
+			UpdatedAt:      quiz.UpdatedAt,
+			DeletedAt:      quiz.DeletedAt,
+		},
 	}, nil
 }
 
-// ---------- Question related service methods ---------- //
-func (s *service) CreateQuestion(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
+// ---------- Question Pool related service methods ---------- //
+func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	q := &Question{
+	qp := &QuestionPool{
 		ID:             uuid.New(),
 		QuizID:         quizID,
-		ParentID:       nil,
-		Type:           req.Type,
-		Order:          req.Order,
 		Content:        req.Content,
 		Note:           req.Note,
 		Media:          req.Media,
@@ -241,27 +337,91 @@ func (s *service) CreateQuestion(ctx context.Context, req *CreateQuestionRequest
 		HaveTimeFactor: req.HaveTimeFactor,
 		TimeFactor:     req.TimeFactor,
 		FontSize:       req.FontSize,
+	}
+
+	qph := &QuestionPoolHistory{
+		ID:             uuid.New(),
+		QuestionPoolID: qp.ID,
+		QuizID:         quizHistoryID,
+		Content:        qp.Content,
+		Note:           qp.Note,
+		Media:          qp.Media,
+		TimeLimit:      qp.TimeLimit,
+		HaveTimeFactor: qp.HaveTimeFactor,
+		TimeFactor:     qp.TimeFactor,
+		FontSize:       qp.FontSize,
+	}
+
+	questionPool, err := s.Repository.CreateQuestionPool(c, qp)
+	if err != nil {
+		return &CreateQuestionPoolResponse{}, err
+	}
+	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c, qph)
+	if er != nil {
+		return &CreateQuestionPoolResponse{}, er
+	}
+
+	return &CreateQuestionPoolResponse{
+		QuestionPoolResponse: QuestionPoolResponse{
+			QuestionPool: QuestionPool{
+				ID:             questionPool.ID,
+				QuizID:         questionPool.QuizID,
+				Content:        questionPool.Content,
+				Note:           questionPool.Note,
+				Media:          questionPool.Media,
+				TimeLimit:      questionPool.TimeLimit,
+				HaveTimeFactor: questionPool.HaveTimeFactor,
+				TimeFactor:     questionPool.TimeFactor,
+				FontSize:       questionPool.FontSize,
+				CreatedAt:      questionPool.CreatedAt,
+				UpdatedAt:      questionPool.UpdatedAt,
+				DeletedAt:      questionPool.DeletedAt,
+			},
+		},
+		QuestionPoolHistoryID: questionPoolH.ID,
+	}, nil
+}
+
+// ---------- Question related service methods ---------- //
+func (s *service) CreateQuestion(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	q := &Question{
+		ID:             uuid.New(),
+		QuizID:         quizID,
+		QuestionPoolID: questionPoolID,
+		Type:           req.Type,
+		Order:          req.Order,
+		Content:        req.Content,
+		Note:           req.Note,
+		Media:          req.Media,
+		UseTemplate:    req.UseTemplate,
+		TimeLimit:      req.TimeLimit,
+		HaveTimeFactor: req.HaveTimeFactor,
+		TimeFactor:     req.TimeFactor,
+		FontSize:       req.FontSize,
 		LayoutIdx:      req.LayoutIdx,
-		SelectedUpTo:   req.SelectedUpTo,
+		SelectUpTo:     req.SelectUpTo,
 	}
 
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
 		QuestionID:     q.ID,
-		QuizHistoryID:  quizHistoryID,
-		ParentID:       q.ParentID,
+		QuizID:         quizHistoryID,
+		QuestionPoolID: questionPoolHistoryID,
 		Type:           q.Type,
 		Order:          q.Order,
 		Content:        q.Content,
 		Note:           q.Note,
 		Media:          q.Media,
+		UseTemplate:    q.UseTemplate,
 		TimeLimit:      q.TimeLimit,
 		HaveTimeFactor: q.HaveTimeFactor,
 		TimeFactor:     q.TimeFactor,
 		FontSize:       q.FontSize,
 		LayoutIdx:      q.LayoutIdx,
-		SelectedUpTo:   q.SelectedUpTo,
-		UpdatedBy:      uid,
+		SelectUpTo:     q.SelectUpTo,
 	}
 
 	question, err := s.Repository.CreateQuestion(c, q)
@@ -279,21 +439,27 @@ func (s *service) CreateQuestion(ctx context.Context, req *CreateQuestionRequest
 
 	return &CreateQuestionResponse{
 		QuestionResponse: QuestionResponse{
-			ID:             question.ID,
-			QuizID:         question.QuizID,
-			ParentID:       question.ParentID,
-			Type:           question.Type,
-			Order:          question.Order,
-			Content:        question.Content,
-			Note:           question.Note,
-			Media:          question.Media,
-			TimeLimit:      question.TimeLimit,
-			HaveTimeFactor: question.HaveTimeFactor,
-			TimeFactor:     question.TimeFactor,
-			FontSize:       question.FontSize,
-			LayoutIdx:      question.LayoutIdx,
-			SelectedUpTo:   question.SelectedUpTo,
-			Options:        options,
+			Question: Question{
+				ID:             question.ID,
+				QuizID:         question.QuizID,
+				QuestionPoolID: question.QuestionPoolID,
+				Type:           question.Type,
+				Order:          question.Order,
+				Content:        question.Content,
+				Note:           question.Note,
+				Media:          question.Media,
+				UseTemplate:    question.UseTemplate,
+				TimeLimit:      question.TimeLimit,
+				HaveTimeFactor: question.HaveTimeFactor,
+				TimeFactor:     question.TimeFactor,
+				FontSize:       question.FontSize,
+				LayoutIdx:      question.LayoutIdx,
+				SelectUpTo:     question.SelectUpTo,
+				CreatedAt:      question.CreatedAt,
+				UpdatedAt:      question.UpdatedAt,
+				DeletedAt:      question.DeletedAt,
+			},
+			Options: options,
 		},
 		QuestionHistoryID: qh.ID,
 	}, nil
@@ -311,23 +477,28 @@ func (s *service) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([
 	var res []QuestionResponse
 	for _, q := range questions {
 		res = append(res, QuestionResponse{
-			ID:             q.ID,
-			QuizID:         q.QuizID,
-			ParentID:       q.ParentID,
-			Type:           q.Type,
-			Order:          q.Order,
-			Content:        q.Content,
-			Note:           q.Note,
-			Media:          q.Media,
-			TimeLimit:      q.TimeLimit,
-			HaveTimeFactor: q.HaveTimeFactor,
-			TimeFactor:     q.TimeFactor,
-			FontSize:       q.FontSize,
-			LayoutIdx:      q.LayoutIdx,
-			SelectedUpTo:   q.SelectedUpTo,
+			Question: Question{
+				ID:             q.ID,
+				QuizID:         q.QuizID,
+				QuestionPoolID: q.QuestionPoolID,
+				Type:           q.Type,
+				Order:          q.Order,
+				Content:        q.Content,
+				Note:           q.Note,
+				Media:          q.Media,
+				UseTemplate:    q.UseTemplate,
+				TimeLimit:      q.TimeLimit,
+				HaveTimeFactor: q.HaveTimeFactor,
+				TimeFactor:     q.TimeFactor,
+				FontSize:       q.FontSize,
+				LayoutIdx:      q.LayoutIdx,
+				SelectUpTo:     q.SelectUpTo,
+				CreatedAt:      q.CreatedAt,
+				UpdatedAt:      q.UpdatedAt,
+				DeletedAt:      q.DeletedAt,
+			},
 		})
 	}
-
 	return res, nil
 }
 
@@ -394,27 +565,27 @@ func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest
 	if req.LayoutIdx != 0 {
 		question.LayoutIdx = req.LayoutIdx
 	}
-	if req.SelectedUpTo != 0 {
-		question.SelectedUpTo = req.SelectedUpTo
+	if req.SelectUpTo != 0 {
+		question.SelectUpTo = req.SelectUpTo
 	}
 
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
 		QuestionID:     question.ID,
-		QuizHistoryID:  question.QuizID,
-		ParentID:       question.ParentID,
+		QuizID:         question.QuizID,
+		QuestionPoolID: question.QuestionPoolID,
 		Type:           question.Type,
 		Order:          question.Order,
 		Content:        question.Content,
 		Note:           question.Note,
 		Media:          question.Media,
+		UseTemplate:    question.UseTemplate,
 		TimeLimit:      question.TimeLimit,
 		HaveTimeFactor: question.HaveTimeFactor,
 		TimeFactor:     question.TimeFactor,
 		FontSize:       question.FontSize,
 		LayoutIdx:      question.LayoutIdx,
-		SelectedUpTo:   question.SelectedUpTo,
-		UpdatedBy:      uid,
+		SelectUpTo:     question.SelectUpTo,
 	}
 
 	question, er := s.Repository.UpdateQuestion(c, question)
@@ -428,20 +599,25 @@ func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest
 	}
 
 	return &QuestionResponse{
-		ID:             question.ID,
-		QuizID:         question.QuizID,
-		ParentID:       question.ParentID,
-		Type:           question.Type,
-		Order:          question.Order,
-		Content:        question.Content,
-		Note:           question.Note,
-		Media:          question.Media,
-		TimeLimit:      question.TimeLimit,
-		HaveTimeFactor: question.HaveTimeFactor,
-		TimeFactor:     question.TimeFactor,
-		FontSize:       question.FontSize,
-		LayoutIdx:      question.LayoutIdx,
-		SelectedUpTo:   question.SelectedUpTo,
+		Question: Question{
+			ID:             question.ID,
+			QuizID:         question.QuizID,
+			QuestionPoolID: question.QuestionPoolID,
+			Type:           question.Type,
+			Order:          question.Order,
+			Content:        question.Content,
+			Note:           question.Note,
+			Media:          question.Media,
+			TimeLimit:      question.TimeLimit,
+			HaveTimeFactor: question.HaveTimeFactor,
+			TimeFactor:     question.TimeFactor,
+			FontSize:       question.FontSize,
+			LayoutIdx:      question.LayoutIdx,
+			SelectUpTo:     question.SelectUpTo,
+			CreatedAt:      question.CreatedAt,
+			UpdatedAt:      question.UpdatedAt,
+			DeletedAt:      question.DeletedAt,
+		},
 	}, nil
 }
 
@@ -457,21 +633,20 @@ func (s *service) DeleteQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUI
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
 		QuestionID:     question.ID,
-		QuizHistoryID:  question.QuizID,
-		ParentID:       question.ParentID,
+		QuizID:         question.QuizID,
+		QuestionPoolID: question.QuestionPoolID,
 		Type:           question.Type,
 		Order:          question.Order,
 		Content:        question.Content,
 		Note:           question.Note,
 		Media:          question.Media,
+		UseTemplate:    question.UseTemplate,
 		TimeLimit:      question.TimeLimit,
 		HaveTimeFactor: question.HaveTimeFactor,
 		TimeFactor:     question.TimeFactor,
 		FontSize:       question.FontSize,
 		LayoutIdx:      question.LayoutIdx,
-		SelectedUpTo:   question.SelectedUpTo,
-		UpdatedBy:      uid,
-		Deleted:        true,
+		SelectUpTo:     question.SelectUpTo,
 	}
 
 	_, er := s.Repository.CreateQuestionHistory(c, qh)
@@ -499,21 +674,20 @@ func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UU
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
 		QuestionID:     question.ID,
-		QuizHistoryID:  question.QuizID,
-		ParentID:       question.ParentID,
+		QuizID:         question.QuizID,
+		QuestionPoolID: question.QuestionPoolID,
 		Type:           question.Type,
 		Order:          question.Order,
 		Content:        question.Content,
 		Note:           question.Note,
 		Media:          question.Media,
+		UseTemplate:    question.UseTemplate,
 		TimeLimit:      question.TimeLimit,
 		HaveTimeFactor: question.HaveTimeFactor,
 		TimeFactor:     question.TimeFactor,
 		FontSize:       question.FontSize,
 		LayoutIdx:      question.LayoutIdx,
-		SelectedUpTo:   question.SelectedUpTo,
-		UpdatedBy:      uid,
-		Deleted:        false,
+		SelectUpTo:     question.SelectUpTo,
 	}
 
 	_, er := s.Repository.CreateQuestionHistory(c, qh)
@@ -527,20 +701,25 @@ func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UU
 	}
 
 	return &QuestionResponse{
-		ID:             question.ID,
-		QuizID:         question.QuizID,
-		ParentID:       question.ParentID,
-		Type:           question.Type,
-		Order:          question.Order,
-		Content:        question.Content,
-		Note:           question.Note,
-		Media:          question.Media,
-		TimeLimit:      question.TimeLimit,
-		HaveTimeFactor: question.HaveTimeFactor,
-		TimeFactor:     question.TimeFactor,
-		FontSize:       question.FontSize,
-		LayoutIdx:      question.LayoutIdx,
-		SelectedUpTo:   question.SelectedUpTo,
+		Question: Question{
+			ID:             question.ID,
+			QuizID:         question.QuizID,
+			QuestionPoolID: question.QuestionPoolID,
+			Type:           question.Type,
+			Order:          question.Order,
+			Content:        question.Content,
+			Note:           question.Note,
+			Media:          question.Media,
+			TimeLimit:      question.TimeLimit,
+			HaveTimeFactor: question.HaveTimeFactor,
+			TimeFactor:     question.TimeFactor,
+			FontSize:       question.FontSize,
+			LayoutIdx:      question.LayoutIdx,
+			SelectUpTo:     question.SelectUpTo,
+			CreatedAt:      question.CreatedAt,
+			UpdatedAt:      question.UpdatedAt,
+			DeletedAt:      question.DeletedAt,
+		},
 	}, nil
 }
 
@@ -569,7 +748,6 @@ func (s *service) CreateChoiceOption(ctx context.Context, req *CreateChoiceOptio
 		Mark:           oc.Mark,
 		Color:          oc.Color,
 		Correct:        oc.Correct,
-		UpdatedBy:      uid,
 	}
 
 	optionChoice, err := s.Repository.CreateChoiceOption(c, oc)
@@ -677,7 +855,6 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptio
 		Mark:           optionChoice.Mark,
 		Color:          optionChoice.Color,
 		Correct:        optionChoice.Correct,
-		UpdatedBy:      uid,
 	}
 
 	optionChoice, er := s.Repository.UpdateChoiceOption(c, optionChoice)
@@ -719,8 +896,6 @@ func (s *service) DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid
 		Mark:           optionChoice.Mark,
 		Color:          optionChoice.Color,
 		Correct:        optionChoice.Correct,
-		UpdatedBy:      uid,
-		Deleted:        true,
 	}
 
 	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
@@ -754,8 +929,6 @@ func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uui
 		Mark:           optionChoice.Mark,
 		Color:          optionChoice.Color,
 		Correct:        optionChoice.Correct,
-		UpdatedBy:      uid,
-		Deleted:        false,
 	}
 
 	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
@@ -801,7 +974,6 @@ func (s *service) CreateTextOption(ctx context.Context, req *CreateTextOptionReq
 		Content:       ot.Content,
 		Mark:          ot.Mark,
 		CaseSensitive: ot.CaseSensitive,
-		UpdatedBy:     uid,
 	}
 
 	optionText, err := s.Repository.CreateTextOption(c, ot)
@@ -902,7 +1074,6 @@ func (s *service) UpdateTextOption(ctx context.Context, req *UpdateTextOptionReq
 		Content:       optionText.Content,
 		Mark:          optionText.Mark,
 		CaseSensitive: optionText.CaseSensitive,
-		UpdatedBy:     uid,
 	}
 
 	optionText, er := s.Repository.UpdateTextOption(c, optionText)
@@ -942,8 +1113,6 @@ func (s *service) DeleteTextOption(ctx context.Context, id uuid.UUID, uid uuid.U
 		Content:       optionText.Content,
 		Mark:          optionText.Mark,
 		CaseSensitive: optionText.CaseSensitive,
-		UpdatedBy:     uid,
-		Deleted:       true,
 	}
 
 	_, er := s.Repository.CreateTextOptionHistory(c, oth)
@@ -976,8 +1145,6 @@ func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.
 		Content:       optionText.Content,
 		Mark:          optionText.Mark,
 		CaseSensitive: optionText.CaseSensitive,
-		UpdatedBy:     uid,
-		Deleted:       false,
 	}
 
 	_, er := s.Repository.CreateTextOptionHistory(c, oth)

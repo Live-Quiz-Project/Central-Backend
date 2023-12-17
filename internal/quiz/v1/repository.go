@@ -146,6 +146,86 @@ func (r *repository) DeleteQuizHistory(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
+// ---------- Question Pool related repository methods ---------- //
+func (r *repository) CreateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error) {
+	res := r.db.WithContext(ctx).Create(questionPool)
+	if res.Error != nil {
+		return &QuestionPool{}, res.Error
+	}
+
+	return questionPool, nil
+}
+
+func (r *repository) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error) {
+	var questionPools []QuestionPool
+	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).Find(&questionPools)
+	if res.Error != nil {
+		return []QuestionPool{}, res.Error
+	}
+
+	return questionPools, nil
+}
+
+func (r *repository) UpdateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error) {
+	res := r.db.WithContext(ctx).Save(questionPool)
+	if res.Error != nil {
+		return &QuestionPool{}, res.Error
+	}
+
+	return questionPool, nil
+}
+
+func (r *repository) DeleteQuestionPool(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&QuestionPool{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
+func (r *repository) RestoreQuestionPool(ctx context.Context, id uuid.UUID) (*QuestionPool, error) {
+	var questionPool QuestionPool
+	res := r.db.WithContext(ctx).Unscoped().First(&questionPool, id)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	res = r.db.WithContext(ctx).Unscoped().Model(&questionPool).Updates(QuestionPool{DeletedAt: gorm.DeletedAt{}})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return &questionPool, nil
+}
+
+func (r *repository) CreateQuestionPoolHistory(ctx context.Context, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error) {
+	res := r.db.WithContext(ctx).Create(questionPoolHistory)
+	if res.Error != nil {
+		return &QuestionPoolHistory{}, res.Error
+	}
+
+	return questionPoolHistory, nil
+}
+
+func (r *repository) UpdateQuestionPoolHistory(ctx context.Context, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error) {
+	res := r.db.WithContext(ctx).Save(questionPoolHistory)
+	if res.Error != nil {
+		return &QuestionPoolHistory{}, res.Error
+	}
+
+	return questionPoolHistory, nil
+}
+
+func (r *repository) DeleteQuestionPoolHistory(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&QuestionPoolHistory{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
 // ---------- Question related repository methods ---------- //
 func (r *repository) CreateQuestion(ctx context.Context, question *Question) (*Question, error) {
 	res := r.db.WithContext(ctx).Create(question)
@@ -558,6 +638,7 @@ func (r *repository) DeleteTextOptionHistory(ctx context.Context, id uuid.UUID) 
 }
 
 // Matching related repository methods
+// Option Matching
 func (r *repository) CreateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error) {
 	res := r.db.WithContext(ctx).Create(optionMatching)
 	if res.Error != nil {
@@ -658,6 +739,68 @@ func (r *repository) UpdateMatchingOptionHistory(ctx context.Context, optionMatc
 
 func (r *repository) DeleteMatchingOptionHistory(ctx context.Context, id uuid.UUID) error {
 	res := r.db.WithContext(ctx).Delete(&MatchingOptionHistory{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+
+// Answer Matching
+func (r *repository) CreateMatchingAnswer(ctx context.Context, answerMatching *MatchingAnswer) (*MatchingAnswer, error) {
+	res := r.db.WithContext(ctx).Create(answerMatching)
+	if res.Error != nil {
+		return &MatchingAnswer{}, res.Error
+	}
+	return answerMatching, nil
+}
+
+func (r *repository) UpdateMatchingAnswer(ctx context.Context, answerMatching *MatchingAnswer) (*MatchingAnswer, error) {
+	res := r.db.WithContext(ctx).Save(answerMatching)
+	if res.Error != nil {
+		return &MatchingAnswer{}, res.Error
+	}
+	return answerMatching, nil
+}
+
+func (r *repository) DeleteMatchingAnswer(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&MatchingAnswer{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+
+func (r *repository) RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error) {
+	var answerMatching MatchingAnswer
+	res := r.db.WithContext(ctx).Unscoped().First(&answerMatching, id)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	res = r.db.WithContext(ctx).Unscoped().Model(&answerMatching).Updates(MatchingAnswer{DeletedAt: gorm.DeletedAt{}})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &answerMatching, nil
+}
+
+func (r *repository) CreateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error) {
+	res := r.db.WithContext(ctx).Create(answerMatchingHistory)
+	if res.Error != nil {
+		return &MatchingAnswerHistory{}, res.Error
+	}
+	return answerMatchingHistory, nil
+}
+
+func (r *repository) UpdateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error) {
+	res := r.db.WithContext(ctx).Save(answerMatchingHistory)
+	if res.Error != nil {
+		return &MatchingAnswerHistory{}, res.Error
+	}
+	return answerMatchingHistory, nil
+}
+
+func (r *repository) DeleteMatchingAnswerHistory(ctx context.Context, id uuid.UUID) error {
+	res := r.db.WithContext(ctx).Delete(&MatchingAnswerHistory{}, id)
 	if res.Error != nil {
 		return res.Error
 	}
