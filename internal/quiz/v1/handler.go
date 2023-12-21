@@ -46,16 +46,12 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		return
 	}
 
-	
-
 	var qpResID *uuid.UUID = nil
 	var qphResID *uuid.UUID = nil
 
 	for _, q := range req.Questions {
 		var qRes *CreateQuestionResponse
 		var qpRes *CreateQuestionPoolResponse
-
-		log.Println(res)
 
 		if q.Type == util.Pool {
 			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), &q, res.ID, res.QuizHistoryID)
@@ -68,21 +64,19 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 			qphResID = &qpRes.QuestionPoolHistoryID
 		}
 
-		if q.IsInPool == true{
-			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, qpResID, qphResID , userID)
+		if q.IsInPool == true {
+			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		} else {
-			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, nil, nil , userID)
+			qRes, err = h.Service.CreateQuestion(c.Request.Context(), &q, res.ID, res.QuizHistoryID, nil, nil, userID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		}
-
-		log.Println(qRes)
 
 		for _, qt := range qRes.Options {
 			if qst, ok := qt.(map[string]any); ok {
@@ -153,6 +147,9 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 			Mark:           res.Mark,
 			SelectUpTo:     res.SelectUpTo,
 			CaseSensitive:  res.CaseSensitive,
+			CreatedAt:      res.CreatedAt,
+			UpdatedAt:      res.UpdatedAt,
+			DeletedAt:      res.DeletedAt,
 		},
 		Questions: res.Questions,
 	})
@@ -179,8 +176,39 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 		return
 	}
 
+	log.Println(res)
+
 	r := make([]QuizResponse, 0)
+
 	for _, q := range res {
+		qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), q.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		// Put All Question Pools Data in Questions Response
+		for _, qpr := range qpRes {
+			q.Questions = append(q.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qpr.ID,
+					QuizID:         qpr.QuizID,
+					Type:						"POOL",
+					Order:          qpr.Order,
+					Content:        qpr.Content,
+					Note:           qpr.Note,
+					Media:          qpr.Media,
+					TimeLimit:      qpr.TimeLimit,
+					HaveTimeFactor: qpr.HaveTimeFactor,
+					TimeFactor:     qpr.TimeFactor,
+					FontSize:       qpr.FontSize,
+					CreatedAt:      qpr.CreatedAt,
+					UpdatedAt:      qpr.UpdatedAt,
+					DeletedAt:      qpr.DeletedAt,
+				},
+			})
+		}
+
 		qRes, err := h.Service.GetQuestionsByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -190,6 +218,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 		}
 
 		for _, qr := range qRes {
+
 			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
 				ocRes, err := h.Service.GetChoiceOptionsByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
@@ -202,12 +231,18 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 				var oc []any
 				for _, ocr := range ocRes {
 					oc = append(oc, ChoiceOptioneResponse{
-						ID:      ocr.ID,
-						Order:   ocr.Order,
-						Mark:    ocr.Mark,
-						Color:   ocr.Color,
-						Correct: ocr.Correct,
-						Content: ocr.Content,
+						ChoiceOption: ChoiceOption{
+							ID:         ocr.ID,
+							QuestionID: ocr.QuestionID,
+							Order:      ocr.Order,
+							Content:    ocr.Content,
+							Mark:       ocr.Mark,
+							Color:      ocr.Color,
+							Correct:    ocr.Correct,
+							CreatedAt:  ocr.CreatedAt,
+							UpdatedAt:  ocr.UpdatedAt,
+							DeletedAt:  ocr.DeletedAt,
+						},
 					})
 				}
 
@@ -246,11 +281,17 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 				var ot []any
 				for _, otr := range otRes {
 					ot = append(ot, TextOptionResponse{
-						ID:            otr.ID,
-						Order:         otr.Order,
-						Mark:          otr.Mark,
-						CaseSensitive: otr.CaseSensitive,
-						Content:       otr.Content,
+						TextOption: TextOption{
+							ID:            otr.ID,
+							QuestionID:    otr.QuestionID,
+							Order:         otr.Order,
+							Mark:          otr.Mark,
+							CaseSensitive: otr.CaseSensitive,
+							Content:       otr.Content,
+							CreatedAt:     otr.CreatedAt,
+							UpdatedAt:     otr.UpdatedAt,
+							DeletedAt:     otr.DeletedAt,
+						},
 					})
 				}
 
@@ -312,6 +353,34 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 		return
 	}
 
+	qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), res.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		// Put All Question Pools Data in Questions Response
+		for _, qpr := range qpRes {
+			res.Questions = append(res.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qpr.ID,
+					QuizID:         qpr.QuizID,
+					Type:						"POOL",
+					Order:          qpr.Order,
+					Content:        qpr.Content,
+					Note:           qpr.Note,
+					Media:          qpr.Media,
+					TimeLimit:      qpr.TimeLimit,
+					HaveTimeFactor: qpr.HaveTimeFactor,
+					TimeFactor:     qpr.TimeFactor,
+					FontSize:       qpr.FontSize,
+					CreatedAt:      qpr.CreatedAt,
+					UpdatedAt:      qpr.UpdatedAt,
+					DeletedAt:      qpr.DeletedAt,
+				},
+			})
+		}
+
 	qRes, err := h.Service.GetQuestionsByQuizID(c.Request.Context(), res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -329,12 +398,18 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			var oc []any
 			for _, ocr := range ocRes {
 				oc = append(oc, ChoiceOptioneResponse{
-					ID:      ocr.ID,
-					Order:   ocr.Order,
-					Mark:    ocr.Mark,
-					Color:   ocr.Color,
-					Correct: ocr.Correct,
-					Content: ocr.Content,
+					ChoiceOption: ChoiceOption{
+						ID:         ocr.ID,
+						QuestionID: ocr.QuestionID,
+						Order:      ocr.Order,
+						Content:    ocr.Content,
+						Mark:       ocr.Mark,
+						Color:      ocr.Color,
+						Correct:    ocr.Correct,
+						CreatedAt:  ocr.CreatedAt,
+						UpdatedAt:  ocr.UpdatedAt,
+						DeletedAt:  ocr.DeletedAt,
+					},
 				})
 			}
 
@@ -370,11 +445,17 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			var ot []any
 			for _, otr := range otRes {
 				ot = append(ot, TextOptionResponse{
-					ID:            otr.ID,
-					Order:         otr.Order,
-					Mark:          otr.Mark,
-					CaseSensitive: otr.CaseSensitive,
-					Content:       otr.Content,
+					TextOption: TextOption{
+						ID:            otr.ID,
+						QuestionID:    otr.QuestionID,
+						Order:         otr.Order,
+						Content:       otr.Content,
+						Mark:          otr.Mark,
+						CaseSensitive: otr.CaseSensitive,
+						CreatedAt:     otr.CreatedAt,
+						UpdatedAt:     otr.UpdatedAt,
+						DeletedAt:     otr.DeletedAt,
+					},
 				})
 			}
 

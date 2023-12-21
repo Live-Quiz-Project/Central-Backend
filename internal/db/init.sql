@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS quiz_history (
 CREATE TABLE IF NOT EXISTS question_pool (
   id UUID PRIMARY KEY NOT NULL,
   quiz_id UUID NOT NULL REFERENCES quiz (id),
+  "order" INT,
   content TEXT,
   note TEXT,
   media TEXT,
@@ -69,6 +70,7 @@ CREATE TABLE IF NOT EXISTS question_pool_history (
   id UUID PRIMARY KEY NOT NULL,
   question_pool_id UUID NOT NULL REFERENCES question_pool (id),
   quiz_id UUID NOT NULL REFERENCES quiz_history (id),
+  "order" INT,
   content TEXT,
   note TEXT,
   media TEXT,

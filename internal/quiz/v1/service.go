@@ -175,6 +175,17 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uui
 	if req.CoverImage != "" {
 		quiz.CoverImage = req.CoverImage
 	}
+	quiz.Title = req.Title
+	quiz.Description = req.Description
+	quiz.CoverImage = req.CoverImage
+	quiz.Visibility = req.Visibility
+	quiz.TimeLimit = req.TimeLimit
+	quiz.HaveTimeFactor = req.HaveTimeFactor
+	quiz.TimeFactor = req.TimeFactor
+	quiz.FontSize = req.FontSize
+	quiz.Mark = req.Mark
+	quiz.SelectUpTo = req.SelectUpTo
+	quiz.CaseSensitive = req.CaseSensitive
 
 	qh := &QuizHistory{
 		ID:             uuid.New(),
@@ -197,7 +208,7 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uui
 	if er != nil {
 		return &QuizResponse{}, er
 	}
-
+	
 	_, e := s.Repository.CreateQuizHistory(c, qh)
 	if e != nil {
 		return &QuizResponse{}, e
@@ -330,6 +341,7 @@ func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionReq
 	qp := &QuestionPool{
 		ID:             uuid.New(),
 		QuizID:         quizID,
+		Order:          req.Order,
 		Content:        req.Content,
 		Note:           req.Note,
 		Media:          req.Media,
@@ -343,6 +355,7 @@ func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionReq
 		ID:             uuid.New(),
 		QuestionPoolID: qp.ID,
 		QuizID:         quizHistoryID,
+		Order:          qp.Order,
 		Content:        qp.Content,
 		Note:           qp.Note,
 		Media:          qp.Media,
@@ -366,6 +379,7 @@ func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionReq
 			QuestionPool: QuestionPool{
 				ID:             questionPool.ID,
 				QuizID:         questionPool.QuizID,
+				Order:          questionPool.Order,
 				Content:        questionPool.Content,
 				Note:           questionPool.Note,
 				Media:          questionPool.Media,
@@ -380,6 +394,38 @@ func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionReq
 		},
 		QuestionPoolHistoryID: questionPoolH.ID,
 	}, nil
+}
+
+func (s *service) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	questionPools, err := s.Repository.GetQuestionPoolsByQuizID(c, quizID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []QuestionPoolResponse
+	for _, qp := range questionPools {
+		res = append(res, QuestionPoolResponse{
+			QuestionPool: QuestionPool{
+				ID:             qp.ID,
+				QuizID:         qp.QuizID,
+				Order:          qp.Order,
+				Content:        qp.Content,
+				Note:           qp.Note,
+				Media:          qp.Media,
+				TimeLimit:      qp.TimeLimit,
+				HaveTimeFactor: qp.HaveTimeFactor,
+				TimeFactor:     qp.TimeFactor,
+				FontSize:       qp.FontSize,
+				CreatedAt:      qp.CreatedAt,
+				UpdatedAt:      qp.UpdatedAt,
+				DeletedAt:      qp.DeletedAt,
+			},
+		})
+	}
+	return res, nil
 }
 
 // ---------- Question related service methods ---------- //
@@ -761,13 +807,18 @@ func (s *service) CreateChoiceOption(ctx context.Context, req *CreateChoiceOptio
 	}
 
 	return &ChoiceOptioneResponse{
-		ID:         optionChoice.ID,
-		QuestionID: optionChoice.QuestionID,
-		Order:      optionChoice.Order,
-		Content:    optionChoice.Content,
-		Mark:       optionChoice.Mark,
-		Color:      optionChoice.Color,
-		Correct:    optionChoice.Correct,
+		ChoiceOption: ChoiceOption{
+			ID:         optionChoice.ID,
+			QuestionID: optionChoice.QuestionID,
+			Order:      optionChoice.Order,
+			Content:    optionChoice.Content,
+			Mark:       optionChoice.Mark,
+			Color:      optionChoice.Color,
+			Correct:    optionChoice.Correct,
+			CreatedAt:  optionChoice.CreatedAt,
+			UpdatedAt:  optionChoice.UpdatedAt,
+			DeletedAt:  optionChoice.DeletedAt,
+		},
 	}, nil
 }
 
@@ -783,13 +834,18 @@ func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID u
 	var res []ChoiceOptioneResponse
 	for _, oc := range optionChoices {
 		res = append(res, ChoiceOptioneResponse{
-			ID:         oc.ID,
-			QuestionID: oc.QuestionID,
-			Order:      oc.Order,
-			Content:    oc.Content,
-			Mark:       oc.Mark,
-			Color:      oc.Color,
-			Correct:    oc.Correct,
+			ChoiceOption: ChoiceOption{
+				ID:         oc.ID,
+				QuestionID: oc.QuestionID,
+				Order:      oc.Order,
+				Content:    oc.Content,
+				Mark:       oc.Mark,
+				Color:      oc.Color,
+				Correct:    oc.Correct,
+				CreatedAt:  oc.CreatedAt,
+				UpdatedAt:  oc.UpdatedAt,
+				DeletedAt:  oc.DeletedAt,
+			},
 		})
 	}
 
@@ -808,13 +864,18 @@ func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID
 	var res []ChoiceOptioneResponse
 	for _, oc := range optionChoices {
 		res = append(res, ChoiceOptioneResponse{
-			ID:         oc.ID,
-			QuestionID: oc.QuestionID,
-			Order:      oc.Order,
-			Content:    oc.Content,
-			Mark:       oc.Mark,
-			Color:      oc.Color,
-			Correct:    oc.Correct,
+			ChoiceOption: ChoiceOption{
+				ID:         oc.ID,
+				QuestionID: oc.QuestionID,
+				Order:      oc.Order,
+				Content:    oc.Content,
+				Mark:       oc.Mark,
+				Color:      oc.Color,
+				Correct:    oc.Correct,
+				CreatedAt:  oc.CreatedAt,
+				UpdatedAt:  oc.UpdatedAt,
+				DeletedAt:  oc.DeletedAt,
+			},
 		})
 	}
 
@@ -868,13 +929,18 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptio
 	}
 
 	return &ChoiceOptioneResponse{
-		ID:         optionChoice.ID,
-		QuestionID: optionChoice.QuestionID,
-		Order:      optionChoice.Order,
-		Content:    optionChoice.Content,
-		Mark:       optionChoice.Mark,
-		Color:      optionChoice.Color,
-		Correct:    optionChoice.Correct,
+		ChoiceOption: ChoiceOption{
+			ID:         optionChoice.ID,
+			QuestionID: optionChoice.QuestionID,
+			Order:      optionChoice.Order,
+			Content:    optionChoice.Content,
+			Mark:       optionChoice.Mark,
+			Color:      optionChoice.Color,
+			Correct:    optionChoice.Correct,
+			CreatedAt:  optionChoice.CreatedAt,
+			UpdatedAt:  optionChoice.UpdatedAt,
+			DeletedAt:  optionChoice.DeletedAt,
+		},
 	}, nil
 }
 
@@ -942,13 +1008,18 @@ func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uui
 	}
 
 	return &ChoiceOptioneResponse{
-		ID:         optionChoice.ID,
-		QuestionID: optionChoice.QuestionID,
-		Order:      optionChoice.Order,
-		Content:    optionChoice.Content,
-		Mark:       optionChoice.Mark,
-		Color:      optionChoice.Color,
-		Correct:    optionChoice.Correct,
+		ChoiceOption: ChoiceOption{
+			ID:         optionChoice.ID,
+			QuestionID: optionChoice.QuestionID,
+			Order:      optionChoice.Order,
+			Content:    optionChoice.Content,
+			Mark:       optionChoice.Mark,
+			Color:      optionChoice.Color,
+			Correct:    optionChoice.Correct,
+			CreatedAt:  optionChoice.CreatedAt,
+			UpdatedAt:  optionChoice.UpdatedAt,
+			DeletedAt:  optionChoice.DeletedAt,
+		},
 	}, nil
 }
 
@@ -987,12 +1058,17 @@ func (s *service) CreateTextOption(ctx context.Context, req *CreateTextOptionReq
 	}
 
 	return &TextOptionResponse{
-		ID:            optionText.ID,
-		QuestionID:    optionText.QuestionID,
-		Order:         optionText.Order,
-		Content:       optionText.Content,
-		Mark:          optionText.Mark,
-		CaseSensitive: optionText.CaseSensitive,
+		TextOption: TextOption{
+			ID:            optionText.ID,
+			QuestionID:    optionText.QuestionID,
+			Order:         optionText.Order,
+			Content:       optionText.Content,
+			Mark:          optionText.Mark,
+			CaseSensitive: optionText.CaseSensitive,
+			CreatedAt:     optionText.CreatedAt,
+			UpdatedAt:     optionText.UpdatedAt,
+			DeletedAt:     optionText.DeletedAt,
+		},
 	}, nil
 }
 
@@ -1008,12 +1084,17 @@ func (s *service) GetTextOptionsByQuestionID(ctx context.Context, questionID uui
 	var res []TextOptionResponse
 	for _, ot := range optionTexts {
 		res = append(res, TextOptionResponse{
-			ID:            ot.ID,
-			QuestionID:    ot.QuestionID,
-			Order:         ot.Order,
-			Content:       ot.Content,
-			Mark:          ot.Mark,
-			CaseSensitive: ot.CaseSensitive,
+			TextOption: TextOption{
+				ID:            ot.ID,
+				QuestionID:    ot.QuestionID,
+				Order:         ot.Order,
+				Content:       ot.Content,
+				Mark:          ot.Mark,
+				CaseSensitive: ot.CaseSensitive,
+				CreatedAt:     ot.CreatedAt,
+				UpdatedAt:     ot.UpdatedAt,
+				DeletedAt:     ot.DeletedAt,
+			},
 		})
 	}
 
@@ -1032,12 +1113,17 @@ func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) 
 	var res []TextOptionResponse
 	for _, ot := range optionTexts {
 		res = append(res, TextOptionResponse{
-			ID:            ot.ID,
-			QuestionID:    ot.QuestionID,
-			Order:         ot.Order,
-			Content:       ot.Content,
-			Mark:          ot.Mark,
-			CaseSensitive: ot.CaseSensitive,
+			TextOption: TextOption{
+				ID:            ot.ID,
+				QuestionID:    ot.QuestionID,
+				Order:         ot.Order,
+				Content:       ot.Content,
+				Mark:          ot.Mark,
+				CaseSensitive: ot.CaseSensitive,
+				CreatedAt:     ot.CreatedAt,
+				UpdatedAt:     ot.UpdatedAt,
+				DeletedAt:     ot.DeletedAt,
+			},
 		})
 	}
 
@@ -1087,12 +1173,17 @@ func (s *service) UpdateTextOption(ctx context.Context, req *UpdateTextOptionReq
 	}
 
 	return &TextOptionResponse{
-		ID:            optionText.ID,
-		QuestionID:    optionText.QuestionID,
-		Order:         optionText.Order,
-		Content:       optionText.Content,
-		Mark:          optionText.Mark,
-		CaseSensitive: optionText.CaseSensitive,
+		TextOption: TextOption{
+			ID:            optionText.ID,
+			QuestionID:    optionText.QuestionID,
+			Order:         optionText.Order,
+			Content:       optionText.Content,
+			Mark:          optionText.Mark,
+			CaseSensitive: optionText.CaseSensitive,
+			CreatedAt:     optionText.CreatedAt,
+			UpdatedAt:     optionText.UpdatedAt,
+			DeletedAt:     optionText.DeletedAt,
+		},
 	}, nil
 }
 
@@ -1158,11 +1249,16 @@ func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.
 	}
 
 	return &TextOptionResponse{
-		ID:            optionText.ID,
-		QuestionID:    optionText.QuestionID,
-		Order:         optionText.Order,
-		Content:       optionText.Content,
-		Mark:          optionText.Mark,
-		CaseSensitive: optionText.CaseSensitive,
+		TextOption: TextOption{
+			ID:            optionText.ID,
+			QuestionID:    optionText.QuestionID,
+			Order:         optionText.Order,
+			Content:       optionText.Content,
+			Mark:          optionText.Mark,
+			CaseSensitive: optionText.CaseSensitive,
+			CreatedAt:     optionText.CreatedAt,
+			UpdatedAt:     optionText.UpdatedAt,
+			DeletedAt:     optionText.DeletedAt,
+		},
 	}, nil
 }
