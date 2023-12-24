@@ -305,6 +305,95 @@ func (h *Handler) GoogleSignIn(c *gin.Context) {
 	c.JSON(http.StatusOK, userResponse)
 }
 
+var otpSecret string
+var otpCode string
+var expireTime time.Time
+
+func (h *Handler) SendOtpCode(c *gin.Context) {
+	var request struct {
+		Email string `json:"email"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.Service.GetUserByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if otpSecret == "" {
+		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := gin.H{
+		"message":    "Confirmation code sent successfully",
+		"code":       otpCode,
+		"secret":     otpSecret,
+		"expireTime": expireTime,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) VerifyOtpCode(c *gin.Context) {
+	var request struct {
+		OtpCode string `json:"otp"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	expireTimeParsed, err := time.Parse(time.RFC3339, expireTime.Format(time.RFC3339))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing expiration time"})
+		return
+	}
+
+	if time.Now().After(expireTimeParsed) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
+		return
+	}
+
+	validResponse := gin.H{
+		"message": "OTP code is valid",
+		"otpCode": request.OtpCode,
+		"secret":  otpSecret,
+	}
+
+	invalidResponse := gin.H{
+		"message": "OTP code is invalid",
+		"otpCode": request.OtpCode,
+		"secret":  otpSecret,
+	}
+
+	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+		return
+	}
+
+	c.JSON(http.StatusOK, validResponse)
+}
+
 // ---------- Admin related handlers ---------- //
 func (h *Handler) RestoreUser(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))

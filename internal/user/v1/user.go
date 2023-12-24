@@ -110,6 +110,7 @@ type Service interface {
 	CreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, string, error)
 	GetUsers(ctx context.Context) ([]UserResponse, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponse, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, id uuid.UUID) (*UserResponse, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GoogleSignIn(context.Context, string) (*LogInResponse, string, error)
