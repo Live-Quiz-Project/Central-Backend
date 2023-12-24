@@ -4,40 +4,44 @@ import (
 	"os"
 	"time"
 
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
 
-func GenerateTOTPKey() (string, error) {
+func GenerateTOTPKey() (string, string, time.Time, error) {
+	expirationTime := time.Now().Add(time.Duration(1) * time.Minute)
+
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      os.Getenv("OTP_ISSUER"),
 		AccountName: os.Getenv("OTP_ACCOUNT_NAME"),
+		Algorithm:   otp.AlgorithmSHA512,
+		Digits:      otp.DigitsSix,
+		Period:      uint(expirationTime.Second()),
 	})
 	if err != nil {
-		return "", err
+		return "", "", time.Time{}, err
 	}
 
-	expirationTime := time.Now().Add(time.Duration(5) * time.Minute)
-
-	code, err := totp.GenerateCode(key.Secret(), expirationTime)
-	if err != nil {
-		return "", err
+	ops := totp.ValidateOpts{
+		Period:    uint(expirationTime.Second()),
+		Skew:      0,
+		Digits:    otp.DigitsSix,
+		Algorithm: otp.AlgorithmSHA512,
 	}
 
-	return code, nil
+	passcode, _ := totp.GenerateCodeCustom(key.Secret(), expirationTime, ops)
+
+	return passcode, key.Secret(), expirationTime, nil
 }
 
-func GetOTPSecret(issuer, accountName string) (string, error) {
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      issuer,
-		AccountName: accountName,
-	})
-	if err != nil {
-		return "", err
+func VerifyOTP(userOTP, secret string) (bool, error) {
+	expirationTime := time.Now().Add(time.Duration(1) * time.Minute)
+	ops := totp.ValidateOpts{
+		Period:    uint(expirationTime.Second()),
+		Skew:      0,
+		Digits:    otp.DigitsSix,
+		Algorithm: otp.AlgorithmSHA512,
 	}
 
-	return key.Secret(), nil
-}
-
-func ValidateTOTP(userOTP, secret string) bool {
-	return totp.Validate(userOTP, secret)
+	return totp.ValidateCustom(userOTP, secret, expirationTime, ops)
 }

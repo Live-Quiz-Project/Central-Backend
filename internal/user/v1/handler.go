@@ -305,7 +305,11 @@ func (h *Handler) GoogleSignIn(c *gin.Context) {
 	c.JSON(http.StatusOK, userResponse)
 }
 
-func (h *Handler) SendConfirmationCode(c *gin.Context) {
+var otpSecret string
+var otpCode string
+var expireTime time.Time
+
+func (h *Handler) SendOtpCode(c *gin.Context) {
 	var request struct {
 		Email string `json:"email"`
 	}
@@ -326,26 +330,30 @@ func (h *Handler) SendConfirmationCode(c *gin.Context) {
 		return
 	}
 
-	confirmationCode, err := util.GenerateTOTPKey()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if otpSecret == "" {
+		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
-	if err := util.SendConfirmationCode(request.Email, confirmationCode); err != nil {
+	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	response := gin.H{
-		"message": "Confirmation code sent successfully",
-		"code":    confirmationCode,
+		"message":    "Confirmation code sent successfully",
+		"code":       otpCode,
+		"secret":     otpSecret,
+		"expireTime": expireTime,
 	}
 
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) ValidateConfirmationCode(c *gin.Context) {
+func (h *Handler) VerifyOtpCode(c *gin.Context) {
 	var request struct {
 		OtpCode string `json:"otp"`
 	}
@@ -355,25 +363,30 @@ func (h *Handler) ValidateConfirmationCode(c *gin.Context) {
 		return
 	}
 
-	secret, err := util.GetOTPSecret(os.Getenv("OTP_ISSUER"), os.Getenv("OTP_ACCOUNT_NAME"))
+	expireTimeParsed, err := time.Parse(time.RFC3339, expireTime.Format(time.RFC3339))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing expiration time"})
+		return
+	}
+
+	if time.Now().After(expireTimeParsed) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
 		return
 	}
 
 	validResponse := gin.H{
 		"message": "OTP code is valid",
 		"otpCode": request.OtpCode,
-		"secret":  secret,
+		"secret":  otpSecret,
 	}
 
 	invalidResponse := gin.H{
 		"message": "OTP code is invalid",
 		"otpCode": request.OtpCode,
-		"secret":  secret,
+		"secret":  otpSecret,
 	}
 
-	if result := util.ValidateTOTP(request.OtpCode, secret); !result {
+	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
 		return
 	}
