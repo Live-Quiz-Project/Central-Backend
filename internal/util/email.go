@@ -1,8 +1,6 @@
 package util
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 
 	"github.com/go-gomail/gomail"
@@ -22,16 +20,4 @@ func SendConfirmationCode(toEmail, confirmationCode string) error {
 	}
 
 	return nil
-}
-
-func GenerateConfirmationCode() (string, error) {
-	randomBytes := make([]byte, 6)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", err
-	}
-
-	confirmationCode := base64.URLEncoding.EncodeToString(randomBytes)
-
-	return confirmationCode, nil
 }

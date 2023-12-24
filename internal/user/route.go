@@ -13,6 +13,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.POST("/decode", h.DecodeToken)
 	r.POST("/google-signin", h.GoogleSignIn)
 	r.POST("/send-confirmation-code", h.SendConfirmationCode)
+	r.POST("/validate-confirmation-code", h.ValidateConfirmationCode)
 
 	userR := r.Group("/users")
 	userR.POST("", h.CreateUser)

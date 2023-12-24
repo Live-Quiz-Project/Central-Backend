@@ -326,7 +326,7 @@ func (h *Handler) SendConfirmationCode(c *gin.Context) {
 		return
 	}
 
-	confirmationCode, err := util.GenerateConfirmationCode()
+	confirmationCode, err := util.GenerateTOTPKey()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -337,7 +337,48 @@ func (h *Handler) SendConfirmationCode(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Confirmation code sent successfully"})
+	response := gin.H{
+		"message": "Confirmation code sent successfully",
+		"code":    confirmationCode,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) ValidateConfirmationCode(c *gin.Context) {
+	var request struct {
+		OtpCode string `json:"otp"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	secret, err := util.GetOTPSecret(os.Getenv("OTP_ISSUER"), os.Getenv("OTP_ACCOUNT_NAME"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	validResponse := gin.H{
+		"message": "OTP code is valid",
+		"otpCode": request.OtpCode,
+		"secret":  secret,
+	}
+
+	invalidResponse := gin.H{
+		"message": "OTP code is invalid",
+		"otpCode": request.OtpCode,
+		"secret":  secret,
+	}
+
+	if result := util.ValidateTOTP(request.OtpCode, secret); !result {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+		return
+	}
+
+	c.JSON(http.StatusOK, validResponse)
 }
 
 // ---------- Admin related handlers ---------- //
