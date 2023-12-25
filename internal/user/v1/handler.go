@@ -309,7 +309,7 @@ var otpSecret string
 var otpCode string
 var expireTime time.Time
 
-func (h *Handler) SendOtpCode(c *gin.Context) {
+func (h *Handler) SendOTPCode(c *gin.Context) {
 	var request struct {
 		Email string `json:"email"`
 	}
@@ -353,7 +353,7 @@ func (h *Handler) SendOtpCode(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *Handler) VerifyOtpCode(c *gin.Context) {
+func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	var request struct {
 		OtpCode string `json:"otp"`
 	}
