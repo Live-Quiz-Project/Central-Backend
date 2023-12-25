@@ -158,13 +158,13 @@ func (s *service) GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 	}, nil
 }
 
-func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error) {
+func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uuid.UUID, id uuid.UUID) (*UpdateQuizResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	quiz, err := s.Repository.GetQuizByID(c, id)
 	if err != nil {
-		return &QuizResponse{}, err
+		return &UpdateQuizResponse{}, err
 	}
 	if req.Title != "" {
 		quiz.Title = req.Title
@@ -206,33 +206,36 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uui
 
 	quiz, er := s.Repository.UpdateQuiz(c, quiz)
 	if er != nil {
-		return &QuizResponse{}, er
-	}
-	
-	_, e := s.Repository.CreateQuizHistory(c, qh)
-	if e != nil {
-		return &QuizResponse{}, e
+		return &UpdateQuizResponse{}, er
 	}
 
-	return &QuizResponse{
-		Quiz: Quiz{
-			ID:             quiz.ID,
-			CreatorID:      quiz.CreatorID,
-			Title:          quiz.Title,
-			Description:    quiz.Description,
-			CoverImage:     quiz.CoverImage,
-			Visibility:     quiz.Visibility,
-			TimeLimit:      quiz.TimeLimit,
-			HaveTimeFactor: quiz.HaveTimeFactor,
-			TimeFactor:     quiz.TimeFactor,
-			FontSize:       quiz.FontSize,
-			Mark:           quiz.Mark,
-			SelectUpTo:     quiz.SelectUpTo,
-			CaseSensitive:  quiz.CaseSensitive,
-			CreatedAt:      quiz.CreatedAt,
-			UpdatedAt:      quiz.UpdatedAt,
-			DeletedAt:      quiz.DeletedAt,
+	_, e := s.Repository.CreateQuizHistory(c, qh)
+	if e != nil {
+		return &UpdateQuizResponse{}, e
+	}
+
+	return &UpdateQuizResponse{
+		QuizResponse: QuizResponse{
+			Quiz: Quiz{
+				ID:             quiz.ID,
+				CreatorID:      quiz.CreatorID,
+				Title:          quiz.Title,
+				Description:    quiz.Description,
+				CoverImage:     quiz.CoverImage,
+				Visibility:     quiz.Visibility,
+				TimeLimit:      quiz.TimeLimit,
+				HaveTimeFactor: quiz.HaveTimeFactor,
+				TimeFactor:     quiz.TimeFactor,
+				FontSize:       quiz.FontSize,
+				Mark:           quiz.Mark,
+				SelectUpTo:     quiz.SelectUpTo,
+				CaseSensitive:  quiz.CaseSensitive,
+				CreatedAt:      quiz.CreatedAt,
+				UpdatedAt:      quiz.UpdatedAt,
+				DeletedAt:      quiz.DeletedAt,
+			},
 		},
+		QuizHistoryID: qh.ID,
 	}, nil
 }
 
@@ -334,7 +337,7 @@ func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 }
 
 // ---------- Question Pool related service methods ---------- //
-func (s *service) CreateQuestionPool(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error) {
+func (s *service) CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -428,8 +431,88 @@ func (s *service) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID
 	return res, nil
 }
 
+func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	questionPool, err := s.Repository.GetQuestionPoolByID(c, questionPoolID)
+	if err != nil {
+		return &UpdateQuestionPoolResponse{}, err
+	}
+
+	if req.Order != 0 {
+		questionPool.Order = req.Order
+	}
+	if req.Content != "" {
+		questionPool.Content = req.Content
+	}
+	if req.Note != "" {
+		questionPool.Note = req.Note
+	}
+	if req.Media != "" {
+		questionPool.Media = req.Media
+	}
+	if req.TimeLimit != 0 {
+		questionPool.TimeLimit = req.TimeLimit
+	}
+	if !req.HaveTimeFactor {
+		questionPool.HaveTimeFactor = req.HaveTimeFactor
+	}
+	if req.TimeFactor != 0 {
+		questionPool.TimeFactor = req.TimeFactor
+	}
+	if req.FontSize != 0 {
+		questionPool.FontSize = req.FontSize
+	}
+
+	qph := &QuestionPoolHistory{
+		ID:             uuid.New(),
+		QuestionPoolID: questionPool.ID,
+		QuizID:         quizHistoryID,
+		Order:          questionPool.Order,
+		Content:        questionPool.Content,
+		Note:           questionPool.Note,
+		Media:          questionPool.Media,
+		TimeLimit:      questionPool.TimeLimit,
+		HaveTimeFactor: questionPool.HaveTimeFactor,
+		TimeFactor:     questionPool.TimeFactor,
+		FontSize:       questionPool.FontSize,
+	}
+
+	questionPool, er := s.Repository.UpdateQuestionPool(c, questionPool)
+	if er != nil {
+		return &UpdateQuestionPoolResponse{}, er
+	}
+
+	_, e := s.Repository.CreateQuestionPoolHistory(c, qph)
+	if e != nil {
+		return &UpdateQuestionPoolResponse{}, e
+	}
+
+	return &UpdateQuestionPoolResponse{
+		QuestionPoolResponse: QuestionPoolResponse{
+			QuestionPool: QuestionPool{
+				ID:             questionPool.ID,
+				QuizID:         questionPool.QuizID,
+				Order:          questionPool.Order,
+				Content:        questionPool.Content,
+				Note:           questionPool.Note,
+				Media:          questionPool.Media,
+				TimeLimit:      questionPool.TimeLimit,
+				HaveTimeFactor: questionPool.HaveTimeFactor,
+				TimeFactor:     questionPool.TimeFactor,
+				FontSize:       questionPool.FontSize,
+				CreatedAt:      questionPool.CreatedAt,
+				UpdatedAt:      questionPool.UpdatedAt,
+				DeletedAt:      questionPool.DeletedAt,
+			},
+		},
+		QuestionPoolHistoryID: qph.ID,
+	}, nil
+}
+
 // ---------- Question related service methods ---------- //
-func (s *service) CreateQuestion(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
+func (s *service) CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -572,13 +655,13 @@ func (s *service) GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID
 	return count, nil
 }
 
-func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error) {
+func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	question, err := s.Repository.GetQuestionByID(c, id)
+	question, err := s.Repository.GetQuestionByID(c, questionID)
 	if err != nil {
-		return &QuestionResponse{}, err
+		return &UpdateQuestionResponse{}, err
 	}
 
 	if req.Type != "" {
@@ -587,6 +670,9 @@ func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest
 	if req.Order != 0 {
 		question.Order = req.Order
 	}
+
+	question.QuestionPoolID = req.QuestionPoolID
+
 	if req.Content != "" {
 		question.Content = req.Content
 	}
@@ -618,8 +704,8 @@ func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
 		QuestionID:     question.ID,
-		QuizID:         question.QuizID,
-		QuestionPoolID: question.QuestionPoolID,
+		QuizID:         quizHistoryID,
+		QuestionPoolID: questionPoolHistoryID,
 		Type:           question.Type,
 		Order:          question.Order,
 		Content:        question.Content,
@@ -636,34 +722,37 @@ func (s *service) UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest
 
 	question, er := s.Repository.UpdateQuestion(c, question)
 	if er != nil {
-		return &QuestionResponse{}, er
+		return &UpdateQuestionResponse{}, er
 	}
 
 	_, e := s.Repository.CreateQuestionHistory(c, qh)
 	if e != nil {
-		return &QuestionResponse{}, e
+		return &UpdateQuestionResponse{}, e
 	}
 
-	return &QuestionResponse{
-		Question: Question{
-			ID:             question.ID,
-			QuizID:         question.QuizID,
-			QuestionPoolID: question.QuestionPoolID,
-			Type:           question.Type,
-			Order:          question.Order,
-			Content:        question.Content,
-			Note:           question.Note,
-			Media:          question.Media,
-			TimeLimit:      question.TimeLimit,
-			HaveTimeFactor: question.HaveTimeFactor,
-			TimeFactor:     question.TimeFactor,
-			FontSize:       question.FontSize,
-			LayoutIdx:      question.LayoutIdx,
-			SelectUpTo:     question.SelectUpTo,
-			CreatedAt:      question.CreatedAt,
-			UpdatedAt:      question.UpdatedAt,
-			DeletedAt:      question.DeletedAt,
+	return &UpdateQuestionResponse{
+		QuestionResponse: QuestionResponse{
+			Question: Question{
+				ID:             question.ID,
+				QuizID:         question.QuizID,
+				QuestionPoolID: question.QuestionPoolID,
+				Type:           question.Type,
+				Order:          question.Order,
+				Content:        question.Content,
+				Note:           question.Note,
+				Media:          question.Media,
+				TimeLimit:      question.TimeLimit,
+				HaveTimeFactor: question.HaveTimeFactor,
+				TimeFactor:     question.TimeFactor,
+				FontSize:       question.FontSize,
+				LayoutIdx:      question.LayoutIdx,
+				SelectUpTo:     question.SelectUpTo,
+				CreatedAt:      question.CreatedAt,
+				UpdatedAt:      question.UpdatedAt,
+				DeletedAt:      question.DeletedAt,
+			},
 		},
+		QuestionHistoryID: qh.ID,
 	}, nil
 }
 
@@ -771,7 +860,7 @@ func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UU
 
 // ---------- Options related service methods ---------- //
 // Choice related service methods
-func (s *service) CreateChoiceOption(ctx context.Context, req *CreateChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
+func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -882,11 +971,11 @@ func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID
 	return res, nil
 }
 
-func (s *service) UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptionRequest, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
+func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*ChoiceOptioneResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionChoice, err := s.Repository.GetChoiceOptionByID(c, id)
+	optionChoice, err := s.Repository.GetChoiceOptionByID(c, optionID)
 	if err != nil {
 		return &ChoiceOptioneResponse{}, err
 	}
@@ -910,7 +999,7 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptio
 	och := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: optionChoice.ID,
-		QuestionID:     optionChoice.QuestionID,
+		QuestionID:     questionHistoryID,
 		Order:          optionChoice.Order,
 		Content:        optionChoice.Content,
 		Mark:           optionChoice.Mark,
@@ -1024,7 +1113,7 @@ func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uui
 }
 
 // Text related service methods
-func (s *service) CreateTextOption(ctx context.Context, req *CreateTextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error) {
+func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1130,11 +1219,11 @@ func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) 
 	return res, nil
 }
 
-func (s *service) UpdateTextOption(ctx context.Context, req *UpdateTextOptionRequest, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error) {
+func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*TextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionText, err := s.Repository.GetTextOptionByID(c, id)
+	optionText, err := s.Repository.GetTextOptionByID(c, optionID)
 	if err != nil {
 		return &TextOptionResponse{}, err
 	}
@@ -1155,7 +1244,7 @@ func (s *service) UpdateTextOption(ctx context.Context, req *UpdateTextOptionReq
 	oth := &TextOptionHistory{
 		ID:            uuid.New(),
 		OptionTextID:  optionText.ID,
-		QuestionID:    optionText.QuestionID,
+		QuestionID:    questionHistoryID,
 		Order:         optionText.Order,
 		Content:       optionText.Content,
 		Mark:          optionText.Mark,

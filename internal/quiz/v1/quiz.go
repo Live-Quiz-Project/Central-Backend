@@ -60,7 +60,7 @@ func (QuizHistory) TableName() string {
 type QuestionPool struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
-	Order					 int            `json:"order" gorm:"column:order;type:int"`
+	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
@@ -81,7 +81,7 @@ type QuestionPoolHistory struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionPoolID uuid.UUID      `json:"question_pool_id" gorm:"column:question_pool_id;type:uuid;not null;references:question_pool(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
-	Order					 int            `json:"order" gorm:"column:order;type:int"`
+	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
@@ -128,7 +128,7 @@ type QuestionHistory struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionID     uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
-	QuestionPoolID *uuid.UUID      `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool_history(id)"`
+	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool_history(id)"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
@@ -306,6 +306,7 @@ type Repository interface {
 
 	// ---------- Question Pool related repository methods ---------- //
 	CreateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
+	GetQuestionPoolByID(ctx context.Context, questionPoolID uuid.UUID) (*QuestionPool, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error)
 	UpdateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
 	DeleteQuestionPool(ctx context.Context, id uuid.UUID) error
@@ -392,18 +393,18 @@ type QuizResponse struct {
 }
 
 type CreateQuizRequest struct {
-	Title          string                  `json:"title"`
-	Description    string                  `json:"description"`
-	CoverImage     string                  `json:"cover_image"`
-	Visibility     string                  `json:"visiblity"`
-	TimeLimit      int                     `json:"time_limit"`
-	HaveTimeFactor bool                    `json:"have_time_limit"`
-	TimeFactor     int                     `json:"time_factor"`
-	FontSize       int                     `json:"font_size"`
-	Mark           int                     `json:"mark"`
-	SelectUpTo     int                     `json:"select_up_to"`
-	CaseSensitive  bool                    `json:"case_sensitive"`
-	Questions      []CreateQuestionRequest `json:"questions"`
+	Title          string            `json:"title"`
+	Description    string            `json:"description"`
+	CoverImage     string            `json:"cover_image"`
+	Visibility     string            `json:"visiblity"`
+	TimeLimit      int               `json:"time_limit"`
+	HaveTimeFactor bool              `json:"have_time_limit"`
+	TimeFactor     int               `json:"time_factor"`
+	FontSize       int               `json:"font_size"`
+	Mark           int               `json:"mark"`
+	SelectUpTo     int               `json:"select_up_to"`
+	CaseSensitive  bool              `json:"case_sensitive"`
+	Questions      []QuestionRequest `json:"questions"`
 }
 
 type CreateQuizResponse struct {
@@ -411,9 +412,14 @@ type CreateQuizResponse struct {
 	QuizHistoryID uuid.UUID `json:"quiz_history_id"`
 }
 
+type UpdateQuizResponse struct {
+	QuizResponse
+	QuizHistoryID uuid.UUID `json:"quiz_history_id"`
+}
+
 type UpdateQuizRequest struct {
 	Quiz
-	Questions []UpdateQuestionRequest `json:"questions"`
+	Questions []QuestionRequest `json:"questions"`
 }
 
 // ---------- Question Pool related structs ---------- //
@@ -426,27 +432,21 @@ type CreateQuestionPoolResponse struct {
 	QuestionPoolHistoryID uuid.UUID `json:"question_pool_history_id"`
 }
 
+type UpdateQuestionPoolResponse struct {
+	QuestionPoolResponse
+	QuestionPoolHistoryID uuid.UUID `json:"question_pool_history_id"`
+}
+
 // ---------- Question related structs ---------- //
 type QuestionResponse struct {
 	Question
 	Options []any `json:"options,omitempty"`
 }
 
-type CreateQuestionRequest struct {
-	IsInPool			 bool       `json:"is_in_pool"`
-	Type           string     `json:"type"`
-	Order          int        `json:"order"`
-	Content        string     `json:"content"`
-	Note           string     `json:"note"`
-	Media          string     `json:"media"`
-	UseTemplate    bool       `json:"use_template"`
-	TimeLimit      int        `json:"time_limit"`
-	HaveTimeFactor bool       `json:"have_time_factor"`
-	TimeFactor     int        `json:"time_factor"`
-	FontSize       int        `json:"font_size"`
-	LayoutIdx      int        `json:"layout_idx"`
-	SelectUpTo     int        `json:"select_up_to"`
-	Options        []any      `json:"options,omitempty"`
+type QuestionRequest struct {
+	IsInPool bool `json:"is_in_pool"`
+	Question
+	Options []any `json:"options,omitempty"`
 }
 
 type CreateQuestionResponse struct {
@@ -454,9 +454,9 @@ type CreateQuestionResponse struct {
 	QuestionHistoryID uuid.UUID `json:"question_history_id"`
 }
 
-type UpdateQuestionRequest struct {
-	Question
-	Options []any `json:"options,omitempty"`
+type UpdateQuestionResponse struct {
+	QuestionResponse
+	QuestionHistoryID uuid.UUID `json:"question_history_id"`
 }
 
 // ---------- Options related structs ---------- //
@@ -465,15 +465,12 @@ type ChoiceOptioneResponse struct {
 	ChoiceOption
 }
 
-type CreateChoiceOptionRequest struct {
-	Order   int    `json:"order"`
-	Content string `json:"content"`
-	Mark    int    `json:"mark"`
-	Color   string `json:"color"`
-	Correct bool   `json:"correct"`
+type UpdateOptioneResponse struct {
+	ChoiceOption
+	ChoiceOptionHistory uuid.UUID
 }
 
-type UpdateChoiceOptionRequest struct {
+type ChoiceOptionRequest struct {
 	ChoiceOption
 }
 
@@ -481,57 +478,51 @@ type UpdateChoiceOptionRequest struct {
 type TextOptionResponse struct {
 	TextOption
 }
-type CreateTextOptionRequest struct {
-	Order         int    `json:"order"`
-	Content       string `json:"content"`
-	Mark          int    `json:"mark"`
-	CaseSensitive bool   `json:"case_sensitive"`
-}
-type UpdateTextOptionRequest struct {
+type TextOptionRequest struct {
 	TextOption
 }
 
 // Matching related structs
-
 
 type Service interface {
 	// ---------- Quiz related service methods ---------- //
 	CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
-	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
+	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
 	DeleteQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 
 	// ---------- Question Pool related service methods ---------- //
-	CreateQuestionPool(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
+	CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
+	UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
 
 	// ---------- Question related service methods ---------- //
-	CreateQuestion(ctx context.Context, req *CreateQuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
+	CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
 	GetQuestionsByQuizID(ctx context.Context, id uuid.UUID) ([]QuestionResponse, error)
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
-	UpdateQuestion(ctx context.Context, req *UpdateQuestionRequest, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
+	UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
 	DeleteQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
-	CreateChoiceOption(ctx context.Context, req *CreateChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
+	CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
-	UpdateChoiceOption(ctx context.Context, req *UpdateChoiceOptionRequest, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
+	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*ChoiceOptioneResponse, error)
 	DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
 
 	// Text related service methods
-	CreateTextOption(ctx context.Context, req *CreateTextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
+	CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
-	UpdateTextOption(ctx context.Context, req *UpdateTextOptionRequest, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
+	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*TextOptionResponse, error)
 	DeleteTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
 	RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
-
+	
 	// Matching related service methods
 }

@@ -156,6 +156,16 @@ func (r *repository) CreateQuestionPool(ctx context.Context, questionPool *Quest
 	return questionPool, nil
 }
 
+func (r *repository) GetQuestionPoolByID(ctx context.Context, questionPoolID uuid.UUID) (*QuestionPool, error) {
+	var questionPool QuestionPool
+	res := r.db.WithContext(ctx).Where("id = ?", questionPoolID).Find(&questionPool)
+	if res.Error != nil {
+		return &QuestionPool{}, res.Error
+	}
+
+	return &questionPool, nil
+}
+
 func (r *repository) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error) {
 	var questionPools []QuestionPool
 	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).Find(&questionPools)
@@ -252,7 +262,6 @@ func (r *repository) GetQuestionByID(ctx context.Context, id uuid.UUID) (*Questi
 	if res.Error != nil {
 		return &Question{}, res.Error
 	}
-
 	return &question, nil
 }
 
@@ -806,3 +815,5 @@ func (r *repository) DeleteMatchingAnswerHistory(ctx context.Context, id uuid.UU
 	}
 	return nil
 }
+
+// Uncatagorize function
