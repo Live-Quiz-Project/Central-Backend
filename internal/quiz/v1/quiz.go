@@ -461,13 +461,16 @@ type UpdateQuestionResponse struct {
 
 // ---------- Options related structs ---------- //
 // Choice related structs
-type ChoiceOptioneResponse struct {
+type ChoiceOptionResponse struct {
 	ChoiceOption
 }
 
-type UpdateOptioneResponse struct {
+type UpdateChoiceOptionResponse struct {
 	ChoiceOption
-	ChoiceOptionHistory uuid.UUID
+}
+
+type CreateChoiceOptionResponse struct {
+	ChoiceOption
 }
 
 type ChoiceOptionRequest struct {
@@ -478,7 +481,16 @@ type ChoiceOptionRequest struct {
 type TextOptionResponse struct {
 	TextOption
 }
+
 type TextOptionRequest struct {
+	TextOption
+}
+
+type UpdateTextOptionResponse struct {
+	TextOption
+}
+
+type CreateTextOptionResponse struct {
 	TextOption
 }
 
@@ -490,13 +502,14 @@ type Service interface {
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
-	DeleteQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
+	DeleteQuiz(ctx context.Context, quizID uuid.UUID) (error)
 	RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 
 	// ---------- Question Pool related service methods ---------- //
 	CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
 	UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
+	DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) (error)
 
 	// ---------- Question related service methods ---------- //
 	CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
@@ -504,25 +517,25 @@ type Service interface {
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
-	DeleteQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
+	DeleteQuestion(ctx context.Context, questionID uuid.UUID) (error)
 	RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
-	CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
-	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
-	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error)
-	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*ChoiceOptioneResponse, error)
-	DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
-	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error)
+	CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error)
+	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
+	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
+	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
+	DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) (error)
+	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptionResponse, error)
 
 	// Text related service methods
-	CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
+	CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
-	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*TextOptionResponse, error)
-	DeleteTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error
+	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
+	DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) (error)
 	RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
-	
+
 	// Matching related service methods
 }

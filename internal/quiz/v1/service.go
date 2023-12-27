@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -239,38 +240,11 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uu
 	}, nil
 }
 
-func (s *service) DeleteQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	quiz, err := s.Repository.GetQuizByID(c, id)
-	if err != nil {
-		return err
-	}
-
-	qh := &QuizHistory{
-		ID:             uuid.New(),
-		QuizID:         quiz.ID,
-		CreatorID:      quiz.CreatorID,
-		Title:          quiz.Title,
-		Description:    quiz.Description,
-		CoverImage:     quiz.CoverImage,
-		Visibility:     quiz.Visibility,
-		TimeLimit:      quiz.TimeLimit,
-		HaveTimeFactor: quiz.HaveTimeFactor,
-		TimeFactor:     quiz.TimeFactor,
-		FontSize:       quiz.FontSize,
-		Mark:           quiz.Mark,
-		SelectUpTo:     quiz.SelectUpTo,
-		CaseSensitive:  quiz.CaseSensitive,
-	}
-
-	_, er := s.Repository.CreateQuizHistory(c, qh)
-	if er != nil {
-		return er
-	}
-
-	e := s.Repository.DeleteQuiz(c, id)
+	e := s.Repository.DeleteQuiz(c, quizID)
 	if e != nil {
 		return e
 	}
@@ -511,6 +485,18 @@ func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, 
 	}, nil
 }
 
+func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) (error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	e := s.Repository.DeleteQuestionPool(c, questionPoolID)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
 // ---------- Question related service methods ---------- //
 func (s *service) CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
@@ -730,6 +716,9 @@ func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user
 		return &UpdateQuestionResponse{}, e
 	}
 
+	options := make([]any, 0)
+	options = append(options, req.Options...)
+
 	return &UpdateQuestionResponse{
 		QuestionResponse: QuestionResponse{
 			Question: Question{
@@ -751,45 +740,17 @@ func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user
 				UpdatedAt:      question.UpdatedAt,
 				DeletedAt:      question.DeletedAt,
 			},
+			Options: options,
 		},
 		QuestionHistoryID: qh.ID,
 	}, nil
 }
 
-func (s *service) DeleteQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	question, err := s.Repository.GetQuestionByID(c, id)
-	if err != nil {
-		return err
-	}
-
-	qh := &QuestionHistory{
-		ID:             uuid.New(),
-		QuestionID:     question.ID,
-		QuizID:         question.QuizID,
-		QuestionPoolID: question.QuestionPoolID,
-		Type:           question.Type,
-		Order:          question.Order,
-		Content:        question.Content,
-		Note:           question.Note,
-		Media:          question.Media,
-		UseTemplate:    question.UseTemplate,
-		TimeLimit:      question.TimeLimit,
-		HaveTimeFactor: question.HaveTimeFactor,
-		TimeFactor:     question.TimeFactor,
-		FontSize:       question.FontSize,
-		LayoutIdx:      question.LayoutIdx,
-		SelectUpTo:     question.SelectUpTo,
-	}
-
-	_, er := s.Repository.CreateQuestionHistory(c, qh)
-	if er != nil {
-		return er
-	}
-
-	e := s.Repository.DeleteQuestion(c, id)
+	e := s.Repository.DeleteQuestion(c, questionID)
 	if e != nil {
 		return e
 	}
@@ -860,9 +821,11 @@ func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UU
 
 // ---------- Options related service methods ---------- //
 // Choice related service methods
-func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
+func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+
+	log.Println("In Create Choice Option")
 
 	oc := &ChoiceOption{
 		ID:         uuid.New(),
@@ -887,15 +850,15 @@ func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 
 	optionChoice, err := s.Repository.CreateChoiceOption(c, oc)
 	if err != nil {
-		return &ChoiceOptioneResponse{}, err
+		return &CreateChoiceOptionResponse{}, err
 	}
 
 	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
 	if er != nil {
-		return &ChoiceOptioneResponse{}, er
+		return &CreateChoiceOptionResponse{}, er
 	}
 
-	return &ChoiceOptioneResponse{
+	return &CreateChoiceOptionResponse{
 		ChoiceOption: ChoiceOption{
 			ID:         optionChoice.ID,
 			QuestionID: optionChoice.QuestionID,
@@ -911,7 +874,7 @@ func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 	}, nil
 }
 
-func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptioneResponse, error) {
+func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -920,9 +883,9 @@ func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID u
 		return nil, err
 	}
 
-	var res []ChoiceOptioneResponse
+	var res []ChoiceOptionResponse
 	for _, oc := range optionChoices {
-		res = append(res, ChoiceOptioneResponse{
+		res = append(res, ChoiceOptionResponse{
 			ChoiceOption: ChoiceOption{
 				ID:         oc.ID,
 				QuestionID: oc.QuestionID,
@@ -941,7 +904,7 @@ func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID u
 	return res, nil
 }
 
-func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptioneResponse, error) {
+func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -950,9 +913,9 @@ func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID
 		return nil, err
 	}
 
-	var res []ChoiceOptioneResponse
+	var res []ChoiceOptionResponse
 	for _, oc := range optionChoices {
-		res = append(res, ChoiceOptioneResponse{
+		res = append(res, ChoiceOptionResponse{
 			ChoiceOption: ChoiceOption{
 				ID:         oc.ID,
 				QuestionID: oc.QuestionID,
@@ -971,13 +934,13 @@ func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID
 	return res, nil
 }
 
-func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*ChoiceOptioneResponse, error) {
+func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	optionChoice, err := s.Repository.GetChoiceOptionByID(c, optionID)
 	if err != nil {
-		return &ChoiceOptioneResponse{}, err
+		return &UpdateChoiceOptionResponse{}, err
 	}
 
 	if req.Order != 0 {
@@ -1009,15 +972,15 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 
 	optionChoice, er := s.Repository.UpdateChoiceOption(c, optionChoice)
 	if er != nil {
-		return &ChoiceOptioneResponse{}, er
+		return &UpdateChoiceOptionResponse{}, er
 	}
 
 	_, e := s.Repository.CreateChoiceOptionHistory(c, och)
 	if e != nil {
-		return &ChoiceOptioneResponse{}, e
+		return &UpdateChoiceOptionResponse{}, e
 	}
 
-	return &ChoiceOptioneResponse{
+	return &UpdateChoiceOptionResponse{
 		ChoiceOption: ChoiceOption{
 			ID:         optionChoice.ID,
 			QuestionID: optionChoice.QuestionID,
@@ -1033,32 +996,11 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 	}, nil
 }
 
-func (s *service) DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionChoice, err := s.Repository.GetChoiceOptionByID(c, id)
-	if err != nil {
-		return err
-	}
-
-	och := &ChoiceOptionHistory{
-		ID:             uuid.New(),
-		ChoiceOptionID: optionChoice.ID,
-		QuestionID:     optionChoice.QuestionID,
-		Order:          optionChoice.Order,
-		Content:        optionChoice.Content,
-		Mark:           optionChoice.Mark,
-		Color:          optionChoice.Color,
-		Correct:        optionChoice.Correct,
-	}
-
-	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
-	if er != nil {
-		return er
-	}
-
-	e := s.Repository.DeleteChoiceOption(c, id)
+	e := s.Repository.DeleteChoiceOption(c, choiceOptionID)
 	if e != nil {
 		return e
 	}
@@ -1066,7 +1008,7 @@ func (s *service) DeleteChoiceOption(ctx context.Context, id uuid.UUID, uid uuid
 	return nil
 }
 
-func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptioneResponse, error) {
+func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1096,7 +1038,7 @@ func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uui
 		return nil, e
 	}
 
-	return &ChoiceOptioneResponse{
+	return &ChoiceOptionResponse{
 		ChoiceOption: ChoiceOption{
 			ID:         optionChoice.ID,
 			QuestionID: optionChoice.QuestionID,
@@ -1113,7 +1055,7 @@ func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uui
 }
 
 // Text related service methods
-func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error) {
+func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1138,15 +1080,15 @@ func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, 
 
 	optionText, err := s.Repository.CreateTextOption(c, ot)
 	if err != nil {
-		return &TextOptionResponse{}, err
+		return &CreateTextOptionResponse{}, err
 	}
 
 	_, er := s.Repository.CreateTextOptionHistory(c, oth)
 	if er != nil {
-		return &TextOptionResponse{}, er
+		return &CreateTextOptionResponse{}, er
 	}
 
-	return &TextOptionResponse{
+	return &CreateTextOptionResponse{
 		TextOption: TextOption{
 			ID:            optionText.ID,
 			QuestionID:    optionText.QuestionID,
@@ -1219,13 +1161,13 @@ func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) 
 	return res, nil
 }
 
-func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*TextOptionResponse, error) {
+func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	optionText, err := s.Repository.GetTextOptionByID(c, optionID)
 	if err != nil {
-		return &TextOptionResponse{}, err
+		return &UpdateTextOptionResponse{}, err
 	}
 
 	if req.Order != 0 {
@@ -1253,15 +1195,15 @@ func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, 
 
 	optionText, er := s.Repository.UpdateTextOption(c, optionText)
 	if er != nil {
-		return &TextOptionResponse{}, er
+		return &UpdateTextOptionResponse{}, er
 	}
 
 	_, e := s.Repository.CreateTextOptionHistory(c, oth)
 	if e != nil {
-		return &TextOptionResponse{}, e
+		return &UpdateTextOptionResponse{}, e
 	}
 
-	return &TextOptionResponse{
+	return &UpdateTextOptionResponse{
 		TextOption: TextOption{
 			ID:            optionText.ID,
 			QuestionID:    optionText.QuestionID,
@@ -1276,31 +1218,11 @@ func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, 
 	}, nil
 }
 
-func (s *service) DeleteTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) error {
+func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionText, err := s.Repository.GetTextOptionByID(c, id)
-	if err != nil {
-		return err
-	}
-
-	oth := &TextOptionHistory{
-		ID:            uuid.New(),
-		OptionTextID:  optionText.ID,
-		QuestionID:    optionText.QuestionID,
-		Order:         optionText.Order,
-		Content:       optionText.Content,
-		Mark:          optionText.Mark,
-		CaseSensitive: optionText.CaseSensitive,
-	}
-
-	_, er := s.Repository.CreateTextOptionHistory(c, oth)
-	if er != nil {
-		return er
-	}
-
-	e := s.Repository.DeleteTextOption(c, id)
+	e := s.Repository.DeleteTextOption(c, textOptionID)
 	if e != nil {
 		return e
 	}
