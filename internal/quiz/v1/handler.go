@@ -1192,6 +1192,36 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 			}
 		}
 
+		if question.Type == util.Matching {
+			matchingOptionData, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			matchinAnswerData, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			for _, matchingOption := range matchingOptionData {
+				err := h.Service.DeleteMatchingOption(c.Request.Context(), matchingOption.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+
+			for _, matchingAnswer := range matchinAnswerData {
+				err := h.Service.DeleteMatchingAnswer(c.Request.Context(), matchingAnswer.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+		}
+
 		err := h.Service.DeleteQuestion(c.Request.Context(), question.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
