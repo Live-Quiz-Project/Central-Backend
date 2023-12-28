@@ -656,7 +656,7 @@ func (r *repository) CreateMatchingOption(ctx context.Context, optionMatching *M
 	return optionMatching, nil
 }
 
-func (r *repository) GetMachingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error) {
+func (r *repository) GetMatchingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error) {
 	var optionMatching MatchingOption
 	res := r.db.WithContext(ctx).Where("id = ?", id).First(&optionMatching)
 	if res.Error != nil {
@@ -665,13 +665,22 @@ func (r *repository) GetMachingOptionByID(ctx context.Context, id uuid.UUID) (*M
 	return &optionMatching, nil
 }
 
-func (r *repository) GetMatchingOptionByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error) {
+func (r *repository) GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error) {
 	var optionMatchings []MatchingOption
 	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&optionMatchings)
 	if res.Error != nil {
 		return []MatchingOption{}, res.Error
 	}
 	return optionMatchings, nil
+}
+
+func (r *repository) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int ) (*MatchingOption, error) {
+	var optionMatching MatchingOption
+	res := r.db.WithContext(ctx).Where(`question_id = ? AND "order" = ?`,questionID,order).Find(&optionMatching)
+	if res.Error != nil {
+		return &MatchingOption{}, res.Error
+	}
+	return &optionMatching, nil
 }
 
 func (r *repository) UpdateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error) {
@@ -790,6 +799,24 @@ func (r *repository) RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*
 		return nil, res.Error
 	}
 	return &answerMatching, nil
+}
+
+func (r *repository) GetMatchingAnswerByID(ctx context.Context,id uuid.UUID) (*MatchingAnswer ,error) {
+	var answerMatching MatchingAnswer
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&answerMatching)
+	if res.Error != nil {
+		return &MatchingAnswer{}, res.Error
+	}
+	return &answerMatching, nil
+}
+
+func (r *repository) GetMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error) {
+	var answerMatchings []MatchingAnswer
+	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&answerMatchings)
+	if res.Error != nil {
+		return []MatchingAnswer{}, res.Error
+	}
+	return answerMatchings, nil
 }
 
 func (r *repository) CreateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error) {

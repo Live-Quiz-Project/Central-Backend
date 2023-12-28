@@ -6,5 +6,6 @@ const (
 	TrueFalse = "TRUE_FALSE"
 	Paragraph = "PARAGRAPH"
 	ShortText = "SHORT_TEXT"
-	Matching  = "MATCHING"
+	Matching = "MATCHING"
+
 )

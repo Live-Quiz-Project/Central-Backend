@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -176,17 +175,39 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uu
 	if req.CoverImage != "" {
 		quiz.CoverImage = req.CoverImage
 	}
-	quiz.Title = req.Title
-	quiz.Description = req.Description
-	quiz.CoverImage = req.CoverImage
-	quiz.Visibility = req.Visibility
-	quiz.TimeLimit = req.TimeLimit
-	quiz.HaveTimeFactor = req.HaveTimeFactor
-	quiz.TimeFactor = req.TimeFactor
-	quiz.FontSize = req.FontSize
-	quiz.Mark = req.Mark
-	quiz.SelectUpTo = req.SelectUpTo
-	quiz.CaseSensitive = req.CaseSensitive
+	if req.Title != "" {
+		quiz.Title = req.Title
+	}
+	if req.Description != "" {
+		quiz.Description = req.Description
+	}
+	if req.CoverImage != "" {
+		quiz.CoverImage = req.CoverImage
+	}
+	if req.Visibility != "" {
+		quiz.Visibility = req.Visibility
+	}
+	if req.TimeLimit != 0 {
+		quiz.TimeLimit = req.TimeLimit
+	}
+	if req.HaveTimeFactor {
+		quiz.HaveTimeFactor = req.HaveTimeFactor
+	}
+	if req.TimeFactor != 0 {
+		quiz.TimeFactor = req.TimeFactor
+	}
+	if req.FontSize != 0 {
+		quiz.FontSize = req.FontSize
+	}
+	if req.Mark != 0 {
+		quiz.Mark = req.Mark
+	}
+	if req.SelectUpTo != 0 {
+		quiz.SelectUpTo = req.SelectUpTo
+	}
+	if !req.CaseSensitive {
+		quiz.CaseSensitive = req.CaseSensitive
+	}
 
 	qh := &QuizHistory{
 		ID:             uuid.New(),
@@ -240,7 +261,7 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uu
 	}, nil
 }
 
-func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) (error) {
+func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -485,7 +506,7 @@ func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, 
 	}, nil
 }
 
-func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) (error) {
+func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -746,7 +767,7 @@ func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user
 	}, nil
 }
 
-func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) (error) {
+func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -824,8 +845,6 @@ func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UU
 func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-
-	log.Println("In Create Choice Option")
 
 	oc := &ChoiceOption{
 		ID:         uuid.New(),
@@ -996,7 +1015,7 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 	}, nil
 }
 
-func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) (error) {
+func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1218,7 +1237,7 @@ func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, 
 	}, nil
 }
 
-func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) (error) {
+func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1272,4 +1291,314 @@ func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.
 			DeletedAt:     optionText.DeletedAt,
 		},
 	}, nil
+}
+
+// ------ Matching Option ------
+
+func (s *service) CreateMatchingOption(ctx context.Context, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: questionID,
+		Order:      req.Order,
+		Content:    req.Content,
+		Type:       req.Type,
+		Eliminate:  req.Eliminate,
+	}
+
+	omh := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		MatchingOptionID: om.ID,
+		QuestionID:       questionHistoryID,
+		Order:            om.Order,
+		Content:          om.Content,
+		Type:             om.Type,
+		Eliminate:        om.Eliminate,
+	}
+
+	optionMatching, err := s.Repository.CreateMatchingOption(c, om)
+	if err != nil {
+		return &CreateMatchingOptionResponse{}, err
+	}
+
+	_, er := s.Repository.CreateMatchingOptionHistory(c, omh)
+	if er != nil {
+		return &CreateMatchingOptionResponse{}, er
+	}
+
+	return &CreateMatchingOptionResponse{
+		MatchingOption: MatchingOption{
+			ID:         optionMatching.ID,
+			QuestionID: optionMatching.QuestionID,
+			Order:      optionMatching.Order,
+			Content:    optionMatching.Content,
+			Type:       optionMatching.Type,
+			Eliminate:  optionMatching.Eliminate,
+			CreatedAt:  optionMatching.CreatedAt,
+			UpdatedAt:  optionMatching.UpdatedAt,
+			DeletedAt:  optionMatching.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionMatchings, err := s.Repository.GetMatchingOptionsByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []MatchingOptionResponse
+	for _, om := range optionMatchings {
+		res = append(res, MatchingOptionResponse{
+			MatchingOption: MatchingOption{
+				ID:         om.ID,
+				QuestionID: om.QuestionID,
+				Order:      om.Order,
+				Content:    om.Content,
+				Type:       om.Type,
+				Eliminate:  om.Eliminate,
+				CreatedAt:  om.CreatedAt,
+				UpdatedAt:  om.UpdatedAt,
+				DeletedAt:  om.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionMatching, err := s.Repository.GetMatchingOptionByQuestionIDAndOrder(c, questionID, order)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionResponse{
+		MatchingOption: MatchingOption{
+			ID:         optionMatching.ID,
+			QuestionID: optionMatching.QuestionID,
+			Order:      optionMatching.Order,
+			Content:    optionMatching.Content,
+			Type:       optionMatching.Type,
+			Eliminate:  optionMatching.Eliminate,
+			CreatedAt:  optionMatching.CreatedAt,
+			UpdatedAt:  optionMatching.UpdatedAt,
+			DeletedAt:  optionMatching.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) UpdateMatchingOption(ctx context.Context, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionMatching, err := s.Repository.GetMatchingOptionByID(c, optionID)
+	if err != nil {
+		return &UpdateMatchingOptionResponse{}, err
+	}
+
+	if req.Order != 0 {
+		optionMatching.Order = req.Order
+	}
+	if req.Content != "" {
+		optionMatching.Content = req.Content
+	}
+	if req.Type != "" {
+		optionMatching.Type = req.Type
+	}
+	if !req.Eliminate {
+		optionMatching.Eliminate = req.Eliminate
+	}
+
+	omh := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		MatchingOptionID: optionMatching.ID,
+		QuestionID:       questionHistoryID,
+		Order:            optionMatching.Order,
+		Content:          optionMatching.Content,
+		Type:             optionMatching.Type,
+		Eliminate:        optionMatching.Eliminate,
+	}
+
+	optionMatching, er := s.Repository.UpdateMatchingOption(c, optionMatching)
+	if er != nil {
+		return &UpdateMatchingOptionResponse{}, er
+	}
+
+	_, e := s.Repository.CreateMatchingOptionHistory(c, omh)
+	if e != nil {
+		return &UpdateMatchingOptionResponse{}, e
+	}
+
+	return &UpdateMatchingOptionResponse{
+		MatchingOption: MatchingOption{
+			ID:         optionMatching.ID,
+			QuestionID: optionMatching.QuestionID,
+			Order:      optionMatching.Order,
+			Content:    optionMatching.Content,
+			Type:       optionMatching.Type,
+			Eliminate:  optionMatching.Eliminate,
+			CreatedAt:  optionMatching.CreatedAt,
+			UpdatedAt:  optionMatching.UpdatedAt,
+			DeletedAt:  optionMatching.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) DeleteMatchingOption(ctx context.Context, matchingOptionID uuid.UUID) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	e := s.Repository.DeleteMatchingOption(c, matchingOptionID)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
+// ------ Matching Answer ------
+
+func (s *service) CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	am := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: questionID,
+		PromptID:   req.PromptID,
+		OptionID:   req.OptionID,
+		Mark:       req.Mark,
+	}
+
+	amh := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		MatchingAnswerID: am.ID,
+		QuestionID:       questionHistoryID,
+		PromptID:         am.PromptID,
+		OptionID:         am.OptionID,
+		Mark:             am.Mark,
+	}
+
+	answerMatching, err := s.Repository.CreateMatchingAnswer(c, am)
+	if err != nil {
+		return &CreateMatchingAnswerResponse{}, err
+	}
+
+	_, er := s.Repository.CreateMatchingAnswerHistory(c, amh)
+	if er != nil {
+		return &CreateMatchingAnswerResponse{}, er
+	}
+
+	return &CreateMatchingAnswerResponse{
+		MatchingAnswer: MatchingAnswer{
+			ID:         answerMatching.ID,
+			QuestionID: answerMatching.QuestionID,
+			PromptID:   answerMatching.PromptID,
+			OptionID:   answerMatching.OptionID,
+			Mark:       answerMatching.Mark,
+			CreatedAt:  answerMatching.CreatedAt,
+			UpdatedAt:  answerMatching.UpdatedAt,
+			DeletedAt:  answerMatching.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	answerMatchings, err := s.Repository.GetMatchingAnswersByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []MatchingAnswerResponse
+	for _, am := range answerMatchings {
+		res = append(res, MatchingAnswerResponse{
+			MatchingAnswer: MatchingAnswer{
+				ID:         am.ID,
+				QuestionID: am.QuestionID,
+				PromptID:   am.PromptID,
+				OptionID:   am.OptionID,
+				Mark:       am.Mark,
+				CreatedAt:  am.CreatedAt,
+				UpdatedAt:  am.UpdatedAt,
+				DeletedAt:  am.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	answerMatching, err := s.Repository.GetMatchingAnswerByID(c, optionID)
+	if err != nil {
+		return &UpdateMatchingAnswerResponse{}, err
+	}
+
+	if req.PromptID != uuid.Nil {
+		answerMatching.PromptID = req.PromptID
+	}
+	if req.OptionID != uuid.Nil {
+		answerMatching.OptionID = req.OptionID
+	}
+
+	answerMatching.Mark = req.Mark
+
+	amh := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		MatchingAnswerID: answerMatching.ID,
+		QuestionID:       questionHistoryID,
+		PromptID:         answerMatching.PromptID,
+		OptionID:         answerMatching.OptionID,
+		Mark:             answerMatching.Mark,
+	}
+
+	answerMatching, er := s.Repository.UpdateMatchingAnswer(c, answerMatching)
+	if er != nil {
+		return &UpdateMatchingAnswerResponse{}, er
+	}
+
+	_, e := s.Repository.CreateMatchingAnswerHistory(c, amh)
+	if e != nil {
+		return &UpdateMatchingAnswerResponse{}, e
+	}
+
+	return &UpdateMatchingAnswerResponse{
+		MatchingAnswer: MatchingAnswer{
+			ID:         answerMatching.ID,
+			QuestionID: answerMatching.QuestionID,
+			PromptID:   answerMatching.PromptID,
+			OptionID:   answerMatching.OptionID,
+			Mark:       answerMatching.Mark,
+			CreatedAt:  answerMatching.CreatedAt,
+			UpdatedAt:  answerMatching.UpdatedAt,
+			DeletedAt:  answerMatching.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uuid.UUID) error {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	e := s.Repository.DeleteMatchingAnswer(c, matchingAnswerID)
+	if e != nil {
+		return e
+	}
+
+	return nil
 }

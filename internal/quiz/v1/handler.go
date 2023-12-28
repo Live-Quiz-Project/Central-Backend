@@ -123,9 +123,54 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								CaseSensitive: qst["case_sensitive"].(bool),
 							},
 						}, qRes.ID, qRes.QuestionHistoryID, userID)
+
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
+						}
+
+					} else if qRes.Type == util.Matching {
+						if qst["type"].(string) != "MATCHING_ANSWER" {
+							_, err := h.Service.CreateMatchingOption(c.Request.Context(), &MatchingOptionRequest{
+								MatchingOption: MatchingOption{
+									Order:     int(qst["order"].(float64)),
+									Content:   qst["content"].(string),
+									Type:      qst["type"].(string),
+									Eliminate: qst["eliminate"].(bool),
+								},
+							}, qRes.ID, qRes.QuestionHistoryID, userID)
+
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+						} else {
+
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), &MatchingAnswerRequest{
+								MatchingAnswer: MatchingAnswer{
+									PromptID: prompt.ID,
+									OptionID: option.ID,
+									Mark:     int(qst["mark"].(float64)),
+								},
+							}, qRes.ID, qRes.QuestionHistoryID, userID)
+
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
 						}
 					}
 				}
@@ -340,6 +385,76 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 					},
 					Options: ot,
 				})
+			} else if qr.Type == util.Matching {
+				omRes, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				amRes, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				var o []any
+				for _, omr := range omRes {
+					o = append(o, MatchingOptionAndAnswerResponse{
+						ID:         omr.ID,
+						QuestionID: omr.QuestionID,
+						Type:       omr.Type,
+						Order:      omr.Order,
+						Content:    omr.Content,
+						Eliminate:  omr.Eliminate,
+						PromptID:   uuid.Nil,
+						OptionID:   uuid.Nil,
+						Mark:       0,
+						CreatedAt:  omr.CreatedAt,
+						UpdatedAt:  omr.UpdatedAt,
+						DeletedAt:  omr.DeletedAt,
+					})
+				}
+
+				for _, amr := range amRes {
+					o = append(o, MatchingOptionAndAnswerResponse{
+						ID:         amr.ID,
+						QuestionID: amr.QuestionID,
+						Type:       "MATCHING_ANSWER",
+						Order:      0,
+						Content:    "",
+						Eliminate:  false,
+						PromptID:   amr.PromptID,
+						OptionID:   amr.OptionID,
+						Mark:       amr.Mark,
+						CreatedAt:  amr.CreatedAt,
+						UpdatedAt:  amr.UpdatedAt,
+						DeletedAt:  amr.DeletedAt,
+					})
+				}
+
+				q.Questions = append(q.Questions, QuestionResponse{
+					Question: Question{
+						ID:             qr.ID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: o,
+				})
 			}
 		}
 
@@ -515,6 +630,76 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					UpdatedAt:      qr.UpdatedAt,
 				},
 				Options: ot,
+			})
+		} else if qr.Type == util.Matching {
+			omRes, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			amRes, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			var o []any
+			for _, omr := range omRes {
+				o = append(o, MatchingOptionAndAnswerResponse{
+					ID:         omr.ID,
+					QuestionID: omr.QuestionID,
+					Type:       omr.Type,
+					Order:      omr.Order,
+					Content:    omr.Content,
+					Eliminate:  omr.Eliminate,
+					PromptID:   uuid.Nil,
+					OptionID:   uuid.Nil,
+					Mark:       0,
+					CreatedAt:  omr.CreatedAt,
+					UpdatedAt:  omr.UpdatedAt,
+					DeletedAt:  omr.DeletedAt,
+				})
+			}
+
+			for _, amr := range amRes {
+				o = append(o, MatchingOptionAndAnswerResponse{
+					ID:         amr.ID,
+					QuestionID: amr.QuestionID,
+					Type:       "MATCHING_ANSWER",
+					Order:      0,
+					Content:    "",
+					Eliminate:  false,
+					PromptID:   amr.PromptID,
+					OptionID:   amr.OptionID,
+					Mark:       amr.Mark,
+					CreatedAt:  amr.CreatedAt,
+					UpdatedAt:  amr.UpdatedAt,
+					DeletedAt:  amr.DeletedAt,
+				})
+			}
+
+			res.Questions = append(res.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: o,
 			})
 		}
 	}
@@ -693,6 +878,67 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 								return
 							}
 						}
+					} else if qRes.Type == util.Matching {
+						if qst["type"].(string) != "MATCHING_ANSWER" {
+							matchingOptionReq := MatchingOptionRequest{
+								MatchingOption: MatchingOption{
+									ID:         id,
+									QuestionID: questionID,
+									Type:       qst["type"].(string),
+									Order:      int(qst["order"].(float64)),
+									Content:    qst["content"].(string),
+									Eliminate:  qst["eliminate"].(bool),
+								},
+							}
+
+							if matchingOptionReq.ID != uuid.Nil {
+								_, err := h.Service.UpdateMatchingOption(c.Request.Context(), &matchingOptionReq, userID, id, qRes.QuestionHistoryID)
+								if err != nil {
+									c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+									return
+								}
+
+							} else {
+								_, err := h.Service.CreateMatchingOption(c.Request.Context(), &matchingOptionReq, qRes.ID, qRes.QuestionHistoryID, userID)
+								if err != nil {
+									c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+									return
+								}
+							}
+						} else {
+
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							if id != uuid.Nil {
+								_, err = h.Service.UpdateMatchingAnswer(c.Request.Context(), &MatchingAnswerRequest{
+									MatchingAnswer: MatchingAnswer{
+										ID:         id,
+										QuestionID: questionID,
+										PromptID:   prompt.ID,
+										OptionID:   option.ID,
+										Mark:       int(qst["mark"].(float64)),
+									},
+								}, userID, id, qRes.QuestionHistoryID)
+							} else {
+								_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), &MatchingAnswerRequest{
+									MatchingAnswer: MatchingAnswer{
+										PromptID: prompt.ID,
+										OptionID: option.ID,
+										Mark:     int(qst["mark"].(float64)),
+									},
+								}, qRes.ID, qRes.QuestionHistoryID, userID)
+							}
+						}
 					}
 				}
 			}
@@ -779,6 +1025,49 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
+						}
+					} else if qRes.Type == util.Matching {
+						if qst["type"].(string) != "MATCHING_ANSWER" {
+							_, err := h.Service.CreateMatchingOption(c.Request.Context(), &MatchingOptionRequest{
+								MatchingOption: MatchingOption{
+									Order:     int(qst["order"].(float64)),
+									Content:   qst["content"].(string),
+									Type:      qst["type"].(string),
+									Eliminate: qst["eliminate"].(bool),
+								},
+							}, qRes.ID, qRes.QuestionHistoryID, userID)
+
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+						} else {
+
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), &MatchingAnswerRequest{
+								MatchingAnswer: MatchingAnswer{
+									PromptID: prompt.ID,
+									OptionID: option.ID,
+									Mark:     int(qst["mark"].(float64)),
+								},
+							}, qRes.ID, qRes.QuestionHistoryID, userID)
+
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
 						}
 					}
 				}
@@ -921,5 +1210,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		"message": "successfully deleted",
 	})
 }
+
+func (h *Handler) DeleteQuizPermanent(c *gin.Context) {}
 
 func (h *Handler) RestoreQuiz(c *gin.Context) {}

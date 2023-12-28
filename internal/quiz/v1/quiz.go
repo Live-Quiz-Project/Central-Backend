@@ -225,9 +225,9 @@ func (TextOptionHistory) TableName() string {
 type MatchingOption struct {
 	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
-	Content    string         `json:"content" gorm:"column:content;type:text"`
-	Order      int            `json:"order" gorm:"column:order;type:int"`
 	Type       string         `json:"type" gorm:"column:type;type:text"`
+	Order      int            `json:"order" gorm:"column:order;type:int"`
+	Content    string         `json:"content" gorm:"column:content;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -240,11 +240,11 @@ func (MatchingOption) TableName() string {
 
 type MatchingOptionHistory struct {
 	ID               uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
-	OptionMatchingID uuid.UUID      `json:"option_matching_id" gorm:"column:option_matching_id;type:uuid;not null;references:option_matching(id)"`
+	MatchingOptionID uuid.UUID      `json:"matching_option_id" gorm:"column:option_matching_id;type:uuid;not null;references:option_matching(id)"`
 	QuestionID       uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
-	Content          string         `json:"content" gorm:"column:content;type:text"`
-	Order            int            `json:"order" gorm:"column:order;type:int"`
 	Type             string         `json:"type" gorm:"column:type;type:text"`
+	Order            int            `json:"order" gorm:"column:order;type:int"`
+	Content          string         `json:"content" gorm:"column:content;type:text"`
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -272,7 +272,7 @@ func (MatchingAnswer) TableName() string {
 
 type MatchingAnswerHistory struct {
 	ID               uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
-	AnswerMatchingID uuid.UUID      `json:"answer_matching_id" gorm:"column:answer_matching_id;type:uuid;not null;references:answer_matching(id)"`
+	MatchingAnswerID uuid.UUID      `json:"matching_answer_id" gorm:"column:answer_matching_id;type:uuid;not null;references:answer_matching(id)"`
 	QuestionID       uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
 	PromptID         uuid.UUID      `json:"prompt_id" gorm:"column:prompt_id;type:uuid"`
 	OptionID         uuid.UUID      `json:"option_id" gorm:"column:option_id;type:uuid"`
@@ -364,8 +364,9 @@ type Repository interface {
 
 	// Option Matching related repository methods
 	CreateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
-	GetMachingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
-	GetMatchingOptionByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
+	GetMatchingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
+	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
+	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOption, error)
 	UpdateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
 	DeleteMatchingOption(ctx context.Context, id uuid.UUID) error
 	RestoreMatchingOption(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
@@ -381,6 +382,8 @@ type Repository interface {
 	UpdateMatchingAnswer(ctx context.Context, answerMatching *MatchingAnswer) (*MatchingAnswer, error)
 	DeleteMatchingAnswer(ctx context.Context, id uuid.UUID) error
 	RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
+	GetMatchingAnswerByID(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
+	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	DeleteMatchingAnswerHistory(ctx context.Context, id uuid.UUID) error
@@ -393,18 +396,9 @@ type QuizResponse struct {
 }
 
 type CreateQuizRequest struct {
-	Title          string            `json:"title"`
-	Description    string            `json:"description"`
-	CoverImage     string            `json:"cover_image"`
-	Visibility     string            `json:"visiblity"`
-	TimeLimit      int               `json:"time_limit"`
-	HaveTimeFactor bool              `json:"have_time_limit"`
-	TimeFactor     int               `json:"time_factor"`
-	FontSize       int               `json:"font_size"`
-	Mark           int               `json:"mark"`
-	SelectUpTo     int               `json:"select_up_to"`
-	CaseSensitive  bool              `json:"case_sensitive"`
-	Questions      []QuestionRequest `json:"questions"`
+	Quiz
+	CreatorName string            `json:"creator_name"`
+	Questions   []QuestionRequest `json:"questions"`
 }
 
 type CreateQuizResponse struct {
@@ -496,20 +490,71 @@ type CreateTextOptionResponse struct {
 
 // Matching related structs
 
+type MatchingOptionAndAnswerResponse struct {
+	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
+	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
+	Type       string         `json:"type,omitempty" gorm:"column:type;type:text"`
+	Order      int            `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content    string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
+	PromptID   uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID   uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark       int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
+}
+
+// ------ Matching Option ------
+type MatchingOptionResponse struct {
+	MatchingOption
+}
+
+type MatchingOptionRequest struct {
+	MatchingOption
+}
+
+type UpdateMatchingOptionResponse struct {
+	MatchingOption
+}
+
+type CreateMatchingOptionResponse struct {
+	MatchingOption
+}
+
+// ------ Matching Answer -------
+type MatchingAnswerResponse struct {
+	MatchingAnswer
+}
+
+type MatchingAnswerRequest struct {
+	Prompt int `json:"prompt"`
+	Option int `json:"option"`
+	MatchingAnswer
+}
+
+type UpdateMatchingAnswerResponse struct {
+	MatchingAnswer
+}
+
+type CreateMatchingAnswerResponse struct {
+	MatchingAnswer
+}
+
 type Service interface {
 	// ---------- Quiz related service methods ---------- //
 	CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
-	DeleteQuiz(ctx context.Context, quizID uuid.UUID) (error)
+	DeleteQuiz(ctx context.Context, quizID uuid.UUID) error
 	RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 
 	// ---------- Question Pool related service methods ---------- //
 	CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
 	UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
-	DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) (error)
+	DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) error
 
 	// ---------- Question related service methods ---------- //
 	CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
@@ -517,7 +562,7 @@ type Service interface {
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
-	DeleteQuestion(ctx context.Context, questionID uuid.UUID) (error)
+	DeleteQuestion(ctx context.Context, questionID uuid.UUID) error
 	RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
 
 	// ---------- Options related service methods ---------- //
@@ -526,7 +571,7 @@ type Service interface {
 	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
 	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
-	DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) (error)
+	DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) error
 	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptionResponse, error)
 
 	// Text related service methods
@@ -534,8 +579,20 @@ type Service interface {
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
-	DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) (error)
+	DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) error
 	RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
 
 	// Matching related service methods
+	// ----- Matching Option ------
+	CreateMatchingOption(ctx context.Context, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error)
+	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error)
+	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error)
+	UpdateMatchingOption(ctx context.Context, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error)
+	DeleteMatchingOption(ctx context.Context, matchingOptionID uuid.UUID) error
+
+	// ----- Matching Answer ------
+	CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
+	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
+	UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
+	DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uuid.UUID) error
 }
