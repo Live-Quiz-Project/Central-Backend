@@ -46,6 +46,15 @@ func (r *repository) GetQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, erro
 	return &quiz, nil
 }
 
+func (r* repository) GetDeleteQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, error) {
+	var quiz Quiz
+	res := r.db.WithContext(ctx).Unscoped().Where("id = ?", id).First(&quiz)
+	if res.Error != nil {
+		return &Quiz{}, res.Error
+	}
+	return &quiz, nil
+}
+
 func (r *repository) UpdateQuiz(ctx context.Context, quiz *Quiz) (*Quiz, error) {
 	res := r.db.WithContext(ctx).Save(quiz)
 	if res.Error != nil {
@@ -68,12 +77,12 @@ func (r *repository) RestoreQuiz(ctx context.Context, id uuid.UUID) (*Quiz, erro
 	var quiz Quiz
 	res := r.db.WithContext(ctx).Unscoped().First(&quiz, id)
 	if res.Error != nil {
-		return nil, res.Error
+			return nil, res.Error
 	}
 
-	res = r.db.WithContext(ctx).Unscoped().Model(&quiz).Updates(Quiz{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&quiz).Update("deleted_at", nil)
 	if res.Error != nil {
-		return nil, res.Error
+			return nil, res.Error
 	}
 
 	return &quiz, nil
@@ -176,6 +185,16 @@ func (r *repository) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.U
 	return questionPools, nil
 }
 
+func (r *repository) GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error) {
+	var questionPools []QuestionPool
+	res := r.db.WithContext(ctx).Unscoped().Where("quiz_id = ?", quizID).Find(&questionPools)
+	if res.Error != nil {
+		return []QuestionPool{}, res.Error
+	}
+
+	return questionPools, nil
+}
+
 func (r *repository) UpdateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error) {
 	res := r.db.WithContext(ctx).Save(questionPool)
 	if res.Error != nil {
@@ -201,7 +220,7 @@ func (r *repository) RestoreQuestionPool(ctx context.Context, id uuid.UUID) (*Qu
 		return nil, res.Error
 	}
 
-	res = r.db.WithContext(ctx).Unscoped().Model(&questionPool).Updates(QuestionPool{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&questionPool).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -275,6 +294,16 @@ func (r *repository) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID)
 	return questions, nil
 }
 
+func (r *repository) GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error) {
+	var questions []Question
+	res := r.db.WithContext(ctx).Unscoped().Where("quiz_id = ?", quizID).Find(&questions)
+	if res.Error != nil {
+		return []Question{}, res.Error
+	}
+
+	return questions, nil
+}
+
 func (r *repository) GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error) {
 	var question Question
 	res := r.db.WithContext(ctx).Where(`quiz_id = ? AND "order" = ?`, quizID, order).First(&question)
@@ -320,7 +349,7 @@ func (r *repository) RestoreQuestion(ctx context.Context, id uuid.UUID) (*Questi
 		return nil, res.Error
 	}
 
-	res = r.db.WithContext(ctx).Unscoped().Model(&question).Updates(Question{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&question).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -426,6 +455,16 @@ func (r *repository) GetChoiceOptionsByQuestionID(ctx context.Context, questionI
 	return optionChoices, nil
 }
 
+func (r *repository) GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error) {
+	var optionChoices []ChoiceOption
+	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&optionChoices)
+	if res.Error != nil {
+		return []ChoiceOption{}, res.Error
+	}
+
+	return optionChoices, nil
+}
+
 func (r *repository) GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error) {
 	var optionChoices []ChoiceOption
 	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionChoices)
@@ -461,7 +500,7 @@ func (r *repository) RestoreChoiceOption(ctx context.Context, id uuid.UUID) (*Ch
 		return nil, res.Error
 	}
 
-	res = r.db.WithContext(ctx).Unscoped().Model(&optionChoice).Updates(ChoiceOption{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&optionChoice).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -556,6 +595,16 @@ func (r *repository) GetTextOptionsByQuestionID(ctx context.Context, questionID 
 	return optionTexts, nil
 }
 
+func (r *repository) GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
+	var optionTexts []TextOption
+	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&optionTexts)
+	if res.Error != nil {
+		return []TextOption{}, res.Error
+	}
+
+	return optionTexts, nil
+}
+
 func (r *repository) GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
 	var optionTexts []TextOption
 	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionTexts)
@@ -591,7 +640,7 @@ func (r *repository) RestoreTextOption(ctx context.Context, id uuid.UUID) (*Text
 		return nil, res.Error
 	}
 
-	res = r.db.WithContext(ctx).Unscoped().Model(&optionText).Updates(TextOption{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&optionText).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -674,6 +723,15 @@ func (r *repository) GetMatchingOptionsByQuestionID(ctx context.Context, questio
 	return optionMatchings, nil
 }
 
+func (r *repository) GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error) {
+	var optionMatchings []MatchingOption
+	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&optionMatchings)
+	if res.Error != nil {
+		return []MatchingOption{}, res.Error
+	}
+	return optionMatchings, nil
+}
+
 func (r *repository) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int ) (*MatchingOption, error) {
 	var optionMatching MatchingOption
 	res := r.db.WithContext(ctx).Where(`question_id = ? AND "order" = ?`,questionID,order).Find(&optionMatching)
@@ -705,7 +763,7 @@ func (r *repository) RestoreMatchingOption(ctx context.Context, id uuid.UUID) (*
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	res = r.db.WithContext(ctx).Unscoped().Model(&optionMatching).Updates(MatchingOption{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&optionMatching).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -794,7 +852,7 @@ func (r *repository) RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	res = r.db.WithContext(ctx).Unscoped().Model(&answerMatching).Updates(MatchingAnswer{DeletedAt: gorm.DeletedAt{}})
+	res = r.db.WithContext(ctx).Unscoped().Model(&answerMatching).Update("deleted_at", nil)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -813,6 +871,15 @@ func (r *repository) GetMatchingAnswerByID(ctx context.Context,id uuid.UUID) (*M
 func (r *repository) GetMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error) {
 	var answerMatchings []MatchingAnswer
 	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&answerMatchings)
+	if res.Error != nil {
+		return []MatchingAnswer{}, res.Error
+	}
+	return answerMatchings, nil
+}
+
+func (r *repository) GetDeleteMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error) {
+	var answerMatchings []MatchingAnswer
+	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&answerMatchings)
 	if res.Error != nil {
 		return []MatchingAnswer{}, res.Error
 	}

@@ -1241,6 +1241,119 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 	})
 }
 
-func (h *Handler) DeleteQuizPermanent(c *gin.Context) {}
+func (h *Handler) RestoreQuiz(c *gin.Context) {
+	_, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
-func (h *Handler) RestoreQuiz(c *gin.Context) {}
+	quizID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		return
+	}
+
+	questionPoolData, err := h.Service.GetDeleteQuestionPoolsByQuizID(c.Request.Context(), quizID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, questionPool := range questionPoolData {
+		err := h.Service.RestoreQuestionPool(c.Request.Context(), questionPool.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	questionData, err := h.Service.GetDeleteQuestionsByQuizID(c.Request.Context(), quizID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, question := range questionData {
+
+		if question.Type == util.Choice || question.Type == util.TrueFalse {
+			choiceOptionData, err := h.Service.GetDeleteChoiceOptionsByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			for _, choice := range choiceOptionData {
+				err := h.Service.RestoreChoiceOption(c.Request.Context(), choice.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+			}
+		}
+
+		if question.Type == util.ShortText || question.Type == util.Paragraph {
+			textOptionData, err := h.Service.GetDeleteTextOptionsByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			for _, text := range textOptionData {
+				err := h.Service.RestoreTextOption(c.Request.Context(), text.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+		}
+
+		if question.Type == util.Matching {
+			matchingOptionData, err := h.Service.GetDeleteMatchingOptionsByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			matchinAnswerData, err := h.Service.GetDeleteMatchingAnswersByQuestionID(c.Request.Context(), question.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			for _, matchingOption := range matchingOptionData {
+				err := h.Service.RestoreMatchingOption(c.Request.Context(), matchingOption.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+
+			for _, matchingAnswer := range matchinAnswerData {
+				err := h.Service.RestoreMatchingAnswer(c.Request.Context(), matchingAnswer.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			}
+		}
+
+		err := h.Service.RestoreQuestion(c.Request.Context(), question.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+	}
+
+	err = h.Service.RestoreQuiz(c.Request.Context(), quizID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Successfully Restore Quiz",
+	})
+}

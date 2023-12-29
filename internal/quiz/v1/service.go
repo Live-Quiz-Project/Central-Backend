@@ -158,6 +158,37 @@ func (s *service) GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 	}, nil
 }
 
+func (s *service) GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	quiz, err := s.Repository.GetDeleteQuizByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &QuizResponse{
+		Quiz: Quiz{
+			ID:             quiz.ID,
+			CreatorID:      quiz.CreatorID,
+			Title:          quiz.Title,
+			Description:    quiz.Description,
+			CoverImage:     quiz.CoverImage,
+			Visibility:     quiz.Visibility,
+			TimeLimit:      quiz.TimeLimit,
+			HaveTimeFactor: quiz.HaveTimeFactor,
+			TimeFactor:     quiz.TimeFactor,
+			FontSize:       quiz.FontSize,
+			Mark:           quiz.Mark,
+			SelectUpTo:     quiz.SelectUpTo,
+			CaseSensitive:  quiz.CaseSensitive,
+			CreatedAt:      quiz.CreatedAt,
+			UpdatedAt:      quiz.UpdatedAt,
+			DeletedAt:      quiz.DeletedAt,
+		},
+	}, nil
+}
+
 func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uuid.UUID, id uuid.UUID) (*UpdateQuizResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -273,62 +304,16 @@ func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) error {
 	return nil
 }
 
-func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error) {
+func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	quiz, err := s.Repository.GetQuizByID(c, id)
-	if err != nil {
-		return nil, err
-	}
-
-	qh := &QuizHistory{
-		ID:             uuid.New(),
-		QuizID:         quiz.ID,
-		CreatorID:      quiz.CreatorID,
-		Title:          quiz.Title,
-		Description:    quiz.Description,
-		CoverImage:     quiz.CoverImage,
-		Visibility:     quiz.Visibility,
-		TimeLimit:      quiz.TimeLimit,
-		HaveTimeFactor: quiz.HaveTimeFactor,
-		TimeFactor:     quiz.TimeFactor,
-		FontSize:       quiz.FontSize,
-		Mark:           quiz.Mark,
-		SelectUpTo:     quiz.SelectUpTo,
-		CaseSensitive:  quiz.CaseSensitive,
-	}
-
-	_, er := s.Repository.CreateQuizHistory(c, qh)
-	if er != nil {
-		return nil, er
-	}
-
-	quiz, e := s.Repository.RestoreQuiz(c, id)
+	_, e := s.Repository.RestoreQuiz(c, id)
 	if e != nil {
-		return nil, e
+		return e
 	}
 
-	return &QuizResponse{
-		Quiz: Quiz{
-			ID:             quiz.ID,
-			CreatorID:      quiz.CreatorID,
-			Title:          quiz.Title,
-			Description:    quiz.Description,
-			CoverImage:     quiz.CoverImage,
-			Visibility:     quiz.Visibility,
-			TimeLimit:      quiz.TimeLimit,
-			HaveTimeFactor: quiz.HaveTimeFactor,
-			TimeFactor:     quiz.TimeFactor,
-			FontSize:       quiz.FontSize,
-			Mark:           quiz.Mark,
-			SelectUpTo:     quiz.SelectUpTo,
-			CaseSensitive:  quiz.CaseSensitive,
-			CreatedAt:      quiz.CreatedAt,
-			UpdatedAt:      quiz.UpdatedAt,
-			DeletedAt:      quiz.DeletedAt,
-		},
-	}, nil
+	return nil
 }
 
 // ---------- Question Pool related service methods ---------- //
@@ -399,6 +384,38 @@ func (s *service) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID
 	defer cancel()
 
 	questionPools, err := s.Repository.GetQuestionPoolsByQuizID(c, quizID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []QuestionPoolResponse
+	for _, qp := range questionPools {
+		res = append(res, QuestionPoolResponse{
+			QuestionPool: QuestionPool{
+				ID:             qp.ID,
+				QuizID:         qp.QuizID,
+				Order:          qp.Order,
+				Content:        qp.Content,
+				Note:           qp.Note,
+				Media:          qp.Media,
+				TimeLimit:      qp.TimeLimit,
+				HaveTimeFactor: qp.HaveTimeFactor,
+				TimeFactor:     qp.TimeFactor,
+				FontSize:       qp.FontSize,
+				CreatedAt:      qp.CreatedAt,
+				UpdatedAt:      qp.UpdatedAt,
+				DeletedAt:      qp.DeletedAt,
+			},
+		})
+	}
+	return res, nil
+}
+
+func (s *service) GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	questionPools, err := s.Repository.GetDeleteQuestionPoolsByQuizID(c, quizID)
 	if err != nil {
 		return nil, err
 	}
@@ -518,6 +535,18 @@ func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UU
 	return nil
 }
 
+func (s *service) RestoreQuestionPool (ctx context.Context, id uuid.UUID) (error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	_, e := s.Repository.RestoreQuestionPool(c, id)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
 // ---------- Question related service methods ---------- //
 func (s *service) CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
@@ -606,6 +635,43 @@ func (s *service) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([
 	defer cancel()
 
 	questions, err := s.Repository.GetQuestionsByQuizID(c, quizID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []QuestionResponse
+	for _, q := range questions {
+		res = append(res, QuestionResponse{
+			Question: Question{
+				ID:             q.ID,
+				QuizID:         q.QuizID,
+				QuestionPoolID: q.QuestionPoolID,
+				Type:           q.Type,
+				Order:          q.Order,
+				Content:        q.Content,
+				Note:           q.Note,
+				Media:          q.Media,
+				UseTemplate:    q.UseTemplate,
+				TimeLimit:      q.TimeLimit,
+				HaveTimeFactor: q.HaveTimeFactor,
+				TimeFactor:     q.TimeFactor,
+				FontSize:       q.FontSize,
+				LayoutIdx:      q.LayoutIdx,
+				SelectUpTo:     q.SelectUpTo,
+				CreatedAt:      q.CreatedAt,
+				UpdatedAt:      q.UpdatedAt,
+				DeletedAt:      q.DeletedAt,
+			},
+		})
+	}
+	return res, nil
+}
+
+func (s *service) GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	questions, err := s.Repository.GetDeleteQuestionsByQuizID(c, quizID)
 	if err != nil {
 		return nil, err
 	}
@@ -779,65 +845,16 @@ func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) erro
 	return nil
 }
 
-func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error) {
+func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	question, err := s.Repository.GetQuestionByID(c, id)
-	if err != nil {
-		return nil, err
-	}
-
-	qh := &QuestionHistory{
-		ID:             uuid.New(),
-		QuestionID:     question.ID,
-		QuizID:         question.QuizID,
-		QuestionPoolID: question.QuestionPoolID,
-		Type:           question.Type,
-		Order:          question.Order,
-		Content:        question.Content,
-		Note:           question.Note,
-		Media:          question.Media,
-		UseTemplate:    question.UseTemplate,
-		TimeLimit:      question.TimeLimit,
-		HaveTimeFactor: question.HaveTimeFactor,
-		TimeFactor:     question.TimeFactor,
-		FontSize:       question.FontSize,
-		LayoutIdx:      question.LayoutIdx,
-		SelectUpTo:     question.SelectUpTo,
-	}
-
-	_, er := s.Repository.CreateQuestionHistory(c, qh)
-	if er != nil {
-		return nil, er
-	}
-
-	question, e := s.Repository.RestoreQuestion(c, id)
+	_, e := s.Repository.RestoreQuestion(c, id)
 	if e != nil {
-		return nil, e
+		return e
 	}
 
-	return &QuestionResponse{
-		Question: Question{
-			ID:             question.ID,
-			QuizID:         question.QuizID,
-			QuestionPoolID: question.QuestionPoolID,
-			Type:           question.Type,
-			Order:          question.Order,
-			Content:        question.Content,
-			Note:           question.Note,
-			Media:          question.Media,
-			TimeLimit:      question.TimeLimit,
-			HaveTimeFactor: question.HaveTimeFactor,
-			TimeFactor:     question.TimeFactor,
-			FontSize:       question.FontSize,
-			LayoutIdx:      question.LayoutIdx,
-			SelectUpTo:     question.SelectUpTo,
-			CreatedAt:      question.CreatedAt,
-			UpdatedAt:      question.UpdatedAt,
-			DeletedAt:      question.DeletedAt,
-		},
-	}, nil
+	return nil
 }
 
 // ---------- Options related service methods ---------- //
@@ -898,6 +915,36 @@ func (s *service) GetChoiceOptionsByQuestionID(ctx context.Context, questionID u
 	defer cancel()
 
 	optionChoices, err := s.Repository.GetChoiceOptionsByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []ChoiceOptionResponse
+	for _, oc := range optionChoices {
+		res = append(res, ChoiceOptionResponse{
+			ChoiceOption: ChoiceOption{
+				ID:         oc.ID,
+				QuestionID: oc.QuestionID,
+				Order:      oc.Order,
+				Content:    oc.Content,
+				Mark:       oc.Mark,
+				Color:      oc.Color,
+				Correct:    oc.Correct,
+				CreatedAt:  oc.CreatedAt,
+				UpdatedAt:  oc.UpdatedAt,
+				DeletedAt:  oc.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionChoices, err := s.Repository.GetDeleteChoiceOptionsByQuestionID(c, questionID)
 	if err != nil {
 		return nil, err
 	}
@@ -1027,50 +1074,16 @@ func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UU
 	return nil
 }
 
-func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptionResponse, error) {
+func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionChoice, err := s.Repository.GetChoiceOptionByID(c, id)
-	if err != nil {
-		return nil, err
-	}
-
-	och := &ChoiceOptionHistory{
-		ID:             uuid.New(),
-		ChoiceOptionID: optionChoice.ID,
-		QuestionID:     optionChoice.QuestionID,
-		Order:          optionChoice.Order,
-		Content:        optionChoice.Content,
-		Mark:           optionChoice.Mark,
-		Color:          optionChoice.Color,
-		Correct:        optionChoice.Correct,
-	}
-
-	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
-	if er != nil {
-		return nil, er
-	}
-
-	optionChoice, e := s.Repository.RestoreChoiceOption(c, id)
+	_, e := s.Repository.RestoreChoiceOption(c, id)
 	if e != nil {
-		return nil, e
+		return e
 	}
 
-	return &ChoiceOptionResponse{
-		ChoiceOption: ChoiceOption{
-			ID:         optionChoice.ID,
-			QuestionID: optionChoice.QuestionID,
-			Order:      optionChoice.Order,
-			Content:    optionChoice.Content,
-			Mark:       optionChoice.Mark,
-			Color:      optionChoice.Color,
-			Correct:    optionChoice.Correct,
-			CreatedAt:  optionChoice.CreatedAt,
-			UpdatedAt:  optionChoice.UpdatedAt,
-			DeletedAt:  optionChoice.DeletedAt,
-		},
-	}, nil
+	return nil
 }
 
 // Text related service methods
@@ -1127,6 +1140,35 @@ func (s *service) GetTextOptionsByQuestionID(ctx context.Context, questionID uui
 	defer cancel()
 
 	optionTexts, err := s.Repository.GetTextOptionsByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []TextOptionResponse
+	for _, ot := range optionTexts {
+		res = append(res, TextOptionResponse{
+			TextOption: TextOption{
+				ID:            ot.ID,
+				QuestionID:    ot.QuestionID,
+				Order:         ot.Order,
+				Content:       ot.Content,
+				Mark:          ot.Mark,
+				CaseSensitive: ot.CaseSensitive,
+				CreatedAt:     ot.CreatedAt,
+				UpdatedAt:     ot.UpdatedAt,
+				DeletedAt:     ot.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionTexts, err := s.Repository.GetDeleteTextOptionsByQuestionID(c, questionID)
 	if err != nil {
 		return nil, err
 	}
@@ -1249,48 +1291,16 @@ func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) 
 	return nil
 }
 
-func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error) {
+func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID) (error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	optionText, err := s.Repository.GetTextOptionByID(c, id)
-	if err != nil {
-		return nil, err
-	}
-
-	oth := &TextOptionHistory{
-		ID:            uuid.New(),
-		OptionTextID:  optionText.ID,
-		QuestionID:    optionText.QuestionID,
-		Order:         optionText.Order,
-		Content:       optionText.Content,
-		Mark:          optionText.Mark,
-		CaseSensitive: optionText.CaseSensitive,
-	}
-
-	_, er := s.Repository.CreateTextOptionHistory(c, oth)
-	if er != nil {
-		return nil, er
-	}
-
-	optionText, e := s.Repository.RestoreTextOption(c, id)
+	_, e := s.Repository.RestoreTextOption(c, id)
 	if e != nil {
-		return nil, e
+		return e
 	}
 
-	return &TextOptionResponse{
-		TextOption: TextOption{
-			ID:            optionText.ID,
-			QuestionID:    optionText.QuestionID,
-			Order:         optionText.Order,
-			Content:       optionText.Content,
-			Mark:          optionText.Mark,
-			CaseSensitive: optionText.CaseSensitive,
-			CreatedAt:     optionText.CreatedAt,
-			UpdatedAt:     optionText.UpdatedAt,
-			DeletedAt:     optionText.DeletedAt,
-		},
-	}, nil
+	return nil
 }
 
 // ------ Matching Option ------
@@ -1348,6 +1358,35 @@ func (s *service) GetMatchingOptionsByQuestionID(ctx context.Context, questionID
 	defer cancel()
 
 	optionMatchings, err := s.Repository.GetMatchingOptionsByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []MatchingOptionResponse
+	for _, om := range optionMatchings {
+		res = append(res, MatchingOptionResponse{
+			MatchingOption: MatchingOption{
+				ID:         om.ID,
+				QuestionID: om.QuestionID,
+				Order:      om.Order,
+				Content:    om.Content,
+				Type:       om.Type,
+				Eliminate:  om.Eliminate,
+				CreatedAt:  om.CreatedAt,
+				UpdatedAt:  om.UpdatedAt,
+				DeletedAt:  om.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	optionMatchings, err := s.Repository.GetDeleteMatchingOptionsByQuestionID(c, questionID)
 	if err != nil {
 		return nil, err
 	}
@@ -1465,6 +1504,18 @@ func (s *service) DeleteMatchingOption(ctx context.Context, matchingOptionID uui
 	return nil
 }
 
+func (s *service) RestoreMatchingOption(ctx context.Context, id uuid.UUID) (error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	_, e := s.Repository.RestoreMatchingOption(c, id)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
 // ------ Matching Answer ------
 
 func (s *service) CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
@@ -1517,6 +1568,34 @@ func (s *service) GetMatchingAnswersByQuestionID(ctx context.Context, questionID
 	defer cancel()
 
 	answerMatchings, err := s.Repository.GetMatchingAnswersByQuestionID(c, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []MatchingAnswerResponse
+	for _, am := range answerMatchings {
+		res = append(res, MatchingAnswerResponse{
+			MatchingAnswer: MatchingAnswer{
+				ID:         am.ID,
+				QuestionID: am.QuestionID,
+				PromptID:   am.PromptID,
+				OptionID:   am.OptionID,
+				Mark:       am.Mark,
+				CreatedAt:  am.CreatedAt,
+				UpdatedAt:  am.UpdatedAt,
+				DeletedAt:  am.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	answerMatchings, err := s.Repository.GetDeleteMatchingAnswersByQuestionID(c, questionID)
 	if err != nil {
 		return nil, err
 	}
@@ -1596,6 +1675,18 @@ func (s *service) DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uui
 	defer cancel()
 
 	e := s.Repository.DeleteMatchingAnswer(c, matchingAnswerID)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
+func (s *service) RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	_, e := s.Repository.RestoreMatchingAnswer(c, id)
 	if e != nil {
 		return e
 	}

@@ -301,6 +301,7 @@ type Repository interface {
 	GetQuizHistoryByID(ctx context.Context, id uuid.UUID) (*QuizHistory, error)
 	GetQuizHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuizHistory, error)
 	GetQuizHistoryByQuizIDAndCreatedDate(ctx context.Context, quizID uuid.UUID, createdDate time.Time) (*QuizHistory, error)
+	GetDeleteQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, error)
 	UpdateQuizHistory(ctx context.Context, quizHistory *QuizHistory) (*QuizHistory, error)
 	DeleteQuizHistory(ctx context.Context, id uuid.UUID) error
 
@@ -308,6 +309,7 @@ type Repository interface {
 	CreateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
 	GetQuestionPoolByID(ctx context.Context, questionPoolID uuid.UUID) (*QuestionPool, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error)
+	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error)
 	UpdateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
 	DeleteQuestionPool(ctx context.Context, id uuid.UUID) error
 	RestoreQuestionPool(ctx context.Context, id uuid.UUID) (*QuestionPool, error)
@@ -320,6 +322,7 @@ type Repository interface {
 	GetQuestions(ctx context.Context) ([]Question, error)
 	GetQuestionByID(ctx context.Context, id uuid.UUID) (*Question, error)
 	GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error)
+	GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error)
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, question *Question) (*Question, error)
@@ -338,6 +341,7 @@ type Repository interface {
 	CreateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
 	GetChoiceOptionByID(ctx context.Context, id uuid.UUID) (*ChoiceOption, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
+	GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
 	UpdateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
 	DeleteChoiceOption(ctx context.Context, id uuid.UUID) error
@@ -352,6 +356,7 @@ type Repository interface {
 	CreateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
 	GetTextOptionByID(ctx context.Context, id uuid.UUID) (*TextOption, error)
 	GetTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
+	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	UpdateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
 	DeleteTextOption(ctx context.Context, id uuid.UUID) error
@@ -366,6 +371,7 @@ type Repository interface {
 	CreateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
 	GetMatchingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
 	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
+	GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
 	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOption, error)
 	UpdateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
 	DeleteMatchingOption(ctx context.Context, id uuid.UUID) error
@@ -384,6 +390,7 @@ type Repository interface {
 	RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswerByID(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
+	GetDeleteMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	DeleteMatchingAnswerHistory(ctx context.Context, id uuid.UUID) error
@@ -546,53 +553,63 @@ type Service interface {
 	CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
+	GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
 	DeleteQuiz(ctx context.Context, quizID uuid.UUID) error
-	RestoreQuiz(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
+	RestoreQuiz(ctx context.Context, id uuid.UUID) (error)
 
 	// ---------- Question Pool related service methods ---------- //
 	CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
+	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error) 
 	UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
 	DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) error
+	RestoreQuestionPool(ctx context.Context, id uuid.UUID) (error)
 
 	// ---------- Question related service methods ---------- //
 	CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
 	GetQuestionsByQuizID(ctx context.Context, id uuid.UUID) ([]QuestionResponse, error)
+	GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionResponse, error)
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
 	DeleteQuestion(ctx context.Context, questionID uuid.UUID) error
-	RestoreQuestion(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuestionResponse, error)
+	RestoreQuestion(ctx context.Context, id uuid.UUID) (error)
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
 	CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
+	GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionResponse, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
 	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
 	DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) error
-	RestoreChoiceOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*ChoiceOptionResponse, error)
+	RestoreChoiceOption(ctx context.Context, id uuid.UUID) (error)
 
 	// Text related service methods
 	CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
+	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionResponse, error)
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
 	DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) error
-	RestoreTextOption(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*TextOptionResponse, error)
+	RestoreTextOption(ctx context.Context, id uuid.UUID) (error)
 
 	// Matching related service methods
 	// ----- Matching Option ------
 	CreateMatchingOption(ctx context.Context, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error)
 	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error)
+	GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error)
 	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error)
 	UpdateMatchingOption(ctx context.Context, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error)
 	DeleteMatchingOption(ctx context.Context, matchingOptionID uuid.UUID) error
+	RestoreMatchingOption(ctx context.Context, id uuid.UUID) (error)
 
 	// ----- Matching Answer ------
 	CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
+	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
 	UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
 	DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uuid.UUID) error
+	RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (error)
 }
