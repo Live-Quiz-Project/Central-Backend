@@ -1357,3 +1357,501 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 		"message": "Successfully Restore Quiz",
 	})
 }
+
+// Quiz related with History Page
+func (h *Handler) GetQuizHistories(c *gin.Context) {
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, err := uuid.Parse(uid.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		return
+	}
+
+	res, err := h.Service.GetQuizHistories(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	r := make([]QuizHistoryResponse, 0)
+
+	for _, q := range res {
+		qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), q.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Put All Question Pools Data in Questions Response
+		for _, qpr := range qpRes {
+			q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qpr.ID,
+					QuestionID: 		qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
+					QuizID:         qpr.QuizID,
+					Type:           "POOL",
+					Order:          qpr.Order,
+					Content:        qpr.Content,
+					Note:           qpr.Note,
+					Media:          qpr.Media,
+					TimeLimit:      qpr.TimeLimit,
+					HaveTimeFactor: qpr.HaveTimeFactor,
+					TimeFactor:     qpr.TimeFactor,
+					FontSize:       qpr.FontSize,
+					CreatedAt:      qpr.CreatedAt,
+					UpdatedAt:      qpr.UpdatedAt,
+					DeletedAt:      qpr.DeletedAt,
+				},
+			})
+		}
+
+		qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), q.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+			return
+		}
+
+		for _, qr := range qRes {
+
+			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
+				ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					return
+				}
+
+				var oc []any
+				for _, ocr := range ocRes {
+					oc = append(oc, ChoiceOptionHistoryResponse{
+						ChoiceOptionHistory: ChoiceOptionHistory{
+							ID:         ocr.ID,
+							ChoiceOptionID: ocr.ChoiceOptionID,
+							QuestionID: ocr.QuestionID,
+							Order:      ocr.Order,
+							Content:    ocr.Content,
+							Mark:       ocr.Mark,
+							Color:      ocr.Color,
+							Correct:    ocr.Correct,
+							CreatedAt:  ocr.CreatedAt,
+							UpdatedAt:  ocr.UpdatedAt,
+							DeletedAt:  ocr.DeletedAt,
+						},
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+
+					Options: oc,
+				})
+			} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+				otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					return
+				}
+
+				var ot []any
+				for _, otr := range otRes {
+					ot = append(ot, TextOptionHistoryResponse{
+						TextOptionHistory: TextOptionHistory{
+							ID:            otr.ID,
+							OptionTextID:  otr.OptionTextID,
+							QuestionID:    otr.QuestionID,
+							Order:         otr.Order,
+							Mark:          otr.Mark,
+							CaseSensitive: otr.CaseSensitive,
+							Content:       otr.Content,
+							CreatedAt:     otr.CreatedAt,
+							UpdatedAt:     otr.UpdatedAt,
+							DeletedAt:     otr.DeletedAt,
+						},
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: ot,
+				})
+			} else if qr.Type == util.Matching {
+				omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				var o []any
+				for _, omr := range omRes {
+					o = append(o, MatchingOptionAndAnswerHistoryResponse{
+						ID:         omr.ID,
+						OptionMatchingID: omr.OptionMatchingID,
+						QuestionID: omr.QuestionID,
+						Type:       omr.Type,
+						Order:      omr.Order,
+						Content:    omr.Content,
+						Eliminate:  omr.Eliminate,
+						PromptID:   uuid.Nil,
+						OptionID:   uuid.Nil,
+						Mark:       0,
+						CreatedAt:  omr.CreatedAt,
+						UpdatedAt:  omr.UpdatedAt,
+						DeletedAt:  omr.DeletedAt,
+					})
+				}
+
+				for _, amr := range amRes {
+					o = append(o, MatchingOptionAndAnswerResponse{
+						ID:         amr.ID,
+						QuestionID: amr.QuestionID,
+						Type:       "MATCHING_ANSWER",
+						Order:      0,
+						Content:    "",
+						Eliminate:  false,
+						PromptID:   amr.PromptID,
+						OptionID:   amr.OptionID,
+						Mark:       amr.Mark,
+						CreatedAt:  amr.CreatedAt,
+						UpdatedAt:  amr.UpdatedAt,
+						DeletedAt:  amr.DeletedAt,
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectUpTo:     qr.SelectUpTo,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: o,
+				})
+			}
+		}
+
+		r = append(r, q)
+	}
+
+	// Bubble Sort the Questions and Question Pool by Order
+	for _, res := range r {
+		n := len(res.QuestionHistory)
+		for i := 0; i < n-1; i++ {
+			for j := 0; j < n-i-1; j++ {
+				if res.QuestionHistory[j].Order > res.QuestionHistory[j+1].Order {
+					res.QuestionHistory[j], res.QuestionHistory[j+1] = res.QuestionHistory[j+1], res.QuestionHistory[j]
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, r)
+}
+
+func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, err := uuid.Parse(uid.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		return
+	}
+
+	res, err := h.Service.GetQuizHistoryByID(c.Request.Context(), id, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), res.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Put All Question Pools Data in Questions Response
+	for _, qpr := range qpRes {
+		res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+			QuestionHistory: QuestionHistory{
+				ID:             qpr.ID,
+				QuestionID:     qpr.QuestionPoolID, 
+				QuizID:         qpr.QuizID,
+				Type:           "POOL",
+				Order:          qpr.Order,
+				Content:        qpr.Content,
+				Note:           qpr.Note,
+				Media:          qpr.Media,
+				TimeLimit:      qpr.TimeLimit,
+				HaveTimeFactor: qpr.HaveTimeFactor,
+				TimeFactor:     qpr.TimeFactor,
+				FontSize:       qpr.FontSize,
+				CreatedAt:      qpr.CreatedAt,
+				UpdatedAt:      qpr.UpdatedAt,
+				DeletedAt:      qpr.DeletedAt,
+			},
+		})
+	}
+
+	qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), res.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, qr := range qRes {
+		if qr.Type == util.Choice || qr.Type == util.TrueFalse {
+			ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			var oc []any
+			for _, ocr := range ocRes {
+				oc = append(oc, ChoiceOptionHistoryResponse{
+					ChoiceOptionHistory: ChoiceOptionHistory{
+						ID:         ocr.ID,
+						ChoiceOptionID: ocr.ChoiceOptionID,
+						QuestionID: ocr.QuestionID,
+						Order:      ocr.Order,
+						Content:    ocr.Content,
+						Mark:       ocr.Mark,
+						Color:      ocr.Color,
+						Correct:    ocr.Correct,
+						CreatedAt:  ocr.CreatedAt,
+						UpdatedAt:  ocr.UpdatedAt,
+						DeletedAt:  ocr.DeletedAt,
+					},
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:			qr.QuestionID ,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: oc,
+			})
+		} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+			otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			var ot []any
+			for _, otr := range otRes {
+				ot = append(ot, TextOptionHistoryResponse{
+					TextOptionHistory: TextOptionHistory{
+						ID:            otr.ID,
+						OptionTextID:  otr.OptionTextID,
+						QuestionID:    otr.QuestionID,
+						Order:         otr.Order,
+						Content:       otr.Content,
+						Mark:          otr.Mark,
+						CaseSensitive: otr.CaseSensitive,
+						CreatedAt:     otr.CreatedAt,
+						UpdatedAt:     otr.UpdatedAt,
+						DeletedAt:     otr.DeletedAt,
+					},
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:     qr.QuestionID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: ot,
+			})
+		} else if qr.Type == util.Matching {
+			omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+			var o []any
+			for _, omr := range omRes {
+				o = append(o, MatchingOptionAndAnswerHistoryResponse{
+					ID:         omr.ID,
+					OptionMatchingID: omr.OptionMatchingID,
+					QuestionID: omr.QuestionID,
+					Type:       omr.Type,
+					Order:      omr.Order,
+					Content:    omr.Content,
+					Eliminate:  omr.Eliminate,
+					PromptID:   uuid.Nil,
+					OptionID:   uuid.Nil,
+					Mark:       0,
+					CreatedAt:  omr.CreatedAt,
+					UpdatedAt:  omr.UpdatedAt,
+					DeletedAt:  omr.DeletedAt,
+				})
+			}
+
+			for _, amr := range amRes {
+				o = append(o, MatchingOptionAndAnswerHistoryResponse{
+					ID:         amr.ID,
+					AmswerMatchingID: amr.AnswerMatchingID,
+					QuestionID: amr.QuestionID,
+					Type:       "MATCHING_ANSWER",
+					Order:      0,
+					Content:    "",
+					Eliminate:  false,
+					PromptID:   amr.PromptID,
+					OptionID:   amr.OptionID,
+					Mark:       amr.Mark,
+					CreatedAt:  amr.CreatedAt,
+					UpdatedAt:  amr.UpdatedAt,
+					DeletedAt:  amr.DeletedAt,
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:     qr.QuestionID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectUpTo:     qr.SelectUpTo,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: o,
+			})
+		}
+	}
+
+	// Bubble Sort the Questions and Question Pool by Order
+	n := len(res.QuestionHistory)
+	for i := 0; i < n-1; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if res.QuestionHistory[j].Order > res.QuestionHistory[j+1].Order {
+				res.QuestionHistory[j], res.QuestionHistory[j+1] = res.QuestionHistory[j+1], res.QuestionHistory[j]
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, res)
+}

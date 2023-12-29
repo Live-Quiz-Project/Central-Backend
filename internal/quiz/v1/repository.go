@@ -127,6 +127,16 @@ func (r *repository) GetQuizHistoriesByQuizID(ctx context.Context, quizID uuid.U
 	return quizHistories, nil
 }
 
+func (r *repository) GetQuizHistoriesByUserID(ctx context.Context, uid uuid.UUID) ([]QuizHistory, error) {
+	var quizHistories []QuizHistory
+	res := r.db.WithContext(ctx).Where("creator_id = ?", uid).Find(&quizHistories)
+	if res.Error != nil {
+		return []QuizHistory{}, res.Error
+	}
+
+	return quizHistories, nil
+}
+
 func (r *repository) GetQuizHistoryByQuizIDAndCreatedDate(ctx context.Context, quizID uuid.UUID, createdDate time.Time) (*QuizHistory, error) {
 	var quizHistory QuizHistory
 	res := r.db.WithContext(ctx).Where("quiz_id = ? AND created_date = ?", quizID, createdDate).First(&quizHistory)
@@ -235,6 +245,16 @@ func (r *repository) CreateQuestionPoolHistory(ctx context.Context, questionPool
 	}
 
 	return questionPoolHistory, nil
+}
+
+func (r *repository) GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolHistory, error) {
+	var questionPoolHistories []QuestionPoolHistory
+	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).Find(&questionPoolHistories)
+	if res.Error != nil {
+		return []QuestionPoolHistory{}, res.Error
+	}
+
+	return questionPoolHistories, nil
 }
 
 func (r *repository) UpdateQuestionPoolHistory(ctx context.Context, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error) {
@@ -384,6 +404,16 @@ func (r *repository) GetQuestionHistoryByID(ctx context.Context, id uuid.UUID) (
 	}
 
 	return &questionHistory, nil
+}
+
+func (r *repository) GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistory, error) {
+	var questionHistories []QuestionHistory
+	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).Find(&questionHistories)
+	if res.Error != nil {
+		return []QuestionHistory{}, res.Error
+	}
+
+	return questionHistories, nil
 }
 
 func (r *repository) GetQuestionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]QuestionHistory, error) {
@@ -892,6 +922,15 @@ func (r *repository) CreateMatchingAnswerHistory(ctx context.Context, answerMatc
 		return &MatchingAnswerHistory{}, res.Error
 	}
 	return answerMatchingHistory, nil
+}
+
+func (r *repository) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error) {
+	var answerMatchingHistories []MatchingAnswerHistory
+	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&answerMatchingHistories)
+	if res.Error != nil {
+		return []MatchingAnswerHistory{}, res.Error
+	}
+	return answerMatchingHistories, nil
 }
 
 func (r *repository) UpdateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error) {

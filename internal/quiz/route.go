@@ -15,4 +15,7 @@ func QuizRoutes(r *gin.RouterGroup, h *q.Handler) {
 	quizR.PUT("/:id", h.UpdateQuiz)          // Use for Update Quiz
 	quizR.DELETE("/:id", h.DeleteQuiz)       // Use for Soft Delete Quiz
 	quizR.PUT("/trash/:id", h.RestoreQuiz) // Use for Restore Quiz
+
+	quizR.GET("/history",h.GetQuizHistories)
+	quizR.GET("/history/:id", h.GetQuizHistoryByID)
 }
