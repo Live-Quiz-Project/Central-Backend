@@ -288,116 +288,118 @@ func (MatchingAnswerHistory) TableName() string {
 
 type Repository interface {
 	// ---------- Transaction repository methods ---------- //
+	BeginTransaction() (*gorm.DB, error)
+	CommitTransaction(tx *gorm.DB) error
 
 	// ---------- Quiz related repository methods ---------- //
-	CreateQuiz(ctx context.Context, quiz *Quiz) (*Quiz, error)
+	CreateQuiz(ctx context.Context, tx *gorm.DB ,quiz *Quiz) (*Quiz, error)
 	GetQuizzesByUserID(ctx context.Context, uid uuid.UUID) ([]Quiz, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, error)
-	UpdateQuiz(ctx context.Context, quiz *Quiz) (*Quiz, error)
-	DeleteQuiz(ctx context.Context, id uuid.UUID) error
-	RestoreQuiz(ctx context.Context, id uuid.UUID) (*Quiz, error)
-	CreateQuizHistory(ctx context.Context, quizHistory *QuizHistory) (*QuizHistory, error)
+	UpdateQuiz(ctx context.Context, tx *gorm.DB, quiz *Quiz) (*Quiz, error)
+	DeleteQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*Quiz, error)
+	CreateQuizHistory(ctx context.Context, tx *gorm.DB, quizHistory *QuizHistory) (*QuizHistory, error)
 	GetQuizHistories(ctx context.Context) ([]QuizHistory, error)
 	GetQuizHistoryByID(ctx context.Context, id uuid.UUID) (*QuizHistory, error)
 	GetQuizHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuizHistory, error)
 	GetQuizHistoriesByUserID(ctx context.Context, uid uuid.UUID) ([]QuizHistory, error)
 	GetQuizHistoryByQuizIDAndCreatedDate(ctx context.Context, quizID uuid.UUID, createdDate time.Time) (*QuizHistory, error)
 	GetDeleteQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, error)
-	UpdateQuizHistory(ctx context.Context, quizHistory *QuizHistory) (*QuizHistory, error)
-	DeleteQuizHistory(ctx context.Context, id uuid.UUID) error
+	UpdateQuizHistory(ctx context.Context, tx *gorm.DB, quizHistory *QuizHistory) (*QuizHistory, error)
+	DeleteQuizHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// ---------- Question Pool related repository methods ---------- //
-	CreateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
+	CreateQuestionPool(ctx context.Context, tx *gorm.DB, questionPool *QuestionPool) (*QuestionPool, error)
 	GetQuestionPoolByID(ctx context.Context, questionPoolID uuid.UUID) (*QuestionPool, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error)
 	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPool, error)
-	UpdateQuestionPool(ctx context.Context, questionPool *QuestionPool) (*QuestionPool, error)
-	DeleteQuestionPool(ctx context.Context, id uuid.UUID) error
-	RestoreQuestionPool(ctx context.Context, id uuid.UUID) (*QuestionPool, error)
-	CreateQuestionPoolHistory(ctx context.Context, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error)
+	UpdateQuestionPool(ctx context.Context, tx *gorm.DB, questionPool *QuestionPool) (*QuestionPool, error)
+	DeleteQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*QuestionPool, error)
+	CreateQuestionPoolHistory(ctx context.Context, tx *gorm.DB, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error)
 	GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolHistory, error)
-	UpdateQuestionPoolHistory(ctx context.Context, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error)
-	DeleteQuestionPoolHistory(ctx context.Context, id uuid.UUID) error
+	UpdateQuestionPoolHistory(ctx context.Context, tx *gorm.DB, questionPoolHistory *QuestionPoolHistory) (*QuestionPoolHistory, error)
+	DeleteQuestionPoolHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// ---------- Question related repository methods ---------- //
-	CreateQuestion(ctx context.Context, question *Question) (*Question, error)
+	CreateQuestion(ctx context.Context, tx *gorm.DB, question *Question) (*Question, error)
 	GetQuestions(ctx context.Context) ([]Question, error)
 	GetQuestionByID(ctx context.Context, id uuid.UUID) (*Question, error)
 	GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error)
 	GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]Question, error)
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
-	UpdateQuestion(ctx context.Context, question *Question) (*Question, error)
-	DeleteQuestion(ctx context.Context, id uuid.UUID) error
-	RestoreQuestion(ctx context.Context, id uuid.UUID) (*Question, error)
-	CreateQuestionHistory(ctx context.Context, questionHistory *QuestionHistory) (*QuestionHistory, error)
+	UpdateQuestion(ctx context.Context, tx *gorm.DB, question *Question) (*Question, error)
+	DeleteQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*Question, error)
+	CreateQuestionHistory(ctx context.Context, tx *gorm.DB, questionHistory *QuestionHistory) (*QuestionHistory, error)
 	GetQuestionHistories(ctx context.Context) ([]QuestionHistory, error)
 	GetQuestionHistoryByID(ctx context.Context, id uuid.UUID) (*QuestionHistory, error)
 	GetQuestionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]QuestionHistory, error)
 	GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistory, error)
 	GetQuestionHistoryByQuestionIDAndCreatedDate(ctx context.Context, questionID uuid.UUID, createdDate time.Time) (*QuestionHistory, error)
-	UpdateQuestionHistory(ctx context.Context, questionHistory *QuestionHistory) (*QuestionHistory, error)
-	DeleteQuestionHistory(ctx context.Context, id uuid.UUID) error
+	UpdateQuestionHistory(ctx context.Context, tx *gorm.DB, questionHistory *QuestionHistory) (*QuestionHistory, error)
+	DeleteQuestionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// ---------- Options related repository methods ---------- //
 	// Choice related repository methods
-	CreateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
+	CreateChoiceOption(ctx context.Context, tx *gorm.DB, optionChoice *ChoiceOption) (*ChoiceOption, error)
 	GetChoiceOptionByID(ctx context.Context, id uuid.UUID) (*ChoiceOption, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
 	GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error)
-	UpdateChoiceOption(ctx context.Context, optionChoice *ChoiceOption) (*ChoiceOption, error)
-	DeleteChoiceOption(ctx context.Context, id uuid.UUID) error
-	RestoreChoiceOption(ctx context.Context, id uuid.UUID) (*ChoiceOption, error)
-	CreateChoiceOptionHistory(ctx context.Context, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
+	UpdateChoiceOption(ctx context.Context, tx *gorm.DB, optionChoice *ChoiceOption) (*ChoiceOption, error)
+	DeleteChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*ChoiceOption, error)
+	CreateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	GetChoiceOptionHistoryByID(ctx context.Context, id uuid.UUID) (*ChoiceOptionHistory, error)
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistory, error)
-	UpdateChoiceOptionHistory(ctx context.Context, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
-	DeleteChoiceOptionHistory(ctx context.Context, id uuid.UUID) error
+	UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
+	DeleteChoiceOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// Text related repository methods
-	CreateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
+	CreateTextOption(ctx context.Context, tx *gorm.DB, optionText *TextOption) (*TextOption, error)
 	GetTextOptionByID(ctx context.Context, id uuid.UUID) (*TextOption, error)
 	GetTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
-	UpdateTextOption(ctx context.Context, optionText *TextOption) (*TextOption, error)
-	DeleteTextOption(ctx context.Context, id uuid.UUID) error
-	RestoreTextOption(ctx context.Context, id uuid.UUID) (*TextOption, error)
-	CreateTextOptionHistory(ctx context.Context, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
+	UpdateTextOption(ctx context.Context, tx *gorm.DB, optionText *TextOption) (*TextOption, error)
+	DeleteTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*TextOption, error)
+	CreateTextOptionHistory(ctx context.Context, tx *gorm.DB, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
 	GetTextOptionHistoryByID(ctx context.Context, id uuid.UUID) (*TextOptionHistory, error)
 	GetTextOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionHistory, error)
-	UpdateTextOptionHistory(ctx context.Context, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
-	DeleteTextOptionHistory(ctx context.Context, id uuid.UUID) error
+	UpdateTextOptionHistory(ctx context.Context, tx *gorm.DB, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
+	DeleteTextOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// Option Matching related repository methods
-	CreateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
+	CreateMatchingOption(ctx context.Context, tx *gorm.DB, optionMatching *MatchingOption) (*MatchingOption, error)
 	GetMatchingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
 	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
 	GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOption, error)
 	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOption, error)
-	UpdateMatchingOption(ctx context.Context, optionMatching *MatchingOption) (*MatchingOption, error)
-	DeleteMatchingOption(ctx context.Context, id uuid.UUID) error
-	RestoreMatchingOption(ctx context.Context, id uuid.UUID) (*MatchingOption, error)
-	CreateMatchingOptionHistory(ctx context.Context, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
+	UpdateMatchingOption(ctx context.Context, tx *gorm.DB, optionMatching *MatchingOption) (*MatchingOption, error)
+	DeleteMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*MatchingOption, error)
+	CreateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
 	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistory, error)
 	GetOptionMatchingHistories(ctx context.Context) ([]MatchingOptionHistory, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistory, error)
-	UpdateMatchingOptionHistory(ctx context.Context, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
-	DeleteMatchingOptionHistory(ctx context.Context, id uuid.UUID) error
+	UpdateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
+	DeleteMatchingOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	// Answer Matching related repository methods
-	CreateMatchingAnswer(ctx context.Context, answerMatching *MatchingAnswer) (*MatchingAnswer, error)
-	UpdateMatchingAnswer(ctx context.Context, answerMatching *MatchingAnswer) (*MatchingAnswer, error)
-	DeleteMatchingAnswer(ctx context.Context, id uuid.UUID) error
-	RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
+	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, answerMatching *MatchingAnswer) (*MatchingAnswer, error)
+	UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, answerMatching *MatchingAnswer) (*MatchingAnswer, error)
+	DeleteMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswerByID(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error)
-	CreateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
+	CreateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error)
-	UpdateMatchingAnswerHistory(ctx context.Context, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
-	DeleteMatchingAnswerHistory(ctx context.Context, id uuid.UUID) error
+	UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
+	DeleteMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 }
 
 // ---------- Quiz related structs ---------- //
@@ -600,82 +602,86 @@ type MatchingAnswerHistoryResponse struct {
 }
 
 type Service interface {
+	// ---------- Transaction related service methods ---------- //
+	BeginTransaction(ctx context.Context) (*gorm.DB, error)
+	CommitTransaction(ctx context.Context,tx *gorm.DB) (error) 
+	
 	// ---------- Quiz related service methods ---------- //
-	CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
+	CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
-	UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
-	DeleteQuiz(ctx context.Context, quizID uuid.UUID) error
-	RestoreQuiz(ctx context.Context, id uuid.UUID) (error)
+	UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
+	DeleteQuiz(ctx context.Context, tx *gorm.DB, quizID uuid.UUID) error
+	RestoreQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetQuizHistories(ctx context.Context, uid uuid.UUID) ([]QuizHistoryResponse, error)
 	GetQuizHistoryByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizHistoryResponse, error)
 
 	// ---------- Question Pool related service methods ---------- //
-	CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
+	CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
 	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error) 
-	UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
-	DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) error
-	RestoreQuestionPool(ctx context.Context, id uuid.UUID) (error)
+	UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
+	DeleteQuestionPool(ctx context.Context, tx *gorm.DB, questionPoolID uuid.UUID) error
+	RestoreQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolHistoryResponse, error)
 
 	// ---------- Question related service methods ---------- //
-	CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
+	CreateQuestion(ctx context.Context, tx *gorm.DB, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, QuestionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error)
 	GetQuestionsByQuizID(ctx context.Context, id uuid.UUID) ([]QuestionResponse, error)
 	GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionResponse, error)
 	GetQuestionByQuizIDAndOrder(ctx context.Context, quizID uuid.UUID, order int) (*Question, error)
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
-	UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
-	DeleteQuestion(ctx context.Context, questionID uuid.UUID) error
-	RestoreQuestion(ctx context.Context, id uuid.UUID) (error)
+	UpdateQuestion(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
+	DeleteQuestion(ctx context.Context, tx *gorm.DB, questionID uuid.UUID) error
+	RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistoryResponse, error) 
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
-	CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error)
+	CreateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error)
 	GetChoiceOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
 	GetDeleteChoiceOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionResponse, error)
 	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
-	UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
-	DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) error
-	RestoreChoiceOption(ctx context.Context, id uuid.UUID) (error)
+	UpdateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
+	DeleteChoiceOption(ctx context.Context, tx *gorm.DB, choiceOptionID uuid.UUID) error
+	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistoryResponse, error)
 
 	// Text related service methods
-	CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
+	CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionResponse, error)
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
-	UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
-	DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) error
-	RestoreTextOption(ctx context.Context, id uuid.UUID) (error)
+	UpdateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
+	DeleteTextOption(ctx context.Context, tx *gorm.DB, textOptionID uuid.UUID) error
+	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetTextOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionHistoryResponse, error)
 
 	// Matching related service methods
 	// ----- Matching Option ------
-	CreateMatchingOption(ctx context.Context, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error)
+	CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error)
 	GetMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error)
 	GetDeleteMatchingOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionResponse, error)
 	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error)
-	UpdateMatchingOption(ctx context.Context, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error)
-	DeleteMatchingOption(ctx context.Context, matchingOptionID uuid.UUID) error
-	RestoreMatchingOption(ctx context.Context, id uuid.UUID) (error)
+	UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error)
+	DeleteMatchingOption(ctx context.Context, tx *gorm.DB, matchingOptionID uuid.UUID) error
+	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error) 
 
 	// ----- Matching Answer ------
-	CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
+	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
-	UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
-	DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uuid.UUID) error
-	RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) (error)
+	UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
+	DeleteMatchingAnswer(ctx context.Context, tx *gorm.DB, matchingAnswerID uuid.UUID) error
+	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
 
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistoryResponse, error)
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type service struct {
@@ -19,8 +20,25 @@ func NewService(repo Repository) Service {
 	}
 }
 
+func (s *service) BeginTransaction(ctx context.Context) (*gorm.DB, error) {
+	tx, err := s.Repository.BeginTransaction()
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func (s *service) CommitTransaction(ctx context.Context,tx *gorm.DB) (error) {
+	err := s.Repository.CommitTransaction(tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // ---------- Quiz related service methods ---------- //
-func (s *service) CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error) {
+func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -57,11 +75,11 @@ func (s *service) CreateQuiz(ctx context.Context, req *CreateQuizRequest, uid uu
 		CaseSensitive:  q.CaseSensitive,
 	}
 
-	quiz, err := s.Repository.CreateQuiz(c, q)
+	quiz, err := s.Repository.CreateQuiz(c, tx, q)
 	if err != nil {
 		return &CreateQuizResponse{}, err
 	}
-	quizH, er := s.Repository.CreateQuizHistory(c, qh)
+	quizH, er := s.Repository.CreateQuizHistory(c, tx, qh)
 	if er != nil {
 		return &CreateQuizResponse{}, er
 	}
@@ -258,7 +276,7 @@ func (s *service) GetQuizHistoryByID(ctx context.Context, id uuid.UUID, uid uuid
 	}, nil
 }
 
-func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uuid.UUID, id uuid.UUID) (*UpdateQuizResponse, error) {
+func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRequest, uid uuid.UUID, id uuid.UUID) (*UpdateQuizResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -326,12 +344,12 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uu
 		CaseSensitive:  quiz.CaseSensitive,
 	}
 
-	quiz, er := s.Repository.UpdateQuiz(c, quiz)
+	quiz, er := s.Repository.UpdateQuiz(c, tx, quiz)
 	if er != nil {
 		return &UpdateQuizResponse{}, er
 	}
 
-	_, e := s.Repository.CreateQuizHistory(c, qh)
+	_, e := s.Repository.CreateQuizHistory(c,tx, qh)
 	if e != nil {
 		return &UpdateQuizResponse{}, e
 	}
@@ -361,11 +379,11 @@ func (s *service) UpdateQuiz(ctx context.Context, req *UpdateQuizRequest, uid uu
 	}, nil
 }
 
-func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) error {
+func (s *service) DeleteQuiz(ctx context.Context, tx *gorm.DB, quizID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteQuiz(c, quizID)
+	e := s.Repository.DeleteQuiz(c, tx, quizID)
 	if e != nil {
 		return e
 	}
@@ -373,11 +391,11 @@ func (s *service) DeleteQuiz(ctx context.Context, quizID uuid.UUID) error {
 	return nil
 }
 
-func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreQuiz(c, id)
+	_, e := s.Repository.RestoreQuiz(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -386,7 +404,7 @@ func (s *service) RestoreQuiz(ctx context.Context, id uuid.UUID) error {
 }
 
 // ---------- Question Pool related service methods ---------- //
-func (s *service) CreateQuestionPool(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error) {
+func (s *service) CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -417,11 +435,11 @@ func (s *service) CreateQuestionPool(ctx context.Context, req *QuestionRequest, 
 		FontSize:       qp.FontSize,
 	}
 
-	questionPool, err := s.Repository.CreateQuestionPool(c, qp)
+	questionPool, err := s.Repository.CreateQuestionPool(c,tx, qp)
 	if err != nil {
 		return &CreateQuestionPoolResponse{}, err
 	}
-	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c, qph)
+	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c,tx, qph)
 	if er != nil {
 		return &CreateQuestionPoolResponse{}, er
 	}
@@ -512,7 +530,7 @@ func (s *service) GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uui
 	return res, nil
 }
 
-func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error) {
+func (s *service) UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -560,12 +578,12 @@ func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, 
 		FontSize:       questionPool.FontSize,
 	}
 
-	questionPool, er := s.Repository.UpdateQuestionPool(c, questionPool)
+	questionPool, er := s.Repository.UpdateQuestionPool(c, tx, questionPool)
 	if er != nil {
 		return &UpdateQuestionPoolResponse{}, er
 	}
 
-	_, e := s.Repository.CreateQuestionPoolHistory(c, qph)
+	_, e := s.Repository.CreateQuestionPoolHistory(c, tx, qph)
 	if e != nil {
 		return &UpdateQuestionPoolResponse{}, e
 	}
@@ -592,11 +610,11 @@ func (s *service) UpdateQuestionPool(ctx context.Context, req *QuestionRequest, 
 	}, nil
 }
 
-func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UUID) error {
+func (s *service) DeleteQuestionPool(ctx context.Context, tx *gorm.DB, questionPoolID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteQuestionPool(c, questionPoolID)
+	e := s.Repository.DeleteQuestionPool(c, tx, questionPoolID)
 	if e != nil {
 		return e
 	}
@@ -604,11 +622,11 @@ func (s *service) DeleteQuestionPool(ctx context.Context, questionPoolID uuid.UU
 	return nil
 }
 
-func (s *service) RestoreQuestionPool(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreQuestionPool(c, id)
+	_, e := s.Repository.RestoreQuestionPool(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -650,7 +668,7 @@ func (s *service) GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID u
 }
 
 // ---------- Question related service methods ---------- //
-func (s *service) CreateQuestion(ctx context.Context, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
+func (s *service) CreateQuestion(ctx context.Context, tx *gorm.DB, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID, questionPoolID *uuid.UUID, questionPoolHistoryID *uuid.UUID, uid uuid.UUID) (*CreateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -691,12 +709,12 @@ func (s *service) CreateQuestion(ctx context.Context, req *QuestionRequest, quiz
 		SelectUpTo:     q.SelectUpTo,
 	}
 
-	question, err := s.Repository.CreateQuestion(c, q)
+	question, err := s.Repository.CreateQuestion(c, tx, q)
 	if err != nil {
 		return &CreateQuestionResponse{}, err
 	}
 
-	_, er := s.Repository.CreateQuestionHistory(c, qh)
+	_, er := s.Repository.CreateQuestionHistory(c, tx, qh)
 	if er != nil {
 		return &CreateQuestionResponse{}, er
 	}
@@ -830,7 +848,7 @@ func (s *service) GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID
 	return count, nil
 }
 
-func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error) {
+func (s *service) UpdateQuestion(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -895,12 +913,12 @@ func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user
 		SelectUpTo:     question.SelectUpTo,
 	}
 
-	question, er := s.Repository.UpdateQuestion(c, question)
+	question, er := s.Repository.UpdateQuestion(c, tx, question)
 	if er != nil {
 		return &UpdateQuestionResponse{}, er
 	}
 
-	_, e := s.Repository.CreateQuestionHistory(c, qh)
+	_, e := s.Repository.CreateQuestionHistory(c, tx, qh)
 	if e != nil {
 		return &UpdateQuestionResponse{}, e
 	}
@@ -935,11 +953,11 @@ func (s *service) UpdateQuestion(ctx context.Context, req *QuestionRequest, user
 	}, nil
 }
 
-func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) error {
+func (s *service) DeleteQuestion(ctx context.Context, tx *gorm.DB, questionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteQuestion(c, questionID)
+	e := s.Repository.DeleteQuestion(c, tx, questionID)
 	if e != nil {
 		return e
 	}
@@ -947,11 +965,11 @@ func (s *service) DeleteQuestion(ctx context.Context, questionID uuid.UUID) erro
 	return nil
 }
 
-func (s *service) RestoreQuestion(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreQuestion(c, id)
+	_, e := s.Repository.RestoreQuestion(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -999,7 +1017,7 @@ func (s *service) GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.
 
 // ---------- Options related service methods ---------- //
 // Choice related service methods
-func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error) {
+func (s *service) CreateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1024,12 +1042,12 @@ func (s *service) CreateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 		Correct:        oc.Correct,
 	}
 
-	optionChoice, err := s.Repository.CreateChoiceOption(c, oc)
+	optionChoice, err := s.Repository.CreateChoiceOption(c, tx, oc)
 	if err != nil {
 		return &CreateChoiceOptionResponse{}, err
 	}
 
-	_, er := s.Repository.CreateChoiceOptionHistory(c, och)
+	_, er := s.Repository.CreateChoiceOptionHistory(c, tx, och)
 	if er != nil {
 		return &CreateChoiceOptionResponse{}, er
 	}
@@ -1140,7 +1158,7 @@ func (s *service) GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID
 	return res, nil
 }
 
-func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error) {
+func (s *service) UpdateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1176,12 +1194,12 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 		Correct:        optionChoice.Correct,
 	}
 
-	optionChoice, er := s.Repository.UpdateChoiceOption(c, optionChoice)
+	optionChoice, er := s.Repository.UpdateChoiceOption(c, tx, optionChoice)
 	if er != nil {
 		return &UpdateChoiceOptionResponse{}, er
 	}
 
-	_, e := s.Repository.CreateChoiceOptionHistory(c, och)
+	_, e := s.Repository.CreateChoiceOptionHistory(c, tx, och)
 	if e != nil {
 		return &UpdateChoiceOptionResponse{}, e
 	}
@@ -1202,11 +1220,11 @@ func (s *service) UpdateChoiceOption(ctx context.Context, req *ChoiceOptionReque
 	}, nil
 }
 
-func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UUID) error {
+func (s *service) DeleteChoiceOption(ctx context.Context, tx *gorm.DB, choiceOptionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteChoiceOption(c, choiceOptionID)
+	e := s.Repository.DeleteChoiceOption(c, tx, choiceOptionID)
 	if e != nil {
 		return e
 	}
@@ -1214,11 +1232,11 @@ func (s *service) DeleteChoiceOption(ctx context.Context, choiceOptionID uuid.UU
 	return nil
 }
 
-func (s *service) RestoreChoiceOption(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreChoiceOption(c, id)
+	_, e := s.Repository.RestoreChoiceOption(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -1258,7 +1276,7 @@ func (s *service) GetChoiceOptionHistoriesByQuestionID(ctx context.Context, ques
 }
 
 // Text related service methods
-func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error) {
+func (s *service) CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1281,12 +1299,12 @@ func (s *service) CreateTextOption(ctx context.Context, req *TextOptionRequest, 
 		CaseSensitive: ot.CaseSensitive,
 	}
 
-	optionText, err := s.Repository.CreateTextOption(c, ot)
+	optionText, err := s.Repository.CreateTextOption(c, tx, ot)
 	if err != nil {
 		return &CreateTextOptionResponse{}, err
 	}
 
-	_, er := s.Repository.CreateTextOptionHistory(c, oth)
+	_, er := s.Repository.CreateTextOptionHistory(c, tx, oth)
 	if er != nil {
 		return &CreateTextOptionResponse{}, er
 	}
@@ -1393,7 +1411,7 @@ func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) 
 	return res, nil
 }
 
-func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error) {
+func (s *service) UpdateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1425,12 +1443,12 @@ func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, 
 		CaseSensitive: optionText.CaseSensitive,
 	}
 
-	optionText, er := s.Repository.UpdateTextOption(c, optionText)
+	optionText, er := s.Repository.UpdateTextOption(c, tx, optionText)
 	if er != nil {
 		return &UpdateTextOptionResponse{}, er
 	}
 
-	_, e := s.Repository.CreateTextOptionHistory(c, oth)
+	_, e := s.Repository.CreateTextOptionHistory(c, tx, oth)
 	if e != nil {
 		return &UpdateTextOptionResponse{}, e
 	}
@@ -1450,11 +1468,11 @@ func (s *service) UpdateTextOption(ctx context.Context, req *TextOptionRequest, 
 	}, nil
 }
 
-func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) error {
+func (s *service) DeleteTextOption(ctx context.Context, tx *gorm.DB, textOptionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteTextOption(c, textOptionID)
+	e := s.Repository.DeleteTextOption(c, tx, textOptionID)
 	if e != nil {
 		return e
 	}
@@ -1462,11 +1480,11 @@ func (s *service) DeleteTextOption(ctx context.Context, textOptionID uuid.UUID) 
 	return nil
 }
 
-func (s *service) RestoreTextOption(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreTextOption(c, id)
+	_, e := s.Repository.RestoreTextOption(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -1506,7 +1524,7 @@ func (s *service) GetTextOptionHistoriesByQuestionID(ctx context.Context, questi
 
 // ------ Matching Option ------
 
-func (s *service) CreateMatchingOption(ctx context.Context, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error) {
+func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1529,12 +1547,12 @@ func (s *service) CreateMatchingOption(ctx context.Context, req *MatchingOptionR
 		Eliminate:        om.Eliminate,
 	}
 
-	optionMatching, err := s.Repository.CreateMatchingOption(c, om)
+	optionMatching, err := s.Repository.CreateMatchingOption(c, tx, om)
 	if err != nil {
 		return &CreateMatchingOptionResponse{}, err
 	}
 
-	_, er := s.Repository.CreateMatchingOptionHistory(c, omh)
+	_, er := s.Repository.CreateMatchingOptionHistory(c, tx, omh)
 	if er != nil {
 		return &CreateMatchingOptionResponse{}, er
 	}
@@ -1636,7 +1654,7 @@ func (s *service) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, que
 	}, nil
 }
 
-func (s *service) UpdateMatchingOption(ctx context.Context, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error) {
+func (s *service) UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1668,12 +1686,12 @@ func (s *service) UpdateMatchingOption(ctx context.Context, req *MatchingOptionR
 		Eliminate:        optionMatching.Eliminate,
 	}
 
-	optionMatching, er := s.Repository.UpdateMatchingOption(c, optionMatching)
+	optionMatching, er := s.Repository.UpdateMatchingOption(c, tx, optionMatching)
 	if er != nil {
 		return &UpdateMatchingOptionResponse{}, er
 	}
 
-	_, e := s.Repository.CreateMatchingOptionHistory(c, omh)
+	_, e := s.Repository.CreateMatchingOptionHistory(c, tx, omh)
 	if e != nil {
 		return &UpdateMatchingOptionResponse{}, e
 	}
@@ -1693,11 +1711,11 @@ func (s *service) UpdateMatchingOption(ctx context.Context, req *MatchingOptionR
 	}, nil
 }
 
-func (s *service) DeleteMatchingOption(ctx context.Context, matchingOptionID uuid.UUID) error {
+func (s *service) DeleteMatchingOption(ctx context.Context, tx *gorm.DB, matchingOptionID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteMatchingOption(c, matchingOptionID)
+	e := s.Repository.DeleteMatchingOption(c, tx, matchingOptionID)
 	if e != nil {
 		return e
 	}
@@ -1705,11 +1723,11 @@ func (s *service) DeleteMatchingOption(ctx context.Context, matchingOptionID uui
 	return nil
 }
 
-func (s *service) RestoreMatchingOption(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreMatchingOption(c, id)
+	_, e := s.Repository.RestoreMatchingOption(c, tx, id)
 	if e != nil {
 		return e
 	}
@@ -1749,7 +1767,7 @@ func (s *service) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, qu
 
 // ------ Matching Answer ------
 
-func (s *service) CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
+func (s *service) CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1770,12 +1788,12 @@ func (s *service) CreateMatchingAnswer(ctx context.Context, req *MatchingAnswerR
 		Mark:             am.Mark,
 	}
 
-	answerMatching, err := s.Repository.CreateMatchingAnswer(c, am)
+	answerMatching, err := s.Repository.CreateMatchingAnswer(c, tx, am)
 	if err != nil {
 		return &CreateMatchingAnswerResponse{}, err
 	}
 
-	_, er := s.Repository.CreateMatchingAnswerHistory(c, amh)
+	_, er := s.Repository.CreateMatchingAnswerHistory(c, tx, amh)
 	if er != nil {
 		return &CreateMatchingAnswerResponse{}, er
 	}
@@ -1850,7 +1868,7 @@ func (s *service) GetDeleteMatchingAnswersByQuestionID(ctx context.Context, ques
 	return res, nil
 }
 
-func (s *service) UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
+func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB,req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1877,12 +1895,12 @@ func (s *service) UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerR
 		Mark:             answerMatching.Mark,
 	}
 
-	answerMatching, er := s.Repository.UpdateMatchingAnswer(c, answerMatching)
+	answerMatching, er := s.Repository.UpdateMatchingAnswer(c, tx, answerMatching)
 	if er != nil {
 		return &UpdateMatchingAnswerResponse{}, er
 	}
 
-	_, e := s.Repository.CreateMatchingAnswerHistory(c, amh)
+	_, e := s.Repository.CreateMatchingAnswerHistory(c, tx, amh)
 	if e != nil {
 		return &UpdateMatchingAnswerResponse{}, e
 	}
@@ -1901,11 +1919,11 @@ func (s *service) UpdateMatchingAnswer(ctx context.Context, req *MatchingAnswerR
 	}, nil
 }
 
-func (s *service) DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uuid.UUID) error {
+func (s *service) DeleteMatchingAnswer(ctx context.Context, tx *gorm.DB, matchingAnswerID uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	e := s.Repository.DeleteMatchingAnswer(c, matchingAnswerID)
+	e := s.Repository.DeleteMatchingAnswer(c, tx, matchingAnswerID)
 	if e != nil {
 		return e
 	}
@@ -1913,11 +1931,11 @@ func (s *service) DeleteMatchingAnswer(ctx context.Context, matchingAnswerID uui
 	return nil
 }
 
-func (s *service) RestoreMatchingAnswer(ctx context.Context, id uuid.UUID) error {
+func (s *service) RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, e := s.Repository.RestoreMatchingAnswer(c, id)
+	_, e := s.Repository.RestoreMatchingAnswer(c, tx, id)
 	if e != nil {
 		return e
 	}
