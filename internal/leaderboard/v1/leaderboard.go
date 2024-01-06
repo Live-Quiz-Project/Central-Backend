@@ -8,6 +8,23 @@ import (
 	"gorm.io/gorm"
 )
 
+type Participant struct {
+	ID                uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	UserID            *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
+	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
+	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
+	Name              string     `json:"name" gorm:"column:name;type:text"`
+	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+	CreatedAt         time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt         time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt         gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
+
+}
+
+func (Participant) TableName() string {
+	return "participant"
+}
+
 type AnswerResponse struct {
 	ID                uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null;references:live_quiz_session(id)"`
@@ -25,10 +42,6 @@ func (AnswerResponse) TableName() string {
 	return "answer_response"
 }
 
-type CreateLiveAnswerRequest struct {
-	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null;references:live_quiz_session(id)"`
-	Answers           []AnswerResponse
-}
 type LiveAnswerRequest struct {
 	AnswerResponse
 }
@@ -37,16 +50,25 @@ type LiveAnswerResponse struct {
 	AnswerResponse
 }
 
+type ParticipantRequest struct {
+	Participant
+}
+
+type ParticipantResponse struct {
+	Participant
+	Order 				int `json:"order"`
+}
+
 // -------------------- REPOSITORY START --------------------
 type Repository interface {
 	// Transaction
 	BeginTransaction() (*gorm.DB, error)
 	CommitTransaction(tx *gorm.DB) error
 
-	// CREATE
-	CreateAnswerResponse(ctx context.Context, tx *gorm.DB, liveAnswer *AnswerResponse) (*AnswerResponse, error)
-
 	// GET
+	GetParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]Participant, error)
+	GetParticipantsByLiveQuizSessionIDCustom(ctx context.Context, liveQuizSessionID uuid.UUID, order string, limit int) ([]Participant, error)
+
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error)
@@ -56,11 +78,13 @@ type Repository interface {
 
 // #################### SERVICE START ####################
 type Service interface {
-	// CREATE
-	CreateAnswerResponse(ctx context.Context, req *LiveAnswerRequest) (*LiveAnswerResponse, error)
+	BeginTransaction(ctx context.Context) (*gorm.DB, error)
+	CommitTransaction(ctx context.Context,tx *gorm.DB) (error)
 
-	// GET
-	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error)
+	GetParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error)
+	GetParticipantsByLiveQuizSessionIDCustom(ctx context.Context, liveQuizSessionID uuid.UUID, orderBy string, limit int) ([]ParticipantResponse, error)
+
+	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error)
 }

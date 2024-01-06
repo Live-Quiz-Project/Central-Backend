@@ -14,6 +14,7 @@ import (
 	"github.com/Live-Quiz-Project/Backend/internal/router"
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
+	lb "github.com/Live-Quiz-Project/Backend/internal/leaderboard/v1"
 )
 
 func main() {
@@ -55,8 +56,12 @@ func main() {
 	dashboardServ := d.NewService(dashboardRepo)
 	dashboardHandler := d.NewHandler(dashboardServ)
 
+	leaderboardRepo := lb.NewRepository(dbConn.GetDB())
+	leaderboardServ := lb.NewService(leaderboardRepo)
+	leaderboardHandler := lb.NewHandler(leaderboardServ)
+
 	go hub.Run()
-	router.Initialize(userHandler, quizHandler, liveHandler, dashboardHandler)
+	router.Initialize(userHandler, quizHandler, liveHandler, dashboardHandler, leaderboardHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
