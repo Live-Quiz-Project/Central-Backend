@@ -1,0 +1,15 @@
+{
+  LiveSessionID: "uuid",
+  Answers [{
+    ParticipantID: "uuid",
+    Type: "MATCHING",
+    QuestionID: "uuid",
+    Answer: "(ID:ID)"
+  },
+  {
+    ParticipantID: "uuid",
+    Type: "CHOICE",
+    QuestionID: "uuid",
+    Answer: "answer_id"
+  }]
+}

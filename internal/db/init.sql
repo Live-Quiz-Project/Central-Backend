@@ -236,29 +236,12 @@ CREATE TABLE IF NOT EXISTS participant (
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
 );
-CREATE TABLE IF NOT EXISTS response_choice (
+CREATE TABLE IF NOT EXISTS answer_response (
   id UUID PRIMARY KEY NOT NULL,
+  live_quiz_session_id UUID NOT NULL REFERENCES live_quiz_session (id),
   participant_id UUID NOT NULL REFERENCES participant (id),
-  option_choice_id UUID NOT NULL REFERENCES option_choice (id),
-  created_at TIMESTAMPTZ NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ
-);
-CREATE TABLE IF NOT EXISTS response_text (
-  id UUID PRIMARY KEY NOT NULL,
-  participant_id UUID NOT NULL REFERENCES participant (id),
-  option_text_id UUID NOT NULL REFERENCES option_text (id),
-  content TEXT,
-  created_at TIMESTAMPTZ NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL,
-  deleted_at TIMESTAMPTZ
-);
-CREATE TABLE IF NOT EXISTS response_matching (
-  id UUID PRIMARY KEY NOT NULL,
-  participant_id UUID NOT NULL REFERENCES participant (id),
-  option_matching_id UUID NOT NULL REFERENCES option_matching (id),
-  prompt_id UUID NOT NULL REFERENCES option_matching (id),
-  option_id UUID NOT NULL REFERENCES option_matching (id),
+  "type" TEXT,
+  question_id UUID NOT NULL REFERENCES question (id),
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
