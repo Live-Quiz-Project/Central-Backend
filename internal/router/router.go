@@ -9,13 +9,19 @@ import (
 	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/user"
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
+	"github.com/Live-Quiz-Project/Backend/internal/dashboard"
+	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
+	"github.com/Live-Quiz-Project/Backend/internal/leaderboard"
+	lb "github.com/Live-Quiz-Project/Backend/internal/leaderboard/v1"
+
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 var r *gin.Engine
 
-func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler) {
+func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler, dashboardHandler *d.Handler, leaderboardHandler *lb.Handler) {
 	r = gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -33,6 +39,8 @@ func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.H
 	user.UserRoutes(v1, userHandler)
 	quiz.QuizRoutes(v1, quizHandler)
 	live.LiveRoutes(v1, liveHandler)
+	dashboard.DashboardRoutes(v1, dashboardHandler)
+	leaderboard.LeaderboardRoutes(v1, leaderboardHandler)
 }
 
 func Run(addr string) error {
