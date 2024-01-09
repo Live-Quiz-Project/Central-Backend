@@ -75,7 +75,7 @@ func (h *Handler) CreateLiveQuizSession(c *gin.Context) {
 			return
 		}
 
-		count, err := h.quizService.GetQuestionCountByQuizID(context.Background(), lqs.QuizID)
+		count, err := h.quizService.GetQuestionCountByQuizID(c, lqs.QuizID)
 		if err != nil {
 			log.Printf("Error occured: %v", err)
 			return
@@ -95,7 +95,7 @@ func (h *Handler) CreateLiveQuizSession(c *gin.Context) {
 			ID:              lqsID,
 			QuizID:          lqs.QuizID,
 			QuestionCount:   count,
-			CurrentQuestion: 0,
+			CurrentQuestion: -1,
 			Question:        nil,
 			Options:         nil,
 			Answers:         nil,
@@ -130,6 +130,16 @@ func (h *Handler) CreateLiveQuizSession(c *gin.Context) {
 		QuizID: h.hub.LiveQuizSessions[lqsID].QuizID,
 		Code:   h.hub.LiveQuizSessions[lqsID].Code,
 	})
+}
+
+func (h *Handler) GetLiveQuizSessions(c *gin.Context) {
+	lqs, err := h.Service.GetLiveQuizSessions(c, h.hub)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, lqs)
 }
 
 func (h *Handler) EndLiveQuizSession(c *gin.Context) {
@@ -171,7 +181,23 @@ func (h *Handler) EndLiveQuizSession(c *gin.Context) {
 		UserID:            h.hub.LiveQuizSessions[lqsID].HostID,
 	}
 
-	h.hub.Unregister <- h.hub.LiveQuizSessions[lqsID].Clients[userID]
+	for _, cl := range h.hub.LiveQuizSessions[lqsID].Clients {
+		h.hub.Unregister <- cl
+	}
+
+	err = h.FlushLiveQuizSessionCache(c, h.hub.LiveQuizSessions[lqsID].Code)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
+	err = h.FlushLiveQuizSessionResponsesCache(c, h.hub.LiveQuizSessions[lqsID].Code)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
+	delete(h.hub.LiveQuizSessions, lqsID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully ended the session"})
 }
@@ -222,7 +248,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 
 	uname := c.Query("name")
 	emoji := c.Query("emoji")
-	color := c.Query("color")
+	color := "#" + c.Query("color")
 
 	var lqsID uuid.UUID
 	for _, s := range h.hub.LiveQuizSessions {
@@ -247,8 +273,8 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 		UserID:            &userID,
 		LiveQuizSessionID: lqsID,
 		Status:            util.Joined,
-		Name:              uname,
 		Marks:             0,
+		Name:              uname,
 	}
 
 	if !isHost {
@@ -287,16 +313,17 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 
 	h.hub.Register <- cl
 
+	go cl.writeMessage()
+
 	h.hub.Broadcast <- &Message{
 		Content: Content{
-			Type:    c.Request.Host,
+			Type:    util.JoinedLQS,
 			Payload: nil,
 		},
 		LiveQuizSessionID: lqsID,
 		UserID:            userID,
 	}
 
-	go cl.writeMessage()
 	cl.readMessage(h)
 }
 
@@ -424,6 +451,15 @@ func (h *Handler) StartLiveQuizSession(lqsID uuid.UUID) {
 }
 
 func (h *Handler) DistributeQuestion(lqsID uuid.UUID) {
+	h.hub.Broadcast <- &Message{
+		Content: Content{
+			Type:    util.DistQuestion,
+			Payload: nil,
+		},
+		LiveQuizSessionID: lqsID,
+		UserID:            h.hub.LiveQuizSessions[lqsID].HostID,
+	}
+
 	if _, ok := h.hub.LiveQuizSessions[lqsID]; !ok {
 		return
 	}
@@ -457,16 +493,26 @@ func (h *Handler) DistributeQuestion(lqsID uuid.UUID) {
 		return
 	}
 
-	h.Service.CreateLiveQuizSessionResponseCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code, nil)
+	h.Service.CreateLiveQuizSessionResponsesCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code, nil)
 
 	done := make(chan struct{})
 	go h.Countdown(5, lqsID, done)
 	<-done
 
+	log.Println("Distributing options")
 	h.DistributeOptions(lqsID)
 }
 
 func (h *Handler) DistributeOptions(lqsID uuid.UUID) {
+	h.hub.Broadcast <- &Message{
+		Content: Content{
+			Type:    util.DistOptions,
+			Payload: nil,
+		},
+		LiveQuizSessionID: lqsID,
+		UserID:            h.hub.LiveQuizSessions[lqsID].HostID,
+	}
+
 	if _, ok := h.hub.LiveQuizSessions[lqsID]; !ok {
 		log.Println("No such session exists")
 		return
@@ -477,6 +523,7 @@ func (h *Handler) DistributeOptions(lqsID uuid.UUID) {
 		log.Printf("Error occured: %v", err)
 		return
 	}
+	log.Println(mod.Status)
 
 	switch mod.Question.Type {
 	case util.Choice, util.TrueFalse:
@@ -518,6 +565,15 @@ func (h *Handler) DistributeOptions(lqsID uuid.UUID) {
 }
 
 func (h *Handler) RevealAnswer(lqsID uuid.UUID) {
+	h.hub.Broadcast <- &Message{
+		Content: Content{
+			Type:    util.RevealAnswer,
+			Payload: nil,
+		},
+		LiveQuizSessionID: lqsID,
+		UserID:            h.hub.LiveQuizSessions[lqsID].HostID,
+	}
+
 	if _, ok := h.hub.LiveQuizSessions[lqsID]; !ok {
 		return
 	}
@@ -557,7 +613,47 @@ func (h *Handler) RevealAnswer(lqsID uuid.UUID) {
 	}
 }
 
+func (h *Handler) GetLiveQuizSessionCache(c *gin.Context) {
+	sessionID := c.Param("id")
+	lqsID, err := uuid.Parse(sessionID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session ID"})
+		return
+	}
+
+	cache, err := h.Service.GetLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, cache)
+}
+
+func (h *Handler) GetLiveQuizSessionResponsesCache(c *gin.Context) {
+	sessionID := c.Param("id")
+	lqsID, err := uuid.Parse(sessionID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session ID"})
+		return
+	}
+
+	cache, err := h.Service.GetLiveQuizSessionResponsesCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, cache)
+}
+
 func (h *Handler) Countdown(seconds int, lqsID uuid.UUID, cd chan<- struct{}) {
+	mod, err := h.Service.GetLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
 	for i := seconds; i > 0; i-- {
 		if _, ok := h.hub.LiveQuizSessions[lqsID]; ok {
 			h.hub.Broadcast <- &Message{
@@ -566,9 +662,9 @@ func (h *Handler) Countdown(seconds int, lqsID uuid.UUID, cd chan<- struct{}) {
 					Payload: &CountDownPayload{
 						LiveQuizSessionID: lqsID,
 						TimeLeft:          i,
-						// QuestionCount:     h.hub.LiveQuizSessions[lqsID].Moderator.QuestionCount,
-						// CurrentQuestion:   h.hub.LiveQuizSessions[lqsID].Moderator.CurrentQuestion,
-						// Status:            h.hub.LiveQuizSessions[lqsID].Moderator.Status,
+						QuestionCount:     mod.QuestionCount,
+						CurrentQuestion:   mod.CurrentQuestion,
+						Status:            mod.Status,
 					},
 				},
 				LiveQuizSessionID: lqsID,

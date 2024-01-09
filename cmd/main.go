@@ -46,7 +46,7 @@ func main() {
 
 	hub := l.NewHub()
 	lRepo := l.NewRepository(dbConn.GetDB(), cacheConn.GetCache())
-	lServ := l.NewService(lRepo)
+	lServ := l.NewService(lRepo, uRepo)
 
 	liveHandler := l.NewHandler(hub, lServ, qServ)
 

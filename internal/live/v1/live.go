@@ -75,8 +75,10 @@ type Participant struct {
 	UserID            *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
 	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
 	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
-	Name              string     `json:"name" gorm:"column:name;type:text"`
-	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+	Name              string     `json:"display_name" gorm:"column:name;type:text"`
+	// Emoji             string     `json:"display_emoji"`
+	// Color             string     `json:"display_color"`
+	Marks int `json:"marks" gorm:"column:marks;type:int"`
 }
 
 func (Participant) TableName() string {
@@ -98,7 +100,7 @@ func (ChoiceResponse) TableName() string {
 type Repository interface {
 	// ---------- Live Quiz Session related repository methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error)
-	GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSession, error)
+	GetLiveQuizSessions(ctx context.Context) ([]Session, error)
 	GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*LiveQuizSession, error)
 	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSession, error)
 	GetLiveQuizSessionByCode(ctx context.Context, code string) (*LiveQuizSession, error)
@@ -110,14 +112,14 @@ type Repository interface {
 	GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error)
 	UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error
 	FlushLiveQuizSessionCache(ctx context.Context, code string) error
-	CreateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error
-	GetLiveQuizSessionResponseCache(ctx context.Context, code string) (any, error)
-	UpdateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error
-	FlushLiveQuizSessionResponseCache(ctx context.Context, code string) error
+	CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
+	GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error)
+	UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
+	FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error
 
 	// ---------- Participant related repository methods ---------- //
 	CreateParticipant(ctx context.Context, participant *Participant) (*Participant, error)
-	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
+	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]ParticipantResponse, error)
 	GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (*Participant, error)
 	DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error)
 	UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error)
@@ -170,8 +172,14 @@ type CountDownPayload struct {
 }
 
 // ---------- Participant related structs ---------- //
+type ParticipantResponse struct {
+	Participant
+	Name  string `json:"display_name"`
+	Emoji string `json:"display_emoji"`
+	Color string `json:"display_color"`
+}
 type ParticipantsResponse struct {
-	Participants []Participant `json:"participants"`
+	Participants []ParticipantResponse `json:"participants"`
 }
 
 // ---------- Response related structs ---------- //
@@ -189,7 +197,7 @@ type UpdateChoiceResponseRequest struct {
 type Service interface {
 	// ---------- Live Quiz Session related service methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
-	GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSessionResponse, error)
+	GetLiveQuizSessions(ctx context.Context, hub *Hub) ([]LiveQuizSessionResponse, error)
 	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSessionResponse, error)
 	UpdateLiveQuizSession(ctx context.Context, req *UpdateLiveQuizSessionRequest, id uuid.UUID) (*LiveQuizSessionResponse, error)
 	DeleteLiveQuizSession(ctx context.Context, id uuid.UUID) error
@@ -198,10 +206,10 @@ type Service interface {
 	GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error)
 	UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error
 	FlushLiveQuizSessionCache(ctx context.Context, code string) error
-	CreateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error
-	GetLiveQuizSessionResponseCache(ctx context.Context, code string) (any, error)
-	UpdateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error
-	FlushLiveQuizSessionResponseCache(ctx context.Context, code string) error
+	CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
+	GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error)
+	UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
+	FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error
 
 	// ---------- Participant related service methods ---------- //
 	CreateParticipant(ctx context.Context, participant *Participant) (*Participant, error)

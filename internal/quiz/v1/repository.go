@@ -339,7 +339,7 @@ func (r *repository) GetChoiceOptionsByQuestionID(ctx context.Context, questionI
 
 func (r *repository) GetChoiceAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOption, error) {
 	var optionChoices []ChoiceOption
-	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionChoices)
+	res := r.db.WithContext(ctx).Where("question_id = ? AND correct = ?", questionID, true).Find(&optionChoices)
 	if res.Error != nil {
 		return []ChoiceOption{}, res.Error
 	}

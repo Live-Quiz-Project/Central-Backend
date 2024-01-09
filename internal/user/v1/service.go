@@ -37,12 +37,12 @@ func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse,
 		return &LogInResponse{}, "", err
 	}
 
-	accessToken, err := util.GenerateToken(u.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
 
-	refreshToken, err := util.GenerateToken(u.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	refreshToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}

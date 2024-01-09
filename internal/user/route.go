@@ -10,7 +10,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.POST("/login", h.LogIn)
 	r.GET("/logout", h.LogOut)
 	r.GET("/refresh", h.RefreshToken)
-	r.POST("/decode", h.DecodeToken)
+	r.GET("/decode", middleware.UserRequiredAuthentication, h.DecodeToken)
 
 	userR := r.Group("/users")
 	userR.POST("", h.CreateUser)

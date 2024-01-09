@@ -50,7 +50,7 @@ func (h *Handler) LogOut(c *gin.Context) {
 func (h *Handler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("token")
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -66,7 +66,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := util.GenerateToken(claims.UserID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(claims.UserID, claims.Name, claims.DisplayName, claims.DisplayColor, claims.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -78,23 +78,44 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 }
 
 func (h *Handler) DecodeToken(c *gin.Context) {
-	var req DecodeTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	res, err := util.DecodeToken(req.Token, os.Getenv("ACCESS_TOKEN_SECRET"))
+	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	uname, ok := c.Get("name")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayName, ok := c.Get("display_name")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayColor, ok := c.Get("display_color")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayEmoji, ok := c.Get("display_emoji")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, util.Claims{
+		UserID:       userID,
+		Name:         uname.(string),
+		DisplayName:  displayName.(string),
+		DisplayColor: displayColor.(string),
+		DisplayEmoji: displayEmoji.(string),
+	})
 }
 
 // ---------- User related handlers ---------- //

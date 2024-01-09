@@ -16,9 +16,13 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func GenerateToken(uid uuid.UUID, duration time.Time, secret string) (string, error) {
+func GenerateToken(uid uuid.UUID, uname string, displayName string, displayColor string, displayEmoji string, duration time.Time, secret string) (string, error) {
 	claims := &Claims{
-		UserID: uid,
+		UserID:       uid,
+		Name:         uname,
+		DisplayName:  displayName,
+		DisplayEmoji: displayEmoji,
+		DisplayColor: displayColor,
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    uid.String(),
 			ExpiresAt: duration.Unix(),
