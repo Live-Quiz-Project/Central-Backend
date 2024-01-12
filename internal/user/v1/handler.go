@@ -376,17 +376,25 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 
 	validResponse := gin.H{
 		"message": "OTP code is valid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
+		// "otpCode": request.OtpCode,
+		// "secret":  otpSecret,
+		// "time":    expireTimeParsed,
 	}
 
 	invalidResponse := gin.H{
 		"message": "OTP code is invalid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
+		"error":   "Invalid OTP code",
+		// "otpCode": request.OtpCode,
+		// "secret":  otpSecret,
 	}
 
-	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
+	result, err := util.VerifyOTP(request.OtpCode, otpSecret, expireTimeParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying OTP"})
+		return
+	}
+
+	if !result {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
 		return
 	}
