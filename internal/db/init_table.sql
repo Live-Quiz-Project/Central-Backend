@@ -242,6 +242,8 @@ CREATE TABLE IF NOT EXISTS answer_response (
   participant_id UUID NOT NULL REFERENCES participant (id),
   "type" TEXT,
   question_id UUID NOT NULL REFERENCES question (id),
+  answer TEXT,
+  use_time INT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
