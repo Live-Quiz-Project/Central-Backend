@@ -190,6 +190,7 @@ type Service interface {
 	// ---------- Live Quiz Session related service methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
 	GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSessionResponse, error)
+	GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*LiveQuizSessionResponse, error)
 	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSessionResponse, error)
 	UpdateLiveQuizSession(ctx context.Context, req *UpdateLiveQuizSessionRequest, id uuid.UUID) (*LiveQuizSessionResponse, error)
 	DeleteLiveQuizSession(ctx context.Context, id uuid.UUID) error
