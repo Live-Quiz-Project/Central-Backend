@@ -41,33 +41,6 @@ func NewDatabase() (*Database, error) {
 	return &Database{db: db}, nil
 }
 
-func NewTestDatabase() (*Database, error) {
-
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := "test_database"
-
-	psqlconn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
-
-	db, err := gorm.Open(postgres.Open(psqlconn), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-	er := sqlDB.Ping()
-	if er != nil {
-		return nil, er
-	}
-
-	return &Database{db: db}, nil
-}
-
 func (d *Database) Close() {
 	sqlDB, err := d.db.DB()
 	if err != nil {
