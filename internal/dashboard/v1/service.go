@@ -145,3 +145,54 @@ func (s *service) GetAnswerResponseByParticipantID(ctx context.Context, particip
 
 	return res, nil
 }
+
+func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	liveAnswers, err := s.Repository.GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx, liveQuizSessionID, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []LiveAnswerResponse
+	for _, liveAnswer := range liveAnswers {
+		res = append(res, LiveAnswerResponse{
+			AnswerResponse: AnswerResponse{
+				ID:                liveAnswer.ID,
+				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
+				ParticipantID:     liveAnswer.ParticipantID,
+				Type:              liveAnswer.Type,
+				QuestionID:        liveAnswer.QuestionID,
+				Answer:            liveAnswer.Answer,
+				CreatedAt:         liveAnswer.CreatedAt,
+				UpdatedAt:         liveAnswer.UpdatedAt,
+				DeletedAt:         liveAnswer.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+
+}
+
+func (s *service) GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*ParticipantResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participant, err := s.Repository.GetParticipantByID(c, liveQuizSessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ParticipantResponse{
+		Participant: Participant{
+			ID:                participant.ID,
+			UserID:            participant.UserID,
+			LiveQuizSessionID: participant.LiveQuizSessionID,
+			Status:            participant.Status,
+			Name:              participant.Name,
+			Marks:             participant.Marks,
+		},
+	}, nil
+}

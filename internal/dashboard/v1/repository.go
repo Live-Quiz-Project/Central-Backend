@@ -54,6 +54,24 @@ func (r *repository) GetAnswerResponseByParticipantID(ctx context.Context, parti
 	return answerResponses, nil
 }
 
+func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error) {
+	var answerResponses []AnswerResponse
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND question_id = ?", liveQuizSessionID, questionID).Find(&answerResponses)
+	if res.Error != nil {
+		return []AnswerResponse{}, res.Error
+	}
+	return answerResponses, nil
+}
+
+func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*ParticipantResponse, error) {
+	var participantResponse ParticipantResponse
+	res := r.db.WithContext(ctx).Where("id = ?", participantID).Find(&participantResponse)
+	if res.Error != nil {
+		return &ParticipantResponse{}, res.Error
+	}
+	return &participantResponse, nil
+}
+
 // For Testing
 func (r *repository) CreateAnswerResponse(ctx context.Context, tx *gorm.DB, answerResponse *AnswerResponse) (*AnswerResponse, error) {
 	res := tx.WithContext(ctx).Create(answerResponse)

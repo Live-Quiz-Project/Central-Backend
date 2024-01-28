@@ -1,8 +1,8 @@
 package dashboard
 
 import (
-	"github.com/Live-Quiz-Project/Backend/internal/middleware"
 	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
+	"github.com/Live-Quiz-Project/Backend/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,4 +13,5 @@ func DashboardRoutes(r *gin.RouterGroup, h *d.Handler) {
 	dashboard.GET("/live/:id", h.GetAnswerResponseByLiveQuizSessionID)
 	dashboard.GET("/participant/:id", h.GetAnswerResponseByParticipantID)
 	dashboard.GET("/question/:id", h.GetAnswerResponseByQuestionID)
+	// dashboard.GET("/question_view/:id", h.GetDashboardQuestionViewByID)
 }

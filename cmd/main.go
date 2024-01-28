@@ -7,14 +7,14 @@ import (
 	"os/signal"
 
 	"github.com/Live-Quiz-Project/Backend/internal/cache"
+	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/db"
 	"github.com/Live-Quiz-Project/Backend/internal/env"
+	lb "github.com/Live-Quiz-Project/Backend/internal/leaderboard/v1"
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
 	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/router"
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
-	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
-	lb "github.com/Live-Quiz-Project/Backend/internal/leaderboard/v1"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 
 	dashboardRepo := d.NewRepository(dbConn.GetDB())
 	dashboardServ := d.NewService(dashboardRepo)
-	dashboardHandler := d.NewHandler(dashboardServ)
+	dashboardHandler := d.NewHandler(dashboardServ, qServ, lServ)
 
 	leaderboardRepo := lb.NewRepository(dbConn.GetDB())
 	leaderboardServ := lb.NewService(leaderboardRepo)

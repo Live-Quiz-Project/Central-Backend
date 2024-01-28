@@ -15,7 +15,7 @@ type Database struct {
 }
 
 func NewDatabase() (*Database, error) {
-	
+
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
@@ -42,7 +42,7 @@ func NewDatabase() (*Database, error) {
 }
 
 func NewTestDatabase() (*Database, error) {
-	
+
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")

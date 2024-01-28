@@ -25,16 +25,136 @@ func (AnswerResponse) TableName() string {
 	return "answer_response"
 }
 
+type Participant struct {
+	ID                uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	UserID            *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
+	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
+	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
+	Name              string     `json:"name" gorm:"column:name;type:text"`
+	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+}
+
+func (Participant) TableName() string {
+	return "participant"
+}
+
+type Session struct {
+	ID                  uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	HostID              uuid.UUID  `json:"host_id" gorm:"column:host_id;type:uuid;not null"`
+	QuizID              uuid.UUID  `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null"`
+	Status              string     `json:"status" gorm:"column:status;not null"`
+	ExemptedQuestionIDs *string    `json:"exempted_question_ids" gorm:"column:exempted_question_ids"`
+	CreatedAt           time.Time  `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
+	UpdatedAt           time.Time  `json:"updated_at" gorm:"column:updated_at;type:timestamptz;not null"`
+	DeletedAt           *time.Time `json:"deleted_at" gorm:"column:deleted_at;type:timestamptz"`
+}
+
+func (Session) TableName() string {
+	return "live_quiz_session"
+}
+
 type CreateLiveAnswerRequest struct {
 	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null;references:live_quiz_session(id)"`
 	Answers           []AnswerResponse
 }
+
+type ParticipantResponse struct {
+	Participant
+}
+
 type LiveAnswerRequest struct {
 	AnswerResponse
 }
 
 type LiveAnswerResponse struct {
 	AnswerResponse
+}
+
+type QuestionViewQuizResponse struct {
+	ID          uuid.UUID                      `json:"id"`
+	CreatorID   uuid.UUID                      `json:"creator_id"`
+	Title       string                         `json:"title"`
+	Description string                         `json:"description"`
+	CoverImage  string                         `json:"cover_image"`
+	CreatedAt   time.Time                      `json:"created_at"`
+	Questions   []QuestionViewQuestionResponse `json:"questions"`
+}
+
+type QuestionViewQuestionResponse struct {
+	ID             uuid.UUID     `json:"id"`
+	Order          int           `json:"order"`
+	Content        string        `json:"content"`
+	Type           string        `json:"type"`
+	Note           string        `json:"note"`
+	Media          string        `json:"media"`
+	UseTemplate    bool          `json:"use_template"`
+	TimeLimit      int           `json:"time_limit"`
+	HaveTimeFactor bool          `json:"have_time_factor"`
+	TimeFactor     int           `json:"time_factor"`
+	FontSize       int           `json:"font_size"`
+	SelectUpTo     int           `json:"select_up_to"`
+	Options        []interface{} `json:"options"`
+}
+
+type QuestionViewOptionChoice struct {
+	ID           uuid.UUID     `json:"id"`
+	Order        int           `json:"order"`
+	Content      string        `json:"content"`
+	Mark         int           `json:"mark"`
+	Correct      bool          `json:"correct"`
+	Participants []Participant `json:"participants"`
+}
+
+type QuestionViewOptionText struct {
+	ID            uuid.UUID     `json:"id"`
+	Order         int           `json:"order"`
+	Content       string        `json:"content"`
+	Mark          int           `json:"mark"`
+	CaseSensitive bool          `json:"case_sensitive"`
+	Participants  []Participant `json:"participants"`
+}
+
+type QuestionViewMatching struct {
+	ID           uuid.UUID     `json:"id"`
+	Type         string        `json:"type,omitempty"`
+	Order        int           `json:"order,omitempty"`
+	Content      string        `json:"content,omitempty"`
+	Eliminate    string        `json:"eliminate,omitempty"`
+	PromptID     uuid.UUID     `json:"prompt_id,omitempty"`
+	OptionID     uuid.UUID     `json:"option_id,omitempty"`
+	Mark         int           `json:"mark,omitempty"`
+	Participants []Participant `json:"participants"`
+}
+
+type QuestionViewOptionMatching struct {
+	ID        uuid.UUID `json:"id"`
+	Type      string    `json:"type"`
+	Order     int       `json:"order"`
+	Content   string    `json:"content"`
+	Eliminate string    `json:"eliminate"`
+}
+
+type QuestionViewAnswerMatching struct {
+	ID       uuid.UUID `json:"id"`
+	PromptID uuid.UUID `json:"prompt_id"`
+	OptionID uuid.UUID `json:"option_id"`
+	Mark     int       `json:"mark"`
+}
+
+type QuestionViewParticipant struct {
+	ID   uuid.UUID
+	Name string
+}
+
+type Ranking struct {
+	ID        uuid.UUID
+	Order     int
+	Name      string
+	Marks     string
+	Correct   int
+	Incorrect int
+	Timeup    int
+	TimeUse   int
 }
 
 // -------------------- REPOSITORY START --------------------
@@ -47,12 +167,13 @@ type Repository interface {
 	CreateAnswerResponse(ctx context.Context, tx *gorm.DB, liveAnswer *AnswerResponse) (*AnswerResponse, error)
 
 	// GET
+
+	GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error)
+	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*ParticipantResponse, error)
 }
-
-// --------------------- REPOSITORY END ---------------------
 
 // #################### SERVICE START ####################
 type Service interface {
@@ -63,6 +184,6 @@ type Service interface {
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error)
+	GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error)
+	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*ParticipantResponse, error)
 }
-
-// ##################### SERVICE END #####################
