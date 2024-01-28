@@ -29,7 +29,7 @@ func (s *service) BeginTransaction(ctx context.Context) (*gorm.DB, error) {
 	return tx, nil
 }
 
-func (s *service) CommitTransaction(ctx context.Context,tx *gorm.DB) (error) {
+func (s *service) CommitTransaction(ctx context.Context, tx *gorm.DB) error {
 	err := s.Repository.CommitTransaction(tx)
 	if err != nil {
 		return err
@@ -349,7 +349,7 @@ func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRe
 		return &UpdateQuizResponse{}, er
 	}
 
-	_, e := s.Repository.CreateQuizHistory(c,tx, qh)
+	_, e := s.Repository.CreateQuizHistory(c, tx, qh)
 	if e != nil {
 		return &UpdateQuizResponse{}, e
 	}
@@ -435,11 +435,11 @@ func (s *service) CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 		FontSize:       qp.FontSize,
 	}
 
-	questionPool, err := s.Repository.CreateQuestionPool(c,tx, qp)
+	questionPool, err := s.Repository.CreateQuestionPool(c, tx, qp)
 	if err != nil {
 		return &CreateQuestionPoolResponse{}, err
 	}
-	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c,tx, qph)
+	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c, tx, qph)
 	if er != nil {
 		return &CreateQuestionPoolResponse{}, er
 	}
@@ -1868,7 +1868,7 @@ func (s *service) GetDeleteMatchingAnswersByQuestionID(ctx context.Context, ques
 	return res, nil
 }
 
-func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB,req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
+func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 

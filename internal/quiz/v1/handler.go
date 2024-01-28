@@ -922,7 +922,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 								}
 							}
 						} else {
-							
+
 							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1016,7 +1016,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx,&ChoiceOptionRequest{
+						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -1118,7 +1118,6 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 
 	h.Service.CommitTransaction(c.Request.Context(), tx)
 
-	
 	c.JSON(http.StatusCreated, &QuizResponse{
 		Quiz: Quiz{
 			ID:             res.ID,
@@ -1262,7 +1261,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		return
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(),tx)
+	h.Service.CommitTransaction(c.Request.Context(), tx)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "successfully deleted",
@@ -1278,7 +1277,7 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 
 	quizID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1404,7 +1403,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 
 	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1428,7 +1427,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
 				QuestionHistory: QuestionHistory{
 					ID:             qpr.ID,
-					QuestionID: 		qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
+					QuestionID:     qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
 					QuizID:         qpr.QuizID,
 					Type:           "POOL",
 					Order:          qpr.Order,
@@ -1448,7 +1447,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 
 		qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -1457,7 +1456,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
 				ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
@@ -1465,17 +1464,17 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 				for _, ocr := range ocRes {
 					oc = append(oc, ChoiceOptionHistoryResponse{
 						ChoiceOptionHistory: ChoiceOptionHistory{
-							ID:         ocr.ID,
+							ID:             ocr.ID,
 							ChoiceOptionID: ocr.ChoiceOptionID,
-							QuestionID: ocr.QuestionID,
-							Order:      ocr.Order,
-							Content:    ocr.Content,
-							Mark:       ocr.Mark,
-							Color:      ocr.Color,
-							Correct:    ocr.Correct,
-							CreatedAt:  ocr.CreatedAt,
-							UpdatedAt:  ocr.UpdatedAt,
-							DeletedAt:  ocr.DeletedAt,
+							QuestionID:     ocr.QuestionID,
+							Order:          ocr.Order,
+							Content:        ocr.Content,
+							Mark:           ocr.Mark,
+							Color:          ocr.Color,
+							Correct:        ocr.Correct,
+							CreatedAt:      ocr.CreatedAt,
+							UpdatedAt:      ocr.UpdatedAt,
+							DeletedAt:      ocr.DeletedAt,
 						},
 					})
 				}
@@ -1507,7 +1506,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
 				otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
@@ -1568,19 +1567,19 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 				var o []any
 				for _, omr := range omRes {
 					o = append(o, MatchingOptionAndAnswerHistoryResponse{
-						ID:         omr.ID,
+						ID:               omr.ID,
 						OptionMatchingID: omr.OptionMatchingID,
-						QuestionID: omr.QuestionID,
-						Type:       omr.Type,
-						Order:      omr.Order,
-						Content:    omr.Content,
-						Eliminate:  omr.Eliminate,
-						PromptID:   uuid.Nil,
-						OptionID:   uuid.Nil,
-						Mark:       0,
-						CreatedAt:  omr.CreatedAt,
-						UpdatedAt:  omr.UpdatedAt,
-						DeletedAt:  omr.DeletedAt,
+						QuestionID:       omr.QuestionID,
+						Type:             omr.Type,
+						Order:            omr.Order,
+						Content:          omr.Content,
+						Eliminate:        omr.Eliminate,
+						PromptID:         uuid.Nil,
+						OptionID:         uuid.Nil,
+						Mark:             0,
+						CreatedAt:        omr.CreatedAt,
+						UpdatedAt:        omr.UpdatedAt,
+						DeletedAt:        omr.DeletedAt,
 					})
 				}
 
@@ -1660,7 +1659,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 
 	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1681,7 +1680,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
 			QuestionHistory: QuestionHistory{
 				ID:             qpr.ID,
-				QuestionID:     qpr.QuestionPoolID, 
+				QuestionID:     qpr.QuestionPoolID,
 				QuizID:         qpr.QuizID,
 				Type:           "POOL",
 				Order:          qpr.Order,
@@ -1717,17 +1716,17 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			for _, ocr := range ocRes {
 				oc = append(oc, ChoiceOptionHistoryResponse{
 					ChoiceOptionHistory: ChoiceOptionHistory{
-						ID:         ocr.ID,
+						ID:             ocr.ID,
 						ChoiceOptionID: ocr.ChoiceOptionID,
-						QuestionID: ocr.QuestionID,
-						Order:      ocr.Order,
-						Content:    ocr.Content,
-						Mark:       ocr.Mark,
-						Color:      ocr.Color,
-						Correct:    ocr.Correct,
-						CreatedAt:  ocr.CreatedAt,
-						UpdatedAt:  ocr.UpdatedAt,
-						DeletedAt:  ocr.DeletedAt,
+						QuestionID:     ocr.QuestionID,
+						Order:          ocr.Order,
+						Content:        ocr.Content,
+						Mark:           ocr.Mark,
+						Color:          ocr.Color,
+						Correct:        ocr.Correct,
+						CreatedAt:      ocr.CreatedAt,
+						UpdatedAt:      ocr.UpdatedAt,
+						DeletedAt:      ocr.DeletedAt,
 					},
 				})
 			}
@@ -1735,7 +1734,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
 				QuestionHistory: QuestionHistory{
 					ID:             qr.ID,
-					QuestionID:			qr.QuestionID ,
+					QuestionID:     qr.QuestionID,
 					QuizID:         qr.QuizID,
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
@@ -1819,37 +1818,37 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			var o []any
 			for _, omr := range omRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
-					ID:         omr.ID,
+					ID:               omr.ID,
 					OptionMatchingID: omr.OptionMatchingID,
-					QuestionID: omr.QuestionID,
-					Type:       omr.Type,
-					Order:      omr.Order,
-					Content:    omr.Content,
-					Eliminate:  omr.Eliminate,
-					PromptID:   uuid.Nil,
-					OptionID:   uuid.Nil,
-					Mark:       0,
-					CreatedAt:  omr.CreatedAt,
-					UpdatedAt:  omr.UpdatedAt,
-					DeletedAt:  omr.DeletedAt,
+					QuestionID:       omr.QuestionID,
+					Type:             omr.Type,
+					Order:            omr.Order,
+					Content:          omr.Content,
+					Eliminate:        omr.Eliminate,
+					PromptID:         uuid.Nil,
+					OptionID:         uuid.Nil,
+					Mark:             0,
+					CreatedAt:        omr.CreatedAt,
+					UpdatedAt:        omr.UpdatedAt,
+					DeletedAt:        omr.DeletedAt,
 				})
 			}
 
 			for _, amr := range amRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
-					ID:         amr.ID,
+					ID:               amr.ID,
 					AmswerMatchingID: amr.AnswerMatchingID,
-					QuestionID: amr.QuestionID,
-					Type:       "MATCHING_ANSWER",
-					Order:      0,
-					Content:    "",
-					Eliminate:  false,
-					PromptID:   amr.PromptID,
-					OptionID:   amr.OptionID,
-					Mark:       amr.Mark,
-					CreatedAt:  amr.CreatedAt,
-					UpdatedAt:  amr.UpdatedAt,
-					DeletedAt:  amr.DeletedAt,
+					QuestionID:       amr.QuestionID,
+					Type:             "MATCHING_ANSWER",
+					Order:            0,
+					Content:          "",
+					Eliminate:        false,
+					PromptID:         amr.PromptID,
+					OptionID:         amr.OptionID,
+					Mark:             amr.Mark,
+					CreatedAt:        amr.CreatedAt,
+					UpdatedAt:        amr.UpdatedAt,
+					DeletedAt:        amr.DeletedAt,
 				})
 			}
 
