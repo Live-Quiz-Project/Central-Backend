@@ -1765,6 +1765,32 @@ func (s *service) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, qu
 	return res, nil
 }
 
+func (s *service) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionHistoryByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionHistoryResponse{
+		MatchingOptionHistory: MatchingOptionHistory{
+			ID:               om.ID,
+			OptionMatchingID: om.OptionMatchingID,
+			QuestionID:       om.QuestionID,
+			Order:            om.Order,
+			Content:          om.Content,
+			Type:             om.Type,
+			Eliminate:        om.Eliminate,
+			CreatedAt:        om.CreatedAt,
+			UpdatedAt:        om.UpdatedAt,
+			DeletedAt:        om.DeletedAt,
+		},
+	}, nil
+}
+
+
 // ------ Matching Answer ------
 
 func (s *service) CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {

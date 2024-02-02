@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
@@ -40,17 +41,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 	}
 
 	// Start Transaction
-	tx, er := h.Service.BeginTransaction(c.Request.Context())
-	if er != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": er.Error()})
-		return
-	}
+	tx, _ := h.Service.BeginTransaction(c.Request.Context())
 
 	res, err := h.Service.CreateQuiz(c.Request.Context(), tx, &req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.Service.CommitTransaction(c.Request.Context(), tx)
 
 	var qpResID *uuid.UUID = nil
 	var qphResID *uuid.UUID = nil
@@ -60,11 +59,14 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		var qpRes *CreateQuestionPoolResponse
 
 		if q.Type == util.Pool {
-			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID)
+			txPool, _ := h.Service.BeginTransaction(c.Request.Context())
+			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), txPool, &q, res.ID, res.QuizHistoryID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+
+			h.Service.CommitTransaction(c.Request.Context(), txPool)
 			qpResID = &qpRes.ID
 			qphResID = &qpRes.QuestionPoolHistoryID
 
@@ -89,24 +91,27 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 
 			continue
 		} else {
+			txQuestion, _ := h.Service.BeginTransaction(c.Request.Context())
 			if q.IsInPool == true {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
+				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			} else {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
+				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			}
+			h.Service.CommitTransaction(c.Request.Context(), txQuestion)
 
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &ChoiceOptionRequest{
+						txChoice, _ := h.Service.BeginTransaction(c.Request.Context())
+						_, err := h.Service.CreateChoiceOption(c.Request.Context(), txChoice, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -115,14 +120,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								Correct: qst["correct"].(bool),
 							},
 						}, qRes.ID, qRes.QuestionHistoryID, userID)
-
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
 						}
+						h.Service.CommitTransaction(c.Request.Context(), txChoice)
 
 					} else if qRes.Type == util.ShortText || qRes.Type == util.Paragraph {
-						_, err := h.Service.CreateTextOption(c.Request.Context(), tx, &TextOptionRequest{
+						txText, _ := h.Service.BeginTransaction(c.Request.Context())
+						_, err := h.Service.CreateTextOption(c.Request.Context(), txText, &TextOptionRequest{
 							TextOption: TextOption{
 								Order:         int(qst["order"].(float64)),
 								Content:       qst["content"].(string),
@@ -136,9 +142,12 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 							return
 						}
 
+						h.Service.CommitTransaction(c.Request.Context(), txText)
+
 					} else if qRes.Type == util.Matching {
+						txMatching, _ := h.Service.BeginTransaction(c.Request.Context())
 						if qst["type"].(string) != "MATCHING_ANSWER" {
-							_, err := h.Service.CreateMatchingOption(c.Request.Context(), tx, &MatchingOptionRequest{
+							_, err := h.Service.CreateMatchingOption(c.Request.Context(), txMatching, &MatchingOptionRequest{
 								MatchingOption: MatchingOption{
 									Order:     int(qst["order"].(float64)),
 									Content:   qst["content"].(string),
@@ -166,7 +175,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 
-							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
+							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), txMatching, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
@@ -179,6 +188,9 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 						}
+						h.Service.CommitTransaction(c.Request.Context(), txMatching)
+
+						
 					}
 				}
 			}
@@ -209,7 +221,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		})
 	}
 
-	er = h.Service.CommitTransaction(c.Request.Context(), tx)
+
 
 	c.JSON(http.StatusCreated, &QuizResponse{
 		Quiz: Quiz{
@@ -413,12 +425,12 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						ID:         omr.ID,
 						QuestionID: omr.QuestionID,
 						Type:       omr.Type,
-						Order:      omr.Order,
-						Content:    omr.Content,
+						Order:      &omr.Order,
+						Content:    &omr.Content,
 						Eliminate:  omr.Eliminate,
-						PromptID:   uuid.Nil,
-						OptionID:   uuid.Nil,
-						Mark:       0,
+						PromptID:   nil,
+						OptionID:   nil,
+						Mark:       nil,
 						CreatedAt:  omr.CreatedAt,
 						UpdatedAt:  omr.UpdatedAt,
 						DeletedAt:  omr.DeletedAt,
@@ -430,12 +442,12 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						ID:         amr.ID,
 						QuestionID: amr.QuestionID,
 						Type:       "MATCHING_ANSWER",
-						Order:      0,
-						Content:    "",
+						Order:      nil,
+						Content:    nil,
 						Eliminate:  false,
-						PromptID:   amr.PromptID,
-						OptionID:   amr.OptionID,
-						Mark:       amr.Mark,
+						PromptID:   &amr.PromptID,
+						OptionID:   &amr.OptionID,
+						Mark:       &amr.Mark,
 						CreatedAt:  amr.CreatedAt,
 						UpdatedAt:  amr.UpdatedAt,
 						DeletedAt:  amr.DeletedAt,
@@ -659,12 +671,12 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					ID:         omr.ID,
 					QuestionID: omr.QuestionID,
 					Type:       omr.Type,
-					Order:      omr.Order,
-					Content:    omr.Content,
+					Order:      &omr.Order,
+					Content:    &omr.Content,
 					Eliminate:  omr.Eliminate,
-					PromptID:   uuid.Nil,
-					OptionID:   uuid.Nil,
-					Mark:       0,
+					PromptID:   nil,
+					OptionID:   nil,
+					Mark:       nil,
 					CreatedAt:  omr.CreatedAt,
 					UpdatedAt:  omr.UpdatedAt,
 					DeletedAt:  omr.DeletedAt,
@@ -672,16 +684,18 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			for _, amr := range amRes {
+
+				log.Println(amr)
 				o = append(o, MatchingOptionAndAnswerResponse{
 					ID:         amr.ID,
 					QuestionID: amr.QuestionID,
 					Type:       "MATCHING_ANSWER",
-					Order:      0,
-					Content:    "",
+					Order:      nil,
+					Content:    nil,
 					Eliminate:  false,
-					PromptID:   amr.PromptID,
-					OptionID:   amr.OptionID,
-					Mark:       amr.Mark,
+					PromptID:   &amr.PromptID,
+					OptionID:   &amr.OptionID,
+					Mark:       &amr.Mark,
 					CreatedAt:  amr.CreatedAt,
 					UpdatedAt:  amr.UpdatedAt,
 					DeletedAt:  amr.DeletedAt,
@@ -1568,15 +1582,15 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 				for _, omr := range omRes {
 					o = append(o, MatchingOptionAndAnswerHistoryResponse{
 						ID:               omr.ID,
-						OptionMatchingID: omr.OptionMatchingID,
+						OptionMatchingID: &omr.OptionMatchingID,
 						QuestionID:       omr.QuestionID,
 						Type:             omr.Type,
-						Order:            omr.Order,
-						Content:          omr.Content,
+						Order:            &omr.Order,
+						Content:          &omr.Content,
 						Eliminate:        omr.Eliminate,
-						PromptID:         uuid.Nil,
-						OptionID:         uuid.Nil,
-						Mark:             0,
+						PromptID:         nil,
+						OptionID:         nil,
+						Mark:             nil,
 						CreatedAt:        omr.CreatedAt,
 						UpdatedAt:        omr.UpdatedAt,
 						DeletedAt:        omr.DeletedAt,
@@ -1588,12 +1602,12 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 						ID:         amr.ID,
 						QuestionID: amr.QuestionID,
 						Type:       "MATCHING_ANSWER",
-						Order:      0,
-						Content:    "",
+						Order:      nil,
+						Content:    nil,
 						Eliminate:  false,
-						PromptID:   amr.PromptID,
-						OptionID:   amr.OptionID,
-						Mark:       amr.Mark,
+						PromptID:   &amr.PromptID,
+						OptionID:   &amr.OptionID,
+						Mark:       &amr.Mark,
 						CreatedAt:  amr.CreatedAt,
 						UpdatedAt:  amr.UpdatedAt,
 						DeletedAt:  amr.DeletedAt,
@@ -1819,15 +1833,15 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			for _, omr := range omRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
 					ID:               omr.ID,
-					OptionMatchingID: omr.OptionMatchingID,
+					OptionMatchingID: &omr.OptionMatchingID,
 					QuestionID:       omr.QuestionID,
 					Type:             omr.Type,
-					Order:            omr.Order,
-					Content:          omr.Content,
+					Order:            &omr.Order,
+					Content:          &omr.Content,
 					Eliminate:        omr.Eliminate,
-					PromptID:         uuid.Nil,
-					OptionID:         uuid.Nil,
-					Mark:             0,
+					PromptID:         nil,
+					OptionID:         nil,
+					Mark:             nil,
 					CreatedAt:        omr.CreatedAt,
 					UpdatedAt:        omr.UpdatedAt,
 					DeletedAt:        omr.DeletedAt,
@@ -1837,15 +1851,15 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			for _, amr := range amRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
 					ID:               amr.ID,
-					AmswerMatchingID: amr.AnswerMatchingID,
+					AmswerMatchingID: &amr.AnswerMatchingID,
 					QuestionID:       amr.QuestionID,
 					Type:             "MATCHING_ANSWER",
-					Order:            0,
-					Content:          "",
+					Order:            nil,
+					Content:          nil,
 					Eliminate:        false,
-					PromptID:         amr.PromptID,
-					OptionID:         amr.OptionID,
-					Mark:             amr.Mark,
+					PromptID:         &amr.PromptID,
+					OptionID:         &amr.OptionID,
+					Mark:             &amr.Mark,
 					CreatedAt:        amr.CreatedAt,
 					UpdatedAt:        amr.UpdatedAt,
 					DeletedAt:        amr.DeletedAt,

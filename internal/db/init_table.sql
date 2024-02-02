@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS answer_matching_history (
 CREATE TABLE IF NOT EXISTS live_quiz_session (
   id UUID PRIMARY KEY NOT NULL,
   host_id UUID NOT NULL REFERENCES "user" (id),
-  quiz_id UUID NOT NULL REFERENCES quiz (id),
+  quiz_id UUID NOT NULL REFERENCES quiz_history (id),
   status TEXT NOT NULL,
   exempted_question_ids TEXT,
   created_at TIMESTAMPTZ NOT NULL,
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS answer_response (
   live_quiz_session_id UUID NOT NULL REFERENCES live_quiz_session (id),
   participant_id UUID NOT NULL REFERENCES participant (id),
   "type" TEXT,
-  question_id UUID NOT NULL REFERENCES question (id),
+  question_id UUID NOT NULL REFERENCES question_history (id),
   answer TEXT,
   use_time INT,
   created_at TIMESTAMPTZ NOT NULL,

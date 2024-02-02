@@ -23,6 +23,16 @@ func NewRepository(db *gorm.DB, cache *redis.Client) Repository {
 	}
 }
 
+// ---------- Session ------------- //
+func (r *repository) GetLiveQuizSessionBySessionID(ctx context.Context, id uuid.UUID) (*Session, error) {
+	var lqs Session
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&lqs)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &lqs, nil
+}
+
 // ---------- Live Quiz Session related repository methods ---------- //
 func (r *repository) CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error) {
 	res := r.db.WithContext(ctx).Create(lqs)

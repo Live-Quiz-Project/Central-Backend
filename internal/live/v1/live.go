@@ -43,6 +43,10 @@ type Cache struct {
 	Orders          []int          `json:"orders"`
 }
 
+type SessionResponse struct {
+	Session
+}
+
 type Configurations struct {
 	ShuffleConfig     ShuffleConfigurations     `json:"shuffle"`
 	ParticipantConfig ParticipantConfigurations `json:"participant"`
@@ -96,6 +100,9 @@ func (ChoiceResponse) TableName() string {
 }
 
 type Repository interface {
+	// ---------- Session related repository methods ---------- //
+	GetLiveQuizSessionBySessionID(ctx context.Context, id uuid.UUID) (*Session, error)
+
 	// ---------- Live Quiz Session related repository methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error)
 	GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSession, error)
@@ -140,6 +147,7 @@ type LiveQuizSessionResponse struct {
 	Code   string    `json:"code"`
 	Status string    `json:"status"`
 }
+
 type CreateLiveQuizSessionRequest struct {
 	QuizID uuid.UUID      `json:"quiz_id"`
 	Config Configurations `json:"config"`
@@ -187,6 +195,9 @@ type UpdateChoiceResponseRequest struct {
 }
 
 type Service interface {
+	// ---------- Session related service methods ---------- //
+	GetLiveQuizSessionBySessionID(ctx context.Context, sessionID uuid.UUID) (*SessionResponse, error)
+
 	// ---------- Live Quiz Session related service methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
 	GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSessionResponse, error)

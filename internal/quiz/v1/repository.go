@@ -818,7 +818,7 @@ func (r *repository) GetDeleteMatchingOptionsByQuestionID(ctx context.Context, q
 
 func (r *repository) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOption, error) {
 	var optionMatching MatchingOption
-	res := r.db.WithContext(ctx).Where(`question_id = ? AND "order" = ?`, questionID, order).Find(&optionMatching)
+	res := r.db.WithContext(ctx).Where(`question_id = ? AND "order" = ?`, questionID, order).First(&optionMatching)
 	if res.Error != nil {
 		return &MatchingOption{}, res.Error
 	}
@@ -869,7 +869,7 @@ func (r *repository) CreateMatchingOptionHistory(ctx context.Context, tx *gorm.D
 
 func (r *repository) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistory, error) {
 	var optionMatchingHistory MatchingOptionHistory
-	res := r.db.WithContext(ctx).Where("id = ?", id).First(&optionMatchingHistory)
+	res := r.db.WithContext(ctx).Where("option_matching_id = ?", id).First(&optionMatchingHistory)
 	if res.Error != nil {
 		return &MatchingOptionHistory{}, res.Error
 	}

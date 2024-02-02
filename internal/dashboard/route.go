@@ -11,7 +11,7 @@ func DashboardRoutes(r *gin.RouterGroup, h *d.Handler) {
 	dashboard.Use(middleware.UserRequiredAuthentication)
 
 	dashboard.GET("/live/:id", h.GetAnswerResponseByLiveQuizSessionID)
-	dashboard.GET("/participant/:id", h.GetAnswerResponseByParticipantID)
-	dashboard.GET("/question/:id", h.GetAnswerResponseByQuestionID)
-	// dashboard.GET("/question_view/:id", h.GetDashboardQuestionViewByID)
+	// dashboard.GET("/participant/:id", h.GetAnswerResponseByParticipantID)
+	// dashboard.GET("/question/:id", h.GetAnswerResponseByQuestionID)
+	dashboard.GET("/question/:id", h.GetDashboardQuestionViewByID)
 }

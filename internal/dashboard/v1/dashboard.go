@@ -59,7 +59,12 @@ type CreateLiveAnswerRequest struct {
 }
 
 type ParticipantResponse struct {
-	Participant
+	ID                uuid.UUID  `json:"id" `
+	UserID            *uuid.UUID `json:"user_id"`
+	LiveQuizSessionID *uuid.UUID  `json:"live_quiz_session_id,omitempty"`
+	Status            string     `json:"status,omitempty"`
+	Name              string     `json:"name"`
+	Marks             int        `json:"marks,omitempty"`
 }
 
 type LiveAnswerRequest struct {
@@ -102,7 +107,7 @@ type QuestionViewOptionChoice struct {
 	Content      string        `json:"content"`
 	Mark         int           `json:"mark"`
 	Correct      bool          `json:"correct"`
-	Participants []Participant `json:"participants"`
+	Participants []ParticipantResponse `json:"participants"`
 }
 
 type QuestionViewOptionText struct {
@@ -111,35 +116,30 @@ type QuestionViewOptionText struct {
 	Content       string        `json:"content"`
 	Mark          int           `json:"mark"`
 	CaseSensitive bool          `json:"case_sensitive"`
-	Participants  []Participant `json:"participants"`
+	Participants  []ParticipantResponse `json:"participants"`
 }
 
 type QuestionViewMatching struct {
-	ID           uuid.UUID     `json:"id"`
-	Type         string        `json:"type,omitempty"`
-	Order        int           `json:"order,omitempty"`
-	Content      string        `json:"content,omitempty"`
-	Eliminate    string        `json:"eliminate,omitempty"`
-	PromptID     uuid.UUID     `json:"prompt_id,omitempty"`
-	OptionID     uuid.UUID     `json:"option_id,omitempty"`
-	Mark         int           `json:"mark,omitempty"`
-	Participants []Participant `json:"participants"`
-}
-
-type QuestionViewOptionMatching struct {
-	ID        uuid.UUID `json:"id"`
-	Type      string    `json:"type"`
-	Order     int       `json:"order"`
-	Content   string    `json:"content"`
-	Eliminate string    `json:"eliminate"`
-}
-
-type QuestionViewAnswerMatching struct {
 	ID       uuid.UUID `json:"id"`
-	PromptID uuid.UUID `json:"prompt_id"`
 	OptionID uuid.UUID `json:"option_id"`
+	OptionContent string `json:"option_content"`
+	PromptID uuid.UUID `json:"prompt_id"`
+	PromptContent string `json:"prompt_content"`
 	Mark     int       `json:"mark"`
+	Participants []ParticipantResponse
 }
+
+// type QuestionViewOptionMatching struct {
+// 	ID        uuid.UUID `json:"id"`
+// 	Type      string    `json:"type"`
+// 	Order     int       `json:"order"`
+// 	Content   string    `json:"content"`
+// 	Eliminate string    `json:"eliminate"`
+// }
+
+// type QuestionViewAnswerMatching struct {
+	
+// }
 
 type QuestionViewParticipant struct {
 	ID   uuid.UUID
@@ -168,11 +168,11 @@ type Repository interface {
 
 	// GET
 
-	GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error)
+	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error)
-	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*ParticipantResponse, error)
+	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error)
 }
 
 // #################### SERVICE START ####################
@@ -184,6 +184,6 @@ type Service interface {
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error)
-	GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error)
-	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*ParticipantResponse, error)
+	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error)
+	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
 }

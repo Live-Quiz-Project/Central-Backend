@@ -54,7 +54,7 @@ func (r *repository) GetAnswerResponseByParticipantID(ctx context.Context, parti
 	return answerResponses, nil
 }
 
-func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error) {
+func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error) {
 	var answerResponses []AnswerResponse
 	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND question_id = ?", liveQuizSessionID, questionID).Find(&answerResponses)
 	if res.Error != nil {
@@ -63,13 +63,13 @@ func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionID(ctx cont
 	return answerResponses, nil
 }
 
-func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*ParticipantResponse, error) {
-	var participantResponse ParticipantResponse
-	res := r.db.WithContext(ctx).Where("id = ?", participantID).Find(&participantResponse)
+func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error) {
+	var participant Participant
+	res := r.db.WithContext(ctx).Where("id = ?", participantID).Find(&participant)
 	if res.Error != nil {
-		return &ParticipantResponse{}, res.Error
+		return &Participant{}, res.Error
 	}
-	return &participantResponse, nil
+	return &participant, nil
 }
 
 // For Testing

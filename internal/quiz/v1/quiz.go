@@ -529,12 +529,12 @@ type MatchingOptionAndAnswerResponse struct {
 	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	Type       string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order      int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content    string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Order      *int            `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content    *string         `json:"content,omitempty" gorm:"column:content;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID   uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID   uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark       int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	PromptID   *uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID   *uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark       *int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -542,16 +542,16 @@ type MatchingOptionAndAnswerResponse struct {
 
 type MatchingOptionAndAnswerHistoryResponse struct {
 	ID               uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
-	OptionMatchingID uuid.UUID      `json:"option_matching_id,omitempty"`
-	AmswerMatchingID uuid.UUID      `json:"answer_matching_id,omitempty"`
+	OptionMatchingID *uuid.UUID      `json:"option_matching_id,omitempty"`
+	AmswerMatchingID *uuid.UUID      `json:"answer_matching_id,omitempty"`
 	QuestionID       uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
 	Type             string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order            int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content          string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Order            *int            `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content          *string         `json:"content,omitempty" gorm:"column:content;type:text"`
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID         uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID         uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark             int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	PromptID         *uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID         *uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark             *int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt        gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -584,8 +584,8 @@ type MatchingAnswerResponse struct {
 }
 
 type MatchingAnswerRequest struct {
-	Prompt int `json:"prompt"`
-	Option int `json:"option"`
+	Prompt int `json:"prompt_id"`
+	Option int `json:"option_id"`
 	MatchingAnswer
 }
 
@@ -673,8 +673,9 @@ type Service interface {
 	DeleteMatchingOption(ctx context.Context, tx *gorm.DB, matchingOptionID uuid.UUID) error
 	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
+	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error)
-
+	
 	// ----- Matching Answer ------
 	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
