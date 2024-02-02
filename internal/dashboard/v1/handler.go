@@ -390,4 +390,3 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 
 }
-

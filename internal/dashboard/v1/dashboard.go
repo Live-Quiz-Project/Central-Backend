@@ -61,7 +61,7 @@ type CreateLiveAnswerRequest struct {
 type ParticipantResponse struct {
 	ID                uuid.UUID  `json:"id" `
 	UserID            *uuid.UUID `json:"user_id"`
-	LiveQuizSessionID *uuid.UUID  `json:"live_quiz_session_id,omitempty"`
+	LiveQuizSessionID *uuid.UUID `json:"live_quiz_session_id,omitempty"`
 	Status            string     `json:"status,omitempty"`
 	Name              string     `json:"name"`
 	Marks             int        `json:"marks,omitempty"`
@@ -102,44 +102,32 @@ type QuestionViewQuestionResponse struct {
 }
 
 type QuestionViewOptionChoice struct {
-	ID           uuid.UUID     `json:"id"`
-	Order        int           `json:"order"`
-	Content      string        `json:"content"`
-	Mark         int           `json:"mark"`
-	Correct      bool          `json:"correct"`
+	ID           uuid.UUID             `json:"id"`
+	Order        int                   `json:"order"`
+	Content      string                `json:"content"`
+	Mark         int                   `json:"mark"`
+	Correct      bool                  `json:"correct"`
 	Participants []ParticipantResponse `json:"participants"`
 }
 
 type QuestionViewOptionText struct {
-	ID            uuid.UUID     `json:"id"`
-	Order         int           `json:"order"`
-	Content       string        `json:"content"`
-	Mark          int           `json:"mark"`
-	CaseSensitive bool          `json:"case_sensitive"`
+	ID            uuid.UUID             `json:"id"`
+	Order         int                   `json:"order"`
+	Content       string                `json:"content"`
+	Mark          int                   `json:"mark"`
+	CaseSensitive bool                  `json:"case_sensitive"`
 	Participants  []ParticipantResponse `json:"participants"`
 }
 
 type QuestionViewMatching struct {
-	ID       uuid.UUID `json:"id"`
-	OptionID uuid.UUID `json:"option_id"`
-	OptionContent string `json:"option_content"`
-	PromptID uuid.UUID `json:"prompt_id"`
-	PromptContent string `json:"prompt_content"`
-	Mark     int       `json:"mark"`
-	Participants []ParticipantResponse
+	ID            uuid.UUID `json:"id"`
+	OptionID      uuid.UUID `json:"option_id"`
+	OptionContent string    `json:"option_content"`
+	PromptID      uuid.UUID `json:"prompt_id"`
+	PromptContent string    `json:"prompt_content"`
+	Mark          int       `json:"mark"`
+	Participants  []ParticipantResponse
 }
-
-// type QuestionViewOptionMatching struct {
-// 	ID        uuid.UUID `json:"id"`
-// 	Type      string    `json:"type"`
-// 	Order     int       `json:"order"`
-// 	Content   string    `json:"content"`
-// 	Eliminate string    `json:"eliminate"`
-// }
-
-// type QuestionViewAnswerMatching struct {
-	
-// }
 
 type QuestionViewParticipant struct {
 	ID   uuid.UUID
@@ -163,9 +151,6 @@ type Repository interface {
 	BeginTransaction() (*gorm.DB, error)
 	CommitTransaction(tx *gorm.DB) error
 
-	// CREATE
-	CreateAnswerResponse(ctx context.Context, tx *gorm.DB, liveAnswer *AnswerResponse) (*AnswerResponse, error)
-
 	// GET
 
 	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error)
@@ -177,9 +162,6 @@ type Repository interface {
 
 // #################### SERVICE START ####################
 type Service interface {
-	// CREATE
-	CreateAnswerResponse(ctx context.Context, req *LiveAnswerRequest) (*LiveAnswerResponse, error)
-
 	// GET
 	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error)

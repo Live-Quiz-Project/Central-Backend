@@ -71,13 +71,3 @@ func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.
 	}
 	return &participant, nil
 }
-
-// For Testing
-func (r *repository) CreateAnswerResponse(ctx context.Context, tx *gorm.DB, answerResponse *AnswerResponse) (*AnswerResponse, error) {
-	res := tx.WithContext(ctx).Create(answerResponse)
-	if res.Error != nil {
-		tx.Rollback()
-		return nil, res.Error
-	}
-	return answerResponse, nil
-}
