@@ -30,7 +30,7 @@ VALUES
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 2'), 'SHORT_TEXT', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 3 ), '2', 5, NOW(), NOW()),
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 2'), 'PARAGRAPH', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 5 ),'Main character died at the end', 14, NOW(), NOW()),
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 2'), 'TRUE_FALSE', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 6 ),'TRUE', 4, NOW(), NOW()),
-	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 2'), 'MATCHING', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 7 ),'Fish:Swim,Bird:Fly,Dog:Run', 18, NOW(), NOW());
+	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 2'), 'MATCHING', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 7 ),'Fish:Swim<!#XyZ@?>Bird:Fly<!#XyZ@?>Dog:Run', 18, NOW(), NOW());
 
 -- Insert mock response of user 3 in answer_response;
 INSERT INTO answer_response (id, live_quiz_session_id, participant_id, "type", question_id, answer, use_time, created_at, updated_at)
@@ -39,7 +39,7 @@ VALUES
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 3'), 'SHORT_TEXT', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 3 ), '4', 4 , NOW(), NOW()),
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 3'), 'PARAGRAPH', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 5 ),'No one dead', 7, NOW(), NOW()),
 	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 3'), 'TRUE_FALSE', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 6 ), 'FALSE', 2 ,NOW(), NOW()),
-	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 3'), 'MATCHING', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 7 ), 'Fish:Fly,Bird:Swim,Dog:Run', 22 ,NOW(), NOW());
+	(uuid_generate_v4(), (SELECT id FROM "live_quiz_session" WHERE status = 'active'), (SELECT id FROM "participant" WHERE name = 'Participant 3'), 'MATCHING', (SELECT id FROM "question_history" WHERE quiz_id = 'f1ff2d37-2cda-434c-9103-c10d84e30666' AND "order" = 7 ), 'Fish:Fly<!#XyZ@?>Bird:Swim<!#XyZ@?>Dog:Run', 22 ,NOW(), NOW());
 
 SELECT * FROM answer_response
 
