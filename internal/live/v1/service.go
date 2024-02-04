@@ -32,16 +32,45 @@ func (s *service) GetLiveQuizSessionBySessionID(ctx context.Context, sessionID u
 
 	return &SessionResponse{
 		Session: Session{
-			ID: lqs.ID,
-			HostID : lqs.HostID,
-			QuizID: lqs.QuizID,
-			Status : lqs.Status,
-			ExemptedQuestionIDs : lqs.ExemptedQuestionIDs,
-			CreatedAt :lqs.CreatedAt,
-			UpdatedAt : lqs.UpdatedAt,
-			DeletedAt: lqs.DeletedAt,
+			ID:                  lqs.ID,
+			HostID:              lqs.HostID,
+			QuizID:              lqs.QuizID,
+			Status:              lqs.Status,
+			ExemptedQuestionIDs: lqs.ExemptedQuestionIDs,
+			CreatedAt:           lqs.CreatedAt,
+			UpdatedAt:           lqs.UpdatedAt,
+			DeletedAt:           lqs.DeletedAt,
 		},
 	}, nil
+}
+
+func (s *service) GetLiveQuizSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]SessionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sessions, err := s.Repository.GetLiveQuizSessionsByUserID(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []SessionResponse
+
+	for _, lqs := range sessions {
+		res = append(res, SessionResponse{
+			Session: Session{
+				ID:                  lqs.ID,
+				HostID:              lqs.HostID,
+				QuizID:              lqs.QuizID,
+				Status:              lqs.Status,
+				ExemptedQuestionIDs: lqs.ExemptedQuestionIDs,
+				CreatedAt:           lqs.CreatedAt,
+				UpdatedAt:           lqs.UpdatedAt,
+				DeletedAt:           lqs.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
 }
 
 // ---------- Live Quiz Session related service methods ---------- //

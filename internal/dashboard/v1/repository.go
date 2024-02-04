@@ -71,3 +71,12 @@ func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.
 	}
 	return &participant, nil
 }
+
+func(r *repository) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]Participant, error) {
+	var participant []Participant
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ?", liveQuizSessionID).Order("marks DESC,name ASC").Find(&participant)
+	if res.Error != nil {
+		return []Participant{}, res.Error
+	}
+	return participant, nil
+}

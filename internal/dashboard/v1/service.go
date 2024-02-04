@@ -154,3 +154,25 @@ func (s *service) GetParticipantByID(ctx context.Context, liveQuizSessionID uuid
 		Marks:             participant.Marks,
 	}, nil
 }
+
+func (s *service) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participant, err := s.Repository.GetOrderParticipantsByLiveQuizSessionID(c, liveQuizSessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []ParticipantResponse
+	for _, pRes := range participant {
+		res = append(res, ParticipantResponse{
+			ID: pRes.ID,
+			UserID: pRes.UserID,
+			Name: pRes.Name,
+			Marks: pRes.Marks,
+		})
+	}
+
+	return res, nil
+}

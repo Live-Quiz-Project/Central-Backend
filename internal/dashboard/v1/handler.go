@@ -6,6 +6,7 @@ import (
 
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
 	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 
 	// "github.com/Live-Quiz-Project/Backend/internal/util"
@@ -17,13 +18,15 @@ type Handler struct {
 	Service
 	quizService q.Service
 	liveService l.Service
+	userService u.Service
 }
 
-func NewHandler(s Service, qServ q.Service, lServ l.Service) *Handler {
+func NewHandler(s Service, qServ q.Service, lServ l.Service, uServ u.Service) *Handler {
 	return &Handler{
 		Service:     s,
 		quizService: qServ,
 		liveService: lServ,
+		userService: uServ,
 	}
 }
 
@@ -216,11 +219,12 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				HaveTimeFactor: qr.HaveTimeFactor,
 				TimeFactor:     qr.TimeFactor,
 				FontSize:       qr.FontSize,
-				SelectUpTo:     qr.SelectUpTo,
+				SelectMin:      qr.SelectMin,
+				SelectMax:      qr.SelectMax,
 				Options:        oc,
 			})
 		}
-		if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+		if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
 			otRes, err := h.quizService.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -280,7 +284,8 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				HaveTimeFactor: qr.HaveTimeFactor,
 				TimeFactor:     qr.TimeFactor,
 				FontSize:       qr.FontSize,
-				SelectUpTo:     qr.SelectUpTo,
+				SelectMin:      qr.SelectMin,
+				SelectMax:      qr.SelectMax,
 				Options:        ot,
 			})
 		}
@@ -310,7 +315,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				// SOMETHING BUG IN HERE
 
 				for _, answerData := range answerResponse {
-					splitAnswer := strings.Split(answerData.Answer, ",")
+					splitAnswer := strings.Split(answerData.Answer, util.ANSWER_SPLIT)
 
 					option, err := h.quizService.GetMatchingOptionHistoryByID(c.Request.Context(), omr.OptionID)
 					if err != nil {
@@ -371,7 +376,8 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				HaveTimeFactor: qr.HaveTimeFactor,
 				TimeFactor:     qr.TimeFactor,
 				FontSize:       qr.FontSize,
-				SelectUpTo:     qr.SelectUpTo,
+				SelectMin:      qr.SelectMin,
+				SelectMax:      qr.SelectMax,
 				Options:        om,
 			})
 		}
@@ -389,4 +395,82 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 
+}
+
+func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id")) // id = live_quiz_session_id
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	_, err = uuid.Parse(uid.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	res, err := h.Service.GetOrderParticipantsByLiveQuizSessionID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200,res)
+}
+
+func (h *Handler) GetDashboardHistoryByUserID(c *gin.Context) {
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, err := uuid.Parse(uid.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	sessions, err := h.liveService.GetLiveQuizSessionsByUserID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var sessionHistory []SessionHistory
+
+	for _, eachSession := range sessions {
+		userInfo, err := h.userService.GetUserByID(c.Request.Context(), eachSession.HostID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		quizInfo, err := h.quizService.GetQuizHistoryByID(c.Request.Context(), eachSession.QuizID, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		sessionHistory = append(sessionHistory, SessionHistory{
+			ID: eachSession.ID,
+			CreatorName: userInfo.Name,
+			Title: quizInfo.Title,
+			Description: quizInfo.Description,
+			CoverImage: quizInfo.CoverImage,
+			Visibility: quizInfo.Visibility,
+			CreatedAt: eachSession.CreatedAt,
+			UpdatedAt: quizInfo.UpdatedAt,
+			DeletedAt: quizInfo.DeletedAt,
+		})
+	}
+
+	c.JSON(200,sessionHistory)
 }

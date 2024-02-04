@@ -54,7 +54,7 @@ func main() {
 
 	dashboardRepo := d.NewRepository(dbConn.GetDB())
 	dashboardServ := d.NewService(dashboardRepo)
-	dashboardHandler := d.NewHandler(dashboardServ, qServ, lServ)
+	dashboardHandler := d.NewHandler(dashboardServ, qServ, lServ, uServ)
 
 	leaderboardRepo := lb.NewRepository(dbConn.GetDB())
 	leaderboardServ := lb.NewService(leaderboardRepo)

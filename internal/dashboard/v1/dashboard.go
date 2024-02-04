@@ -86,19 +86,21 @@ type QuestionViewQuizResponse struct {
 }
 
 type QuestionViewQuestionResponse struct {
-	ID             uuid.UUID     `json:"id"`
-	Order          int           `json:"order"`
-	Content        string        `json:"content"`
-	Type           string        `json:"type"`
-	Note           string        `json:"note"`
-	Media          string        `json:"media"`
-	UseTemplate    bool          `json:"use_template"`
-	TimeLimit      int           `json:"time_limit"`
-	HaveTimeFactor bool          `json:"have_time_factor"`
-	TimeFactor     int           `json:"time_factor"`
-	FontSize       int           `json:"font_size"`
-	SelectUpTo     int           `json:"select_up_to"`
-	Options        []interface{} `json:"options"`
+	ID             uuid.UUID `json:"id"`
+	Order          int       `json:"order"`
+	Content        string    `json:"content"`
+	Type           string    `json:"type"`
+	Note           string    `json:"note"`
+	Media          string    `json:"media"`
+	UseTemplate    bool      `json:"use_template"`
+	TimeLimit      int       `json:"time_limit"`
+	HaveTimeFactor bool      `json:"have_time_factor"`
+	TimeFactor     int       `json:"time_factor"`
+	FontSize       int       `json:"font_size"`
+	// SelectUpTo     int           `json:"select_up_to"`
+	SelectMin int           `json:"select_min"`
+	SelectMax int           `json:"select_max"`
+	Options   []interface{} `json:"options"`
 }
 
 type QuestionViewOptionChoice struct {
@@ -145,6 +147,18 @@ type Ranking struct {
 	TimeUse   int
 }
 
+type SessionHistory struct {
+	ID          uuid.UUID      `json:"id"`
+	CreatorName string         `json:"creator_name"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	CoverImage  string         `json:"cover_image"`
+	Visibility  string         `json:"visibility"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
+}
+
 // -------------------- REPOSITORY START --------------------
 type Repository interface {
 	// Transaction
@@ -158,6 +172,8 @@ type Repository interface {
 	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error)
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error)
 	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error)
+
+	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]Participant, error)
 }
 
 // #################### SERVICE START ####################
@@ -168,4 +184,6 @@ type Service interface {
 	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
+
+	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error)
 }

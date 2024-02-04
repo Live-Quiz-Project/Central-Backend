@@ -33,6 +33,15 @@ func (r *repository) GetLiveQuizSessionBySessionID(ctx context.Context, id uuid.
 	return &lqs, nil
 }
 
+func (r *repository) GetLiveQuizSessionsByUserID(ctx context.Context, id uuid.UUID) ([]Session, error) {
+	var lqs []Session
+	res := r.db.WithContext(ctx).Where("host_id = ?", id).Order("created_at DESC").Find(&lqs)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return lqs, nil
+}
+
 // ---------- Live Quiz Session related repository methods ---------- //
 func (r *repository) CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error) {
 	res := r.db.WithContext(ctx).Create(lqs)

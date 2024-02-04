@@ -102,6 +102,7 @@ func (ChoiceResponse) TableName() string {
 type Repository interface {
 	// ---------- Session related repository methods ---------- //
 	GetLiveQuizSessionBySessionID(ctx context.Context, id uuid.UUID) (*Session, error)
+	GetLiveQuizSessionsByUserID(ctx context.Context, id uuid.UUID) ([]Session, error)
 
 	// ---------- Live Quiz Session related repository methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error)
@@ -197,6 +198,7 @@ type UpdateChoiceResponseRequest struct {
 type Service interface {
 	// ---------- Session related service methods ---------- //
 	GetLiveQuizSessionBySessionID(ctx context.Context, sessionID uuid.UUID) (*SessionResponse, error)
+	GetLiveQuizSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]SessionResponse, error)
 
 	// ---------- Live Quiz Session related service methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
