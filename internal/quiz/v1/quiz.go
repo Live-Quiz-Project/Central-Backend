@@ -63,7 +63,7 @@ type QuestionPool struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
-	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
@@ -86,7 +86,7 @@ type QuestionPoolHistory struct {
 	QuestionPoolID uuid.UUID      `json:"question_pool_id" gorm:"column:question_pool_id;type:uuid;not null;references:question_pool(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
-	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
@@ -109,8 +109,8 @@ type Question struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool(id)"`
-	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
-	PoolRequired	 bool						`json:"pool_required" gorm:"column:pool_required;type:bool"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired   bool           `json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
@@ -139,8 +139,8 @@ type QuestionHistory struct {
 	QuestionID     uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool_history(id)"`
-	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
-	PoolRequired	 bool						`json:"pool_required" gorm:"column:pool_required;type:bool"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired   bool           `json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
@@ -421,7 +421,8 @@ type Repository interface {
 // ---------- Quiz related structs ---------- //
 type QuizResponse struct {
 	Quiz
-	Questions []QuestionResponse `json:"questions"`
+	CreatorName string             `json:"creator_name"`
+	Questions   []QuestionResponse `json:"questions"`
 }
 
 type CreateQuizRequest struct {
@@ -447,6 +448,7 @@ type UpdateQuizRequest struct {
 
 type QuizHistoryResponse struct {
 	QuizHistory
+	CreatorName     string                    `json:"creator_name"`
 	QuestionHistory []QuestionHistoryResponse `json:"questions"`
 }
 

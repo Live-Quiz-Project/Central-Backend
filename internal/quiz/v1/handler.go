@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type Handler struct {
 	Service
+	userService u.Service
 }
 
-func NewHandler(s Service) *Handler {
+func NewHandler(s Service, uServ u.Service) *Handler {
 	return &Handler{
 		Service: s,
+		userService: uServ,
 	}
 }
 
@@ -281,6 +284,14 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 	r := make([]QuizResponse, 0)
 
 	for _, q := range res {
+		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		q.CreatorName = userInfo.Name
+
 		qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -551,6 +562,14 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	res.CreatorName = userInfo.Name
 
 	qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), res.ID)
 	if err != nil {
@@ -1489,6 +1508,14 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 	r := make([]QuizHistoryResponse, 0)
 
 	for _, q := range res {
+		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		q.CreatorName = userInfo.Name
+
 		qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1758,6 +1785,14 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	res.CreatorName = userInfo.Name
 
 	qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), res.ID)
 	if err != nil {

@@ -44,7 +44,7 @@ func main() {
 
 	qRepo := q.NewRepository(dbConn.GetDB())
 	qServ := q.NewService(qRepo)
-	quizHandler := q.NewHandler(qServ)
+	quizHandler := q.NewHandler(qServ, uServ)
 
 	hub := l.NewHub()
 	lRepo := l.NewRepository(dbConn.GetDB(), cacheConn.GetCache())
