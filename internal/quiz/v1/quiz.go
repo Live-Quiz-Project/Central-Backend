@@ -21,7 +21,8 @@ type Quiz struct {
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	Mark           int            `json:"mark" gorm:"column:mark;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CaseSensitive  bool           `json:"case_sensitive" gorm:"column:case_sensitive;type:boolean"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -45,7 +46,8 @@ type QuizHistory struct {
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	Mark           int            `json:"mark" gorm:"column:mark;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CaseSensitive  bool           `json:"case_sensitive" gorm:"column:case_sensitive;type:boolean"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -61,9 +63,11 @@ type QuestionPool struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
+	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
@@ -82,9 +86,11 @@ type QuestionPoolHistory struct {
 	QuestionPoolID uuid.UUID      `json:"question_pool_id" gorm:"column:question_pool_id;type:uuid;not null;references:question_pool(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
+	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
@@ -103,18 +109,22 @@ type Question struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool(id)"`
+	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired	 bool						`json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	UseTemplate    bool           `json:"use_template" gorm:"column:use_template;type:boolean"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	LayoutIdx      int            `json:"layout_idx" gorm:"column:layout_idx;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -129,18 +139,22 @@ type QuestionHistory struct {
 	QuestionID     uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool_history(id)"`
+	PoolOrder			 int						`json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired	 bool						`json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	UseTemplate    bool           `json:"use_template" gorm:"column:use_template;type:boolean"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	LayoutIdx      int            `json:"layout_idx" gorm:"column:layout_idx;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -228,6 +242,7 @@ type MatchingOption struct {
 	Type       string         `json:"type" gorm:"column:type;type:text"`
 	Order      int            `json:"order" gorm:"column:order;type:int"`
 	Content    string         `json:"content" gorm:"column:content;type:text"`
+	Color      string         `json:"color" gorm:"column:color;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -245,6 +260,7 @@ type MatchingOptionHistory struct {
 	Type             string         `json:"type" gorm:"column:type;type:text"`
 	Order            int            `json:"order" gorm:"column:order;type:int"`
 	Content          string         `json:"content" gorm:"column:content;type:text"`
+	Color            string         `json:"color" gorm:"column:color;type:text"`
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -529,12 +545,13 @@ type MatchingOptionAndAnswerResponse struct {
 	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	Type       string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order      *int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content    *string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Order      *int           `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content    *string        `json:"content,omitempty" gorm:"column:content;type:text"`
+	Color      *string        `json:"color,omitempty" gorm:"column:color;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID   *uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID   *uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark       *int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	PromptID   *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID   *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark       *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -542,16 +559,17 @@ type MatchingOptionAndAnswerResponse struct {
 
 type MatchingOptionAndAnswerHistoryResponse struct {
 	ID               uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
-	OptionMatchingID *uuid.UUID      `json:"option_matching_id,omitempty"`
-	AmswerMatchingID *uuid.UUID      `json:"answer_matching_id,omitempty"`
+	OptionMatchingID *uuid.UUID     `json:"option_matching_id,omitempty"`
+	AmswerMatchingID *uuid.UUID     `json:"answer_matching_id,omitempty"`
 	QuestionID       uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
 	Type             string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order            *int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content          *string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Order            *int           `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content          *string        `json:"content,omitempty" gorm:"column:content;type:text"`
+	Color            *string        `json:"color,omitempty" gorm:"column:color;type:text"`
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID         *uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID         *uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark             *int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	PromptID         *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID         *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark             *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt        gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -675,7 +693,7 @@ type Service interface {
 
 	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error)
-	
+
 	// ----- Matching Answer ------
 	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
