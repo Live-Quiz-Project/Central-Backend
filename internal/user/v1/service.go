@@ -307,12 +307,14 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 		}
 	}
 
-	accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
+	// accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
 
-	refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	refreshToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	// refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
