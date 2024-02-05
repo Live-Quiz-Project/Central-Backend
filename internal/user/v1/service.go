@@ -78,6 +78,7 @@ func (s *service) CreateUser(ctx context.Context, req *CreateUserRequest) (*Crea
 
 	r, err := s.Repository.CreateUser(c, &User{
 		ID:            uuid.New(),
+		GoogleId:      nil,
 		Name:          req.Name,
 		Email:         req.Email,
 		Password:      hashedPassword,
@@ -282,7 +283,7 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 
 		newUser := &User{
 			ID:            uuid.New(),
-			GoogleId:      tokenInfo.GoogleID,
+			GoogleId:      &tokenInfo.GoogleID,
 			Name:          tokenInfo.Name,
 			Email:         tokenInfo.Email,
 			Image:         "default.png",
@@ -292,7 +293,7 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 			AccountStatus: util.Active,
 		}
 
-		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
+		existingUser, err := s.Repository.GetUserByGoogleID(ctx, *newUser.GoogleId)
 		if err != nil {
 			return nil, "", err
 		}
@@ -308,13 +309,11 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 	}
 
 	accessToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
-	// accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
 
 	refreshToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
-	// refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}

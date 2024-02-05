@@ -137,7 +137,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	}
 
 	c.SetCookie("token", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusCreated, res)
 }
 
 func (h *Handler) GetUsers(c *gin.Context) {
