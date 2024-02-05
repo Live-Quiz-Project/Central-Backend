@@ -27,36 +27,18 @@ func (r *repository) CommitTransaction(tx *gorm.DB) error {
 	return tx.Commit().Error
 }
 
-func (r *repository) GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]AnswerResponse, error) {
-	var answerResponses []AnswerResponse
-	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ?", liveSessionID).Find(&answerResponses)
-	if res.Error != nil {
-		return []AnswerResponse{}, res.Error
-	}
-	return answerResponses, nil
-}
-
-func (r *repository) GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error) {
-	var answerResponses []AnswerResponse
-	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&answerResponses)
-	if res.Error != nil {
-		return []AnswerResponse{}, res.Error
-	}
-	return answerResponses, nil
-}
-
-func (r *repository) GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error) {
-	var answerResponses []AnswerResponse
-	res := r.db.WithContext(ctx).Where("participant_id = ?", participantID).Find(&answerResponses)
-	if res.Error != nil {
-		return []AnswerResponse{}, res.Error
-	}
-	return answerResponses, nil
-}
-
 func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error) {
 	var answerResponses []AnswerResponse
 	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND question_id = ?", liveQuizSessionID, questionID).Find(&answerResponses)
+	if res.Error != nil {
+		return []AnswerResponse{}, res.Error
+	}
+	return answerResponses, nil
+}
+
+func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndParticipantID(ctx context.Context, liveQuizSessionID uuid.UUID, participantID uuid.UUID) ([]AnswerResponse, error) {
+	var answerResponses []AnswerResponse
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND participant_id = ?", liveQuizSessionID, participantID).Find(&answerResponses)
 	if res.Error != nil {
 		return []AnswerResponse{}, res.Error
 	}
