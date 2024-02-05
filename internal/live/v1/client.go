@@ -51,23 +51,25 @@ func (c *Client) writeMessage() {
 
 func (c *Client) readMessage(h *Handler) {
 	defer func() {
-		if c.IsHost {
-			h.hub.Broadcast <- &Message{
-				Content: Content{
-					Type:    util.EndLQS,
-					Payload: "Host has left the session.",
-				},
-				LiveQuizSessionID: c.LiveQuizSessionID,
-				UserID:            c.ID,
-			}
-			h.UnregisterParticipants(c)
-		} else {
-			_, err := h.Service.UpdateParticipantStatus(context.Background(), c.ID, c.LiveQuizSessionID, util.LeftLQS)
+		// if c.IsHost {
+		// h.hub.Broadcast <- &Message{
+		// 	Content: Content{
+		// 		Type:    util.EndLQS,
+		// 		Payload: "Host has left the session.",
+		// 	},
+		// 	LiveQuizSessionID: c.LiveQuizSessionID,
+		// 	UserID:            c.ID,
+		// }
+		// h.UnregisterParticipants(c)
+		// } else {
+		if !c.IsHost {
+			_, err := h.Service.UpdateParticipantStatus(context.Background(), c.ID, c.LiveQuizSessionID, util.Left)
 			if err != nil {
-				log.Printf("Error occured: %v", err)
+				log.Printf("Error occured at defer readMessage: %v", err)
 			}
-			h.hub.Unregister <- c
 		}
+		h.hub.Unregister <- c
+		// }
 		c.Conn.Close()
 	}()
 
