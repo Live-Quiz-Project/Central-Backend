@@ -8,6 +8,7 @@ import (
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
@@ -164,6 +165,22 @@ func (s *service) GetUserByID(ctx context.Context, id uuid.UUID) (*UserResponse,
 	}, nil
 }
 
+func (s *service) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	user, err := s.Repository.GetUserByEmail(c, email)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	return user, err
+}
+
 func (s *service) UpdateUser(ctx context.Context, req *UpdateUserRequest, uid uuid.UUID) (*UserResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -225,6 +242,87 @@ func (s *service) DeleteUser(ctx context.Context, uid uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (s *service) ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	return s.Repository.ChangePassword(ctx, id, newPassword)
+}
+
+func (s *service) VerifyPassword(ctx context.Context, userID uuid.UUID, currentPassword string) error {
+	user, err := s.Repository.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(currentPassword)); err != nil {
+		return errors.New("incorrect password")
+	}
+
+	return nil
+}
+
+func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInResponse, string, error) {
+	// Verify the Google ID token and extract user info
+	tokenInfo, err := util.VerifyGoogleIDToken(idToken)
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := s.Repository.GetUserByGoogleID(ctx, tokenInfo.GoogleID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if user == nil {
+		formattedName := util.AbbreviateName(tokenInfo.Name)
+
+		newUser := &User{
+			ID:            uuid.New(),
+			GoogleId:      tokenInfo.GoogleID,
+			Name:          tokenInfo.Name,
+			Email:         tokenInfo.Email,
+			Image:         "default.png",
+			DisplayName:   formattedName,
+			DisplayEmoji:  util.SmileyFace,
+			DisplayColor:  util.Gray,
+			AccountStatus: util.Active,
+		}
+
+		existingUser, err := s.Repository.GetUserByGoogleID(ctx, newUser.GoogleId)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if existingUser == nil {
+			user, err = s.Repository.CreateUser(ctx, newUser)
+			if err != nil {
+				return nil, "", err
+			}
+		} else {
+			user = existingUser
+		}
+	}
+
+	accessToken, err := util.GenerateToken(user.ID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
+	refreshToken, err := util.GenerateToken(user.ID, time.Now().Add(7*24*time.Hour), os.Getenv("REFRESH_TOKEN_SECRET"))
+	if err != nil {
+		return &LogInResponse{}, "", err
+	}
+
+	return &LogInResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Image: user.Image,
+		Token: accessToken,
+	}, refreshToken, nil
 }
 
 // ---------- Admin related service methods ---------- //
