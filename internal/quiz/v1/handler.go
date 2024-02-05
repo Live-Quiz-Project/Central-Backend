@@ -1,20 +1,24 @@
 package v1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type Handler struct {
 	Service
+	userService u.Service
 }
 
-func NewHandler(s Service) *Handler {
+func NewHandler(s Service, uServ u.Service) *Handler {
 	return &Handler{
 		Service: s,
+		userService: uServ,
 	}
 }
 
@@ -40,17 +44,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 	}
 
 	// Start Transaction
-	tx, er := h.Service.BeginTransaction(c.Request.Context())
-	if er != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": er.Error()})
-		return
-	}
+	tx, _ := h.Service.BeginTransaction(c.Request.Context())
 
 	res, err := h.Service.CreateQuiz(c.Request.Context(), tx, &req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.Service.CommitTransaction(c.Request.Context(), tx)
 
 	var qpResID *uuid.UUID = nil
 	var qphResID *uuid.UUID = nil
@@ -60,11 +62,16 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		var qpRes *CreateQuestionPoolResponse
 
 		if q.Type == util.Pool {
-			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID)
+			txPool, _ := h.Service.BeginTransaction(c.Request.Context())
+			
+			log.Println("HERE")
+			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), txPool, &q, res.ID, res.QuizHistoryID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+
+			h.Service.CommitTransaction(c.Request.Context(), txPool)
 			qpResID = &qpRes.ID
 			qphResID = &qpRes.QuestionPoolHistoryID
 
@@ -74,9 +81,12 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 					QuizID:         qpRes.QuizID,
 					Type:           "POOL",
 					Order:          qpRes.Order,
+					PoolOrder:      qpRes.PoolOrder,
+					// PoolRequired:   false,
 					Content:        qpRes.Content,
 					Note:           qpRes.Note,
 					Media:          qpRes.Media,
+					MediaType:			qpRes.MediaType,
 					TimeLimit:      qpRes.TimeLimit,
 					HaveTimeFactor: qpRes.HaveTimeFactor,
 					TimeFactor:     qpRes.TimeFactor,
@@ -89,24 +99,27 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 
 			continue
 		} else {
+			txQuestion, _ := h.Service.BeginTransaction(c.Request.Context())
 			if q.IsInPool == true {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
+				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			} else {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
+				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			}
+			h.Service.CommitTransaction(c.Request.Context(), txQuestion)
 
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &ChoiceOptionRequest{
+						txChoice, _ := h.Service.BeginTransaction(c.Request.Context())
+						_, err := h.Service.CreateChoiceOption(c.Request.Context(), txChoice, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -115,14 +128,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								Correct: qst["correct"].(bool),
 							},
 						}, qRes.ID, qRes.QuestionHistoryID, userID)
-
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
 						}
+						h.Service.CommitTransaction(c.Request.Context(), txChoice)
 
-					} else if qRes.Type == util.ShortText || qRes.Type == util.Paragraph {
-						_, err := h.Service.CreateTextOption(c.Request.Context(), tx, &TextOptionRequest{
+					} else if qRes.Type == util.FillBlank || qRes.Type == util.Paragraph {
+						txText, _ := h.Service.BeginTransaction(c.Request.Context())
+						_, err := h.Service.CreateTextOption(c.Request.Context(), txText, &TextOptionRequest{
 							TextOption: TextOption{
 								Order:         int(qst["order"].(float64)),
 								Content:       qst["content"].(string),
@@ -136,13 +150,17 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 							return
 						}
 
+						h.Service.CommitTransaction(c.Request.Context(), txText)
+
 					} else if qRes.Type == util.Matching {
+						txMatching, _ := h.Service.BeginTransaction(c.Request.Context())
 						if qst["type"].(string) != "MATCHING_ANSWER" {
-							_, err := h.Service.CreateMatchingOption(c.Request.Context(), tx, &MatchingOptionRequest{
+							_, err := h.Service.CreateMatchingOption(c.Request.Context(), txMatching, &MatchingOptionRequest{
 								MatchingOption: MatchingOption{
 									Order:     int(qst["order"].(float64)),
 									Content:   qst["content"].(string),
 									Type:      qst["type"].(string),
+									Color:     qst["color"].(string),
 									Eliminate: qst["eliminate"].(bool),
 								},
 							}, qRes.ID, qRes.QuestionHistoryID, userID)
@@ -166,7 +184,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 
-							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
+							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), txMatching, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
@@ -179,6 +197,9 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 						}
+						h.Service.CommitTransaction(c.Request.Context(), txMatching)
+
+						
 					}
 				}
 			}
@@ -191,16 +212,20 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 				QuestionPoolID: qRes.QuestionPoolID,
 				Type:           qRes.Type,
 				Order:          qRes.Order,
+				PoolOrder:			qRes.PoolOrder,
+				PoolRequired:   qRes.PoolRequired,
 				Content:        qRes.Content,
 				Note:           qRes.Note,
 				Media:          qRes.Media,
+				MediaType:			qRes.MediaType,
 				UseTemplate:    qRes.UseTemplate,
 				TimeLimit:      qRes.TimeLimit,
 				HaveTimeFactor: qRes.HaveTimeFactor,
 				TimeFactor:     qRes.TimeFactor,
 				FontSize:       qRes.FontSize,
 				LayoutIdx:      qRes.LayoutIdx,
-				SelectUpTo:     qRes.SelectUpTo,
+				SelectMin:      qRes.SelectMin,
+				SelectMax:      qRes.SelectMax,
 				CreatedAt:      qRes.CreatedAt,
 				UpdatedAt:      qRes.UpdatedAt,
 				DeletedAt:      qRes.DeletedAt,
@@ -209,7 +234,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		})
 	}
 
-	er = h.Service.CommitTransaction(c.Request.Context(), tx)
+
 
 	c.JSON(http.StatusCreated, &QuizResponse{
 		Quiz: Quiz{
@@ -224,7 +249,8 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 			TimeFactor:     res.TimeFactor,
 			FontSize:       res.FontSize,
 			Mark:           res.Mark,
-			SelectUpTo:     res.SelectUpTo,
+			SelectMin:      res.SelectMin,
+			SelectMax:      res.SelectMax,
 			CaseSensitive:  res.CaseSensitive,
 			CreatedAt:      res.CreatedAt,
 			UpdatedAt:      res.UpdatedAt,
@@ -258,6 +284,14 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 	r := make([]QuizResponse, 0)
 
 	for _, q := range res {
+		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		q.CreatorName = userInfo.Name
+
 		qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -272,9 +306,12 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 					QuizID:         qpr.QuizID,
 					Type:           "POOL",
 					Order:          qpr.Order,
+					PoolOrder:			qpr.PoolOrder,
+					// PoolRequired:   qpr.PoolRequired,
 					Content:        qpr.Content,
 					Note:           qpr.Note,
 					Media:          qpr.Media,
+					MediaType:			qpr.MediaType,
 					TimeLimit:      qpr.TimeLimit,
 					HaveTimeFactor: qpr.HaveTimeFactor,
 					TimeFactor:     qpr.TimeFactor,
@@ -330,23 +367,27 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
 
 					Options: oc,
 				})
-			} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+			} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
 				otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -379,16 +420,20 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
@@ -413,12 +458,13 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						ID:         omr.ID,
 						QuestionID: omr.QuestionID,
 						Type:       omr.Type,
-						Order:      omr.Order,
-						Content:    omr.Content,
+						Order:      &omr.Order,
+						Content:    &omr.Content,
+						Color:			&omr.Color,
 						Eliminate:  omr.Eliminate,
-						PromptID:   uuid.Nil,
-						OptionID:   uuid.Nil,
-						Mark:       0,
+						PromptID:   nil,
+						OptionID:   nil,
+						Mark:       nil,
 						CreatedAt:  omr.CreatedAt,
 						UpdatedAt:  omr.UpdatedAt,
 						DeletedAt:  omr.DeletedAt,
@@ -430,12 +476,13 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						ID:         amr.ID,
 						QuestionID: amr.QuestionID,
 						Type:       "MATCHING_ANSWER",
-						Order:      0,
-						Content:    "",
+						Order:      nil,
+						Content:    nil,
+						Color:      nil,
 						Eliminate:  false,
-						PromptID:   amr.PromptID,
-						OptionID:   amr.OptionID,
-						Mark:       amr.Mark,
+						PromptID:   &amr.PromptID,
+						OptionID:   &amr.OptionID,
+						Mark:       &amr.Mark,
 						CreatedAt:  amr.CreatedAt,
 						UpdatedAt:  amr.UpdatedAt,
 						DeletedAt:  amr.DeletedAt,
@@ -449,16 +496,20 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,	
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
@@ -512,6 +563,14 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 		return
 	}
 
+	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	res.CreatorName = userInfo.Name
+
 	qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -526,9 +585,12 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 				QuizID:         qpr.QuizID,
 				Type:           "POOL",
 				Order:          qpr.Order,
+				PoolOrder:			qpr.PoolOrder,
+				// PoolRequired:   qpr.PoolRequired,
 				Content:        qpr.Content,
 				Note:           qpr.Note,
 				Media:          qpr.Media,
+				MediaType:			qpr.MediaType,
 				TimeLimit:      qpr.TimeLimit,
 				HaveTimeFactor: qpr.HaveTimeFactor,
 				TimeFactor:     qpr.TimeFactor,
@@ -579,22 +641,26 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},
 				Options: oc,
 			})
-		} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
 			otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -625,16 +691,20 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},
@@ -659,12 +729,13 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					ID:         omr.ID,
 					QuestionID: omr.QuestionID,
 					Type:       omr.Type,
-					Order:      omr.Order,
-					Content:    omr.Content,
+					Order:      &omr.Order,
+					Content:    &omr.Content,
+					Color:      &omr.Color,
 					Eliminate:  omr.Eliminate,
-					PromptID:   uuid.Nil,
-					OptionID:   uuid.Nil,
-					Mark:       0,
+					PromptID:   nil,
+					OptionID:   nil,
+					Mark:       nil,
 					CreatedAt:  omr.CreatedAt,
 					UpdatedAt:  omr.UpdatedAt,
 					DeletedAt:  omr.DeletedAt,
@@ -672,16 +743,19 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			for _, amr := range amRes {
+
+				log.Println(amr)
 				o = append(o, MatchingOptionAndAnswerResponse{
 					ID:         amr.ID,
 					QuestionID: amr.QuestionID,
 					Type:       "MATCHING_ANSWER",
-					Order:      0,
-					Content:    "",
+					Order:      nil,
+					Content:    nil,
+					Color:      nil,
 					Eliminate:  false,
-					PromptID:   amr.PromptID,
-					OptionID:   amr.OptionID,
-					Mark:       amr.Mark,
+					PromptID:   &amr.PromptID,
+					OptionID:   &amr.OptionID,
+					Mark:       &amr.Mark,
 					CreatedAt:  amr.CreatedAt,
 					UpdatedAt:  amr.UpdatedAt,
 					DeletedAt:  amr.DeletedAt,
@@ -695,16 +769,20 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},
@@ -796,9 +874,12 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 						QuizID:         qpRes.QuizID,
 						Type:           "POOL",
 						Order:          qpRes.Order,
+						PoolOrder:			qpRes.PoolOrder,
+						// PoolRequired:   qpRes.PoolRequired,
 						Content:        qpRes.Content,
 						Note:           qpRes.Note,
 						Media:          qpRes.Media,
+						MediaType:			qpRes.MediaType,
 						TimeLimit:      qpRes.TimeLimit,
 						HaveTimeFactor: qpRes.HaveTimeFactor,
 						TimeFactor:     qpRes.TimeFactor,
@@ -868,7 +949,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 							}
 						}
 
-					} else if qRes.Type == util.ShortText || qRes.Type == util.Paragraph {
+					} else if qRes.Type == util.FillBlank || qRes.Type == util.Paragraph {
 						textReq := TextOptionRequest{
 							TextOption: TextOption{
 								ID:            id,
@@ -903,6 +984,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 									Type:       qst["type"].(string),
 									Order:      int(qst["order"].(float64)),
 									Content:    qst["content"].(string),
+									Color:      qst["color"].(string),
 									Eliminate:  qst["eliminate"].(bool),
 								},
 							}
@@ -922,7 +1004,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 								}
 							}
 						} else {
-							
+
 							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -966,16 +1048,20 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 					QuestionPoolID: qRes.QuestionPoolID,
 					Type:           qRes.Type,
 					Order:          qRes.Order,
+					PoolOrder:			qRes.PoolOrder,
+					PoolRequired:   qRes.PoolRequired,
 					Content:        qRes.Content,
 					Note:           qRes.Note,
 					Media:          qRes.Media,
+					MediaType:			qpRes.MediaType,
 					UseTemplate:    qRes.UseTemplate,
 					TimeLimit:      qRes.TimeLimit,
 					HaveTimeFactor: qRes.HaveTimeFactor,
 					TimeFactor:     qRes.TimeFactor,
 					FontSize:       qRes.FontSize,
 					LayoutIdx:      qRes.LayoutIdx,
-					SelectUpTo:     qRes.SelectUpTo,
+					SelectMin:      qRes.SelectMin,
+					SelectMax:      qRes.SelectMax,
 					CreatedAt:      qRes.CreatedAt,
 					UpdatedAt:      qRes.UpdatedAt,
 					DeletedAt:      qRes.DeletedAt,
@@ -1016,7 +1102,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx,&ChoiceOptionRequest{
+						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -1029,7 +1115,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
 						}
-					} else if qRes.Type == util.ShortText || qRes.Type == util.Paragraph {
+					} else if qRes.Type == util.FillBlank || qRes.Type == util.Paragraph {
 						_, err := h.Service.CreateTextOption(c.Request.Context(), tx, &TextOptionRequest{
 							TextOption: TextOption{
 								Order:         int(qst["order"].(float64)),
@@ -1049,6 +1135,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 									Order:     int(qst["order"].(float64)),
 									Content:   qst["content"].(string),
 									Type:      qst["type"].(string),
+									Color:     qst["color"].(string),
 									Eliminate: qst["eliminate"].(bool),
 								},
 							}, qRes.ID, qRes.QuestionHistoryID, userID)
@@ -1095,16 +1182,20 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 					QuestionPoolID: qRes.QuestionPoolID,
 					Type:           qRes.Type,
 					Order:          qRes.Order,
+					PoolOrder:			qRes.PoolOrder,
+					PoolRequired:   qRes.PoolRequired,
 					Content:        qRes.Content,
 					Note:           qRes.Note,
 					Media:          qRes.Media,
+					MediaType:			qpRes.MediaType,
 					UseTemplate:    qRes.UseTemplate,
 					TimeLimit:      qRes.TimeLimit,
 					HaveTimeFactor: qRes.HaveTimeFactor,
 					TimeFactor:     qRes.TimeFactor,
 					FontSize:       qRes.FontSize,
 					LayoutIdx:      qRes.LayoutIdx,
-					SelectUpTo:     qRes.SelectUpTo,
+					SelectMin:      qRes.SelectMin,
+					SelectMax:      qRes.SelectMax,
 					CreatedAt:      qRes.CreatedAt,
 					UpdatedAt:      qRes.UpdatedAt,
 					DeletedAt:      qRes.DeletedAt,
@@ -1118,7 +1209,6 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 
 	h.Service.CommitTransaction(c.Request.Context(), tx)
 
-	
 	c.JSON(http.StatusCreated, &QuizResponse{
 		Quiz: Quiz{
 			ID:             res.ID,
@@ -1132,7 +1222,8 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			TimeFactor:     res.TimeFactor,
 			FontSize:       res.FontSize,
 			Mark:           res.Mark,
-			SelectUpTo:     res.SelectUpTo,
+			SelectMin:      res.SelectMin,
+			SelectMax:      res.SelectMax,
 			CaseSensitive:  res.CaseSensitive,
 			CreatedAt:      res.CreatedAt,
 			UpdatedAt:      res.UpdatedAt,
@@ -1202,7 +1293,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 			}
 		}
 
-		if question.Type == util.ShortText || question.Type == util.Paragraph {
+		if question.Type == util.FillBlank || question.Type == util.Paragraph {
 			textOptionData, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1262,7 +1353,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		return
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(),tx)
+	h.Service.CommitTransaction(c.Request.Context(), tx)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "successfully deleted",
@@ -1278,7 +1369,7 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 
 	quizID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1327,7 +1418,7 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 			}
 		}
 
-		if question.Type == util.ShortText || question.Type == util.Paragraph {
+		if question.Type == util.FillBlank || question.Type == util.Paragraph {
 			textOptionData, err := h.Service.GetDeleteTextOptionsByQuestionID(c.Request.Context(), question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1404,7 +1495,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 
 	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1417,6 +1508,14 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 	r := make([]QuizHistoryResponse, 0)
 
 	for _, q := range res {
+		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		
+		q.CreatorName = userInfo.Name
+
 		qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1428,13 +1527,16 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
 				QuestionHistory: QuestionHistory{
 					ID:             qpr.ID,
-					QuestionID: 		qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
+					QuestionID:     qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
 					QuizID:         qpr.QuizID,
 					Type:           "POOL",
 					Order:          qpr.Order,
+					PoolOrder:			qpr.PoolOrder,
+					// PoolRequired:   qpr.PoolRequired,
 					Content:        qpr.Content,
 					Note:           qpr.Note,
 					Media:          qpr.Media,
+					MediaType:			qpr.MediaType,
 					TimeLimit:      qpr.TimeLimit,
 					HaveTimeFactor: qpr.HaveTimeFactor,
 					TimeFactor:     qpr.TimeFactor,
@@ -1448,7 +1550,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 
 		qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), q.ID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -1457,7 +1559,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
 				ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
@@ -1465,17 +1567,17 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 				for _, ocr := range ocRes {
 					oc = append(oc, ChoiceOptionHistoryResponse{
 						ChoiceOptionHistory: ChoiceOptionHistory{
-							ID:         ocr.ID,
+							ID:             ocr.ID,
 							ChoiceOptionID: ocr.ChoiceOptionID,
-							QuestionID: ocr.QuestionID,
-							Order:      ocr.Order,
-							Content:    ocr.Content,
-							Mark:       ocr.Mark,
-							Color:      ocr.Color,
-							Correct:    ocr.Correct,
-							CreatedAt:  ocr.CreatedAt,
-							UpdatedAt:  ocr.UpdatedAt,
-							DeletedAt:  ocr.DeletedAt,
+							QuestionID:     ocr.QuestionID,
+							Order:          ocr.Order,
+							Content:        ocr.Content,
+							Mark:           ocr.Mark,
+							Color:          ocr.Color,
+							Correct:        ocr.Correct,
+							CreatedAt:      ocr.CreatedAt,
+							UpdatedAt:      ocr.UpdatedAt,
+							DeletedAt:      ocr.DeletedAt,
 						},
 					})
 				}
@@ -1488,26 +1590,30 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
 
 					Options: oc,
 				})
-			} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+			} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
 				otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(),})
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
@@ -1537,16 +1643,20 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
@@ -1568,19 +1678,20 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 				var o []any
 				for _, omr := range omRes {
 					o = append(o, MatchingOptionAndAnswerHistoryResponse{
-						ID:         omr.ID,
-						OptionMatchingID: omr.OptionMatchingID,
-						QuestionID: omr.QuestionID,
-						Type:       omr.Type,
-						Order:      omr.Order,
-						Content:    omr.Content,
-						Eliminate:  omr.Eliminate,
-						PromptID:   uuid.Nil,
-						OptionID:   uuid.Nil,
-						Mark:       0,
-						CreatedAt:  omr.CreatedAt,
-						UpdatedAt:  omr.UpdatedAt,
-						DeletedAt:  omr.DeletedAt,
+						ID:               omr.ID,
+						OptionMatchingID: &omr.OptionMatchingID,
+						QuestionID:       omr.QuestionID,
+						Type:             omr.Type,
+						Order:            &omr.Order,
+						Content:          &omr.Content,
+						Color:     				&omr.Color,
+						Eliminate:        omr.Eliminate,
+						PromptID:         nil,
+						OptionID:         nil,
+						Mark:             nil,
+						CreatedAt:        omr.CreatedAt,
+						UpdatedAt:        omr.UpdatedAt,
+						DeletedAt:        omr.DeletedAt,
 					})
 				}
 
@@ -1589,12 +1700,13 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 						ID:         amr.ID,
 						QuestionID: amr.QuestionID,
 						Type:       "MATCHING_ANSWER",
-						Order:      0,
-						Content:    "",
+						Order:      nil,
+						Content:    nil,
+						Color:			nil,
 						Eliminate:  false,
-						PromptID:   amr.PromptID,
-						OptionID:   amr.OptionID,
-						Mark:       amr.Mark,
+						PromptID:   &amr.PromptID,
+						OptionID:   &amr.OptionID,
+						Mark:       &amr.Mark,
 						CreatedAt:  amr.CreatedAt,
 						UpdatedAt:  amr.UpdatedAt,
 						DeletedAt:  amr.DeletedAt,
@@ -1609,16 +1721,20 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 						QuestionPoolID: qr.QuestionPoolID,
 						Type:           qr.Type,
 						Order:          qr.Order,
+						PoolOrder:			qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
 						Content:        qr.Content,
 						Note:           qr.Note,
 						Media:          qr.Media,
+						MediaType:			qr.MediaType,
 						UseTemplate:    qr.UseTemplate,
 						TimeLimit:      qr.TimeLimit,
 						HaveTimeFactor: qr.HaveTimeFactor,
 						TimeFactor:     qr.TimeFactor,
 						FontSize:       qr.FontSize,
 						LayoutIdx:      qr.LayoutIdx,
-						SelectUpTo:     qr.SelectUpTo,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
 						CreatedAt:      qr.CreatedAt,
 						UpdatedAt:      qr.UpdatedAt,
 					},
@@ -1660,7 +1776,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 
 	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id",})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -1669,6 +1785,14 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	res.CreatorName = userInfo.Name
 
 	qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), res.ID)
 	if err != nil {
@@ -1681,13 +1805,16 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
 			QuestionHistory: QuestionHistory{
 				ID:             qpr.ID,
-				QuestionID:     qpr.QuestionPoolID, 
+				QuestionID:     qpr.QuestionPoolID,
 				QuizID:         qpr.QuizID,
 				Type:           "POOL",
 				Order:          qpr.Order,
+				PoolOrder:			qpr.PoolOrder,
+				// PoolRequired:   qpr.PoolRequired,
 				Content:        qpr.Content,
 				Note:           qpr.Note,
 				Media:          qpr.Media,
+				MediaType:			qpr.MediaType,
 				TimeLimit:      qpr.TimeLimit,
 				HaveTimeFactor: qpr.HaveTimeFactor,
 				TimeFactor:     qpr.TimeFactor,
@@ -1717,17 +1844,17 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			for _, ocr := range ocRes {
 				oc = append(oc, ChoiceOptionHistoryResponse{
 					ChoiceOptionHistory: ChoiceOptionHistory{
-						ID:         ocr.ID,
+						ID:             ocr.ID,
 						ChoiceOptionID: ocr.ChoiceOptionID,
-						QuestionID: ocr.QuestionID,
-						Order:      ocr.Order,
-						Content:    ocr.Content,
-						Mark:       ocr.Mark,
-						Color:      ocr.Color,
-						Correct:    ocr.Correct,
-						CreatedAt:  ocr.CreatedAt,
-						UpdatedAt:  ocr.UpdatedAt,
-						DeletedAt:  ocr.DeletedAt,
+						QuestionID:     ocr.QuestionID,
+						Order:          ocr.Order,
+						Content:        ocr.Content,
+						Mark:           ocr.Mark,
+						Color:          ocr.Color,
+						Correct:        ocr.Correct,
+						CreatedAt:      ocr.CreatedAt,
+						UpdatedAt:      ocr.UpdatedAt,
+						DeletedAt:      ocr.DeletedAt,
 					},
 				})
 			}
@@ -1735,27 +1862,31 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
 				QuestionHistory: QuestionHistory{
 					ID:             qr.ID,
-					QuestionID:			qr.QuestionID ,
+					QuestionID:     qr.QuestionID,
 					QuizID:         qr.QuizID,
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},
 				Options: oc,
 			})
-		} else if qr.Type == util.ShortText || qr.Type == util.Paragraph {
+		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
 			otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1788,16 +1919,20 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},
@@ -1819,37 +1954,39 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 			var o []any
 			for _, omr := range omRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
-					ID:         omr.ID,
-					OptionMatchingID: omr.OptionMatchingID,
-					QuestionID: omr.QuestionID,
-					Type:       omr.Type,
-					Order:      omr.Order,
-					Content:    omr.Content,
-					Eliminate:  omr.Eliminate,
-					PromptID:   uuid.Nil,
-					OptionID:   uuid.Nil,
-					Mark:       0,
-					CreatedAt:  omr.CreatedAt,
-					UpdatedAt:  omr.UpdatedAt,
-					DeletedAt:  omr.DeletedAt,
+					ID:               omr.ID,
+					OptionMatchingID: &omr.OptionMatchingID,
+					QuestionID:       omr.QuestionID,
+					Type:             omr.Type,
+					Order:            &omr.Order,
+					Content:          &omr.Content,
+					Color:						&omr.Color,
+					Eliminate:        omr.Eliminate,
+					PromptID:         nil,
+					OptionID:         nil,
+					Mark:             nil,
+					CreatedAt:        omr.CreatedAt,
+					UpdatedAt:        omr.UpdatedAt,
+					DeletedAt:        omr.DeletedAt,
 				})
 			}
 
 			for _, amr := range amRes {
 				o = append(o, MatchingOptionAndAnswerHistoryResponse{
-					ID:         amr.ID,
-					AmswerMatchingID: amr.AnswerMatchingID,
-					QuestionID: amr.QuestionID,
-					Type:       "MATCHING_ANSWER",
-					Order:      0,
-					Content:    "",
-					Eliminate:  false,
-					PromptID:   amr.PromptID,
-					OptionID:   amr.OptionID,
-					Mark:       amr.Mark,
-					CreatedAt:  amr.CreatedAt,
-					UpdatedAt:  amr.UpdatedAt,
-					DeletedAt:  amr.DeletedAt,
+					ID:               amr.ID,
+					AmswerMatchingID: &amr.AnswerMatchingID,
+					QuestionID:       amr.QuestionID,
+					Type:             "MATCHING_ANSWER",
+					Order:            nil,
+					Content:          nil,
+					Color:						nil,
+					Eliminate:        false,
+					PromptID:         &amr.PromptID,
+					OptionID:         &amr.OptionID,
+					Mark:             &amr.Mark,
+					CreatedAt:        amr.CreatedAt,
+					UpdatedAt:        amr.UpdatedAt,
+					DeletedAt:        amr.DeletedAt,
 				})
 			}
 
@@ -1861,16 +1998,20 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 					QuestionPoolID: qr.QuestionPoolID,
 					Type:           qr.Type,
 					Order:          qr.Order,
+					PoolOrder:			qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
 					Content:        qr.Content,
 					Note:           qr.Note,
 					Media:          qr.Media,
+					MediaType:			qr.MediaType,
 					UseTemplate:    qr.UseTemplate,
 					TimeLimit:      qr.TimeLimit,
 					HaveTimeFactor: qr.HaveTimeFactor,
 					TimeFactor:     qr.TimeFactor,
 					FontSize:       qr.FontSize,
 					LayoutIdx:      qr.LayoutIdx,
-					SelectUpTo:     qr.SelectUpTo,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
 					CreatedAt:      qr.CreatedAt,
 					UpdatedAt:      qr.UpdatedAt,
 				},

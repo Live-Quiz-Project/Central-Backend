@@ -24,6 +24,59 @@ func NewService(r Repository, uRepo u.Repository) Service {
 	}
 }
 
+// ---------- Session related service methods ---------- //
+func (s *service) GetLiveQuizSessionBySessionID(ctx context.Context, sessionID uuid.UUID) (*SessionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	lqs, err := s.Repository.GetLiveQuizSessionBySessionID(c, sessionID)
+	if err != nil {
+		return &SessionResponse{}, err
+	}
+
+	return &SessionResponse{
+		Session: Session{
+			ID:                  lqs.ID,
+			HostID:              lqs.HostID,
+			QuizID:              lqs.QuizID,
+			Status:              lqs.Status,
+			ExemptedQuestionIDs: lqs.ExemptedQuestionIDs,
+			CreatedAt:           lqs.CreatedAt,
+			UpdatedAt:           lqs.UpdatedAt,
+			DeletedAt:           lqs.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) GetLiveQuizSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]SessionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sessions, err := s.Repository.GetLiveQuizSessionsByUserID(c, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []SessionResponse
+
+	for _, lqs := range sessions {
+		res = append(res, SessionResponse{
+			Session: Session{
+				ID:                  lqs.ID,
+				HostID:              lqs.HostID,
+				QuizID:              lqs.QuizID,
+				Status:              lqs.Status,
+				ExemptedQuestionIDs: lqs.ExemptedQuestionIDs,
+				CreatedAt:           lqs.CreatedAt,
+				UpdatedAt:           lqs.UpdatedAt,
+				DeletedAt:           lqs.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+}
+
 // ---------- Live Quiz Session related service methods ---------- //
 func (s *service) CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)

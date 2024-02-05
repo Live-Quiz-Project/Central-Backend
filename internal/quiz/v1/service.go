@@ -29,7 +29,7 @@ func (s *service) BeginTransaction(ctx context.Context) (*gorm.DB, error) {
 	return tx, nil
 }
 
-func (s *service) CommitTransaction(ctx context.Context,tx *gorm.DB) (error) {
+func (s *service) CommitTransaction(ctx context.Context, tx *gorm.DB) error {
 	err := s.Repository.CommitTransaction(tx)
 	if err != nil {
 		return err
@@ -54,8 +54,10 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 		TimeFactor:     req.TimeFactor,
 		FontSize:       req.FontSize,
 		Mark:           req.Mark,
-		SelectUpTo:     req.SelectUpTo,
-		CaseSensitive:  req.CaseSensitive,
+		// SelectUpTo:     req.SelectUpTo,
+		SelectMin:     req.SelectMin,
+		SelectMax:     req.SelectMax,
+		CaseSensitive: req.CaseSensitive,
 	}
 
 	qh := &QuizHistory{
@@ -71,7 +73,8 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 		TimeFactor:     q.TimeFactor,
 		FontSize:       q.FontSize,
 		Mark:           q.Mark,
-		SelectUpTo:     q.SelectUpTo,
+		SelectMin:      q.SelectMin,
+		SelectMax:      q.SelectMax,
 		CaseSensitive:  q.CaseSensitive,
 	}
 
@@ -98,7 +101,8 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 				TimeFactor:     quiz.TimeFactor,
 				FontSize:       quiz.FontSize,
 				Mark:           quiz.Mark,
-				SelectUpTo:     quiz.SelectUpTo,
+				SelectMin:      quiz.SelectMin,
+				SelectMax:      quiz.SelectMax,
 				CaseSensitive:  quiz.CaseSensitive,
 				CreatedAt:      quiz.CreatedAt,
 				UpdatedAt:      quiz.UpdatedAt,
@@ -133,7 +137,8 @@ func (s *service) GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse
 				TimeFactor:     q.TimeFactor,
 				FontSize:       q.FontSize,
 				Mark:           q.Mark,
-				SelectUpTo:     q.SelectUpTo,
+				SelectMin:      q.SelectMin,
+				SelectMax:      q.SelectMax,
 				CaseSensitive:  q.CaseSensitive,
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
@@ -167,7 +172,8 @@ func (s *service) GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 			TimeFactor:     quiz.TimeFactor,
 			FontSize:       quiz.FontSize,
 			Mark:           quiz.Mark,
-			SelectUpTo:     quiz.SelectUpTo,
+			SelectMin:      quiz.SelectMin,
+			SelectMax:      quiz.SelectMax,
 			CaseSensitive:  quiz.CaseSensitive,
 			CreatedAt:      quiz.CreatedAt,
 			UpdatedAt:      quiz.UpdatedAt,
@@ -198,7 +204,8 @@ func (s *service) GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.
 			TimeFactor:     quiz.TimeFactor,
 			FontSize:       quiz.FontSize,
 			Mark:           quiz.Mark,
-			SelectUpTo:     quiz.SelectUpTo,
+			SelectMin:      quiz.SelectMin,
+			SelectMax:      quiz.SelectMax,
 			CaseSensitive:  quiz.CaseSensitive,
 			CreatedAt:      quiz.CreatedAt,
 			UpdatedAt:      quiz.UpdatedAt,
@@ -232,7 +239,8 @@ func (s *service) GetQuizHistories(ctx context.Context, uid uuid.UUID) ([]QuizHi
 				TimeFactor:     q.TimeFactor,
 				FontSize:       q.FontSize,
 				Mark:           q.Mark,
-				SelectUpTo:     q.SelectUpTo,
+				SelectMin:      q.SelectMin,
+				SelectMax:      q.SelectMax,
 				CaseSensitive:  q.CaseSensitive,
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
@@ -267,7 +275,8 @@ func (s *service) GetQuizHistoryByID(ctx context.Context, id uuid.UUID, uid uuid
 			TimeFactor:     quiz.TimeFactor,
 			FontSize:       quiz.FontSize,
 			Mark:           quiz.Mark,
-			SelectUpTo:     quiz.SelectUpTo,
+			SelectMin:      quiz.SelectMin,
+			SelectMax:      quiz.SelectMax,
 			CaseSensitive:  quiz.CaseSensitive,
 			CreatedAt:      quiz.CreatedAt,
 			UpdatedAt:      quiz.UpdatedAt,
@@ -320,9 +329,12 @@ func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRe
 	if req.Mark != 0 {
 		quiz.Mark = req.Mark
 	}
-	if req.SelectUpTo != 0 {
-		quiz.SelectUpTo = req.SelectUpTo
-	}
+	// if req.SelectMin != 0 {
+	// 	quiz.SelectMin = req.SelectMin
+	// }
+	// if req.SelectMax != 0 {
+	// 	quiz.SelectMax = req.SelectMax
+	// }
 	if !req.CaseSensitive {
 		quiz.CaseSensitive = req.CaseSensitive
 	}
@@ -340,7 +352,8 @@ func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRe
 		TimeFactor:     quiz.TimeFactor,
 		FontSize:       quiz.FontSize,
 		Mark:           quiz.Mark,
-		SelectUpTo:     quiz.SelectUpTo,
+		SelectMin:      quiz.SelectMin,
+		SelectMax:      quiz.SelectMax,
 		CaseSensitive:  quiz.CaseSensitive,
 	}
 
@@ -349,7 +362,7 @@ func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRe
 		return &UpdateQuizResponse{}, er
 	}
 
-	_, e := s.Repository.CreateQuizHistory(c,tx, qh)
+	_, e := s.Repository.CreateQuizHistory(c, tx, qh)
 	if e != nil {
 		return &UpdateQuizResponse{}, e
 	}
@@ -368,7 +381,8 @@ func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRe
 				TimeFactor:     quiz.TimeFactor,
 				FontSize:       quiz.FontSize,
 				Mark:           quiz.Mark,
-				SelectUpTo:     quiz.SelectUpTo,
+				SelectMin:      quiz.SelectMin,
+				SelectMax:      quiz.SelectMax,
 				CaseSensitive:  quiz.CaseSensitive,
 				CreatedAt:      quiz.CreatedAt,
 				UpdatedAt:      quiz.UpdatedAt,
@@ -412,9 +426,11 @@ func (s *service) CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 		ID:             uuid.New(),
 		QuizID:         quizID,
 		Order:          req.Order,
+		PoolOrder:			req.PoolOrder,
 		Content:        req.Content,
 		Note:           req.Note,
 		Media:          req.Media,
+		MediaType:			req.MediaType,
 		TimeLimit:      req.TimeLimit,
 		HaveTimeFactor: req.HaveTimeFactor,
 		TimeFactor:     req.TimeFactor,
@@ -426,20 +442,22 @@ func (s *service) CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 		QuestionPoolID: qp.ID,
 		QuizID:         quizHistoryID,
 		Order:          qp.Order,
+		PoolOrder:			req.PoolOrder,
 		Content:        qp.Content,
 		Note:           qp.Note,
 		Media:          qp.Media,
+		MediaType:			qp.MediaType,
 		TimeLimit:      qp.TimeLimit,
 		HaveTimeFactor: qp.HaveTimeFactor,
 		TimeFactor:     qp.TimeFactor,
 		FontSize:       qp.FontSize,
 	}
 
-	questionPool, err := s.Repository.CreateQuestionPool(c,tx, qp)
+	questionPool, err := s.Repository.CreateQuestionPool(c, tx, qp)
 	if err != nil {
 		return &CreateQuestionPoolResponse{}, err
 	}
-	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c,tx, qph)
+	questionPoolH, er := s.Repository.CreateQuestionPoolHistory(c, tx, qph)
 	if er != nil {
 		return &CreateQuestionPoolResponse{}, er
 	}
@@ -450,9 +468,11 @@ func (s *service) CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 				ID:             questionPool.ID,
 				QuizID:         questionPool.QuizID,
 				Order:          questionPool.Order,
+				PoolOrder:			questionPool.PoolOrder,
 				Content:        questionPool.Content,
 				Note:           questionPool.Note,
 				Media:          questionPool.Media,
+				MediaType:			questionPool.MediaType,
 				TimeLimit:      questionPool.TimeLimit,
 				HaveTimeFactor: questionPool.HaveTimeFactor,
 				TimeFactor:     questionPool.TimeFactor,
@@ -482,9 +502,11 @@ func (s *service) GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID
 				ID:             qp.ID,
 				QuizID:         qp.QuizID,
 				Order:          qp.Order,
+				PoolOrder:			qp.PoolOrder,
 				Content:        qp.Content,
 				Note:           qp.Note,
 				Media:          qp.Media,
+				MediaType:			qp.MediaType,
 				TimeLimit:      qp.TimeLimit,
 				HaveTimeFactor: qp.HaveTimeFactor,
 				TimeFactor:     qp.TimeFactor,
@@ -514,9 +536,11 @@ func (s *service) GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uui
 				ID:             qp.ID,
 				QuizID:         qp.QuizID,
 				Order:          qp.Order,
+				PoolOrder:			qp.PoolOrder,
 				Content:        qp.Content,
 				Note:           qp.Note,
 				Media:          qp.Media,
+				MediaType:			qp.MediaType,
 				TimeLimit:      qp.TimeLimit,
 				HaveTimeFactor: qp.HaveTimeFactor,
 				TimeFactor:     qp.TimeFactor,
@@ -569,9 +593,11 @@ func (s *service) UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 		QuestionPoolID: questionPool.ID,
 		QuizID:         quizHistoryID,
 		Order:          questionPool.Order,
+		PoolOrder:      questionPool.PoolOrder,
 		Content:        questionPool.Content,
 		Note:           questionPool.Note,
 		Media:          questionPool.Media,
+		MediaType:			questionPool.MediaType,
 		TimeLimit:      questionPool.TimeLimit,
 		HaveTimeFactor: questionPool.HaveTimeFactor,
 		TimeFactor:     questionPool.TimeFactor,
@@ -594,9 +620,11 @@ func (s *service) UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 				ID:             questionPool.ID,
 				QuizID:         questionPool.QuizID,
 				Order:          questionPool.Order,
+				PoolOrder: 			questionPool.PoolOrder,
 				Content:        questionPool.Content,
 				Note:           questionPool.Note,
 				Media:          questionPool.Media,
+				MediaType:			questionPool.MediaType,
 				TimeLimit:      questionPool.TimeLimit,
 				HaveTimeFactor: questionPool.HaveTimeFactor,
 				TimeFactor:     questionPool.TimeFactor,
@@ -651,9 +679,11 @@ func (s *service) GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID u
 				QuestionPoolID: qp.QuestionPoolID,
 				QuizID:         qp.QuizID,
 				Order:          qp.Order,
+				PoolOrder:      qp.PoolOrder,
 				Content:        qp.Content,
 				Note:           qp.Note,
 				Media:          qp.Media,
+				MediaType:			qp.MediaType,
 				TimeLimit:      qp.TimeLimit,
 				HaveTimeFactor: qp.HaveTimeFactor,
 				TimeFactor:     qp.TimeFactor,
@@ -678,16 +708,20 @@ func (s *service) CreateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 		QuestionPoolID: questionPoolID,
 		Type:           req.Type,
 		Order:          req.Order,
+		PoolOrder:			req.PoolOrder,
+		PoolRequired:   req.PoolRequired,
 		Content:        req.Content,
 		Note:           req.Note,
 		Media:          req.Media,
+		MediaType:			req.MediaType,
 		UseTemplate:    req.UseTemplate,
 		TimeLimit:      req.TimeLimit,
 		HaveTimeFactor: req.HaveTimeFactor,
 		TimeFactor:     req.TimeFactor,
 		FontSize:       req.FontSize,
 		LayoutIdx:      req.LayoutIdx,
-		SelectUpTo:     req.SelectUpTo,
+		SelectMin:      req.SelectMin,
+		SelectMax:      req.SelectMax,
 	}
 
 	qh := &QuestionHistory{
@@ -697,16 +731,20 @@ func (s *service) CreateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 		QuestionPoolID: questionPoolHistoryID,
 		Type:           q.Type,
 		Order:          q.Order,
+		PoolOrder:			q.PoolOrder,
+		PoolRequired:   q.PoolRequired,
 		Content:        q.Content,
 		Note:           q.Note,
 		Media:          q.Media,
+		MediaType:			q.MediaType,
 		UseTemplate:    q.UseTemplate,
 		TimeLimit:      q.TimeLimit,
 		HaveTimeFactor: q.HaveTimeFactor,
 		TimeFactor:     q.TimeFactor,
 		FontSize:       q.FontSize,
 		LayoutIdx:      q.LayoutIdx,
-		SelectUpTo:     q.SelectUpTo,
+		SelectMin:      q.SelectMin,
+		SelectMax:      q.SelectMax,
 	}
 
 	question, err := s.Repository.CreateQuestion(c, tx, q)
@@ -730,16 +768,20 @@ func (s *service) CreateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 				QuestionPoolID: question.QuestionPoolID,
 				Type:           question.Type,
 				Order:          question.Order,
+				PoolOrder:			question.PoolOrder,
+				PoolRequired:   question.PoolRequired,
 				Content:        question.Content,
 				Note:           question.Note,
 				Media:          question.Media,
+				MediaType:			question.MediaType,
 				UseTemplate:    question.UseTemplate,
 				TimeLimit:      question.TimeLimit,
 				HaveTimeFactor: question.HaveTimeFactor,
 				TimeFactor:     question.TimeFactor,
 				FontSize:       question.FontSize,
 				LayoutIdx:      question.LayoutIdx,
-				SelectUpTo:     question.SelectUpTo,
+				SelectMin:      question.SelectMin,
+				SelectMax:      question.SelectMax,
 				CreatedAt:      question.CreatedAt,
 				UpdatedAt:      question.UpdatedAt,
 				DeletedAt:      question.DeletedAt,
@@ -768,16 +810,20 @@ func (s *service) GetQuestionsByQuizID(ctx context.Context, quizID uuid.UUID) ([
 				QuestionPoolID: q.QuestionPoolID,
 				Type:           q.Type,
 				Order:          q.Order,
+				PoolOrder:			q.PoolOrder,
+				PoolRequired:   q.PoolRequired,
 				Content:        q.Content,
 				Note:           q.Note,
 				Media:          q.Media,
+				MediaType:			q.MediaType,
 				UseTemplate:    q.UseTemplate,
 				TimeLimit:      q.TimeLimit,
 				HaveTimeFactor: q.HaveTimeFactor,
 				TimeFactor:     q.TimeFactor,
 				FontSize:       q.FontSize,
 				LayoutIdx:      q.LayoutIdx,
-				SelectUpTo:     q.SelectUpTo,
+				SelectMin:      q.SelectMin,
+				SelectMax:      q.SelectMax,
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
 				DeletedAt:      q.DeletedAt,
@@ -805,16 +851,20 @@ func (s *service) GetDeleteQuestionsByQuizID(ctx context.Context, quizID uuid.UU
 				QuestionPoolID: q.QuestionPoolID,
 				Type:           q.Type,
 				Order:          q.Order,
+				PoolOrder:			q.PoolOrder,
+				PoolRequired:   q.PoolRequired,
 				Content:        q.Content,
 				Note:           q.Note,
 				Media:          q.Media,
+				MediaType:			q.MediaType,
 				UseTemplate:    q.UseTemplate,
 				TimeLimit:      q.TimeLimit,
 				HaveTimeFactor: q.HaveTimeFactor,
 				TimeFactor:     q.TimeFactor,
 				FontSize:       q.FontSize,
 				LayoutIdx:      q.LayoutIdx,
-				SelectUpTo:     q.SelectUpTo,
+				SelectMin:      q.SelectMin,
+				SelectMax:      q.SelectMax,
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
 				DeletedAt:      q.DeletedAt,
@@ -890,9 +940,9 @@ func (s *service) UpdateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 	if req.LayoutIdx != 0 {
 		question.LayoutIdx = req.LayoutIdx
 	}
-	if req.SelectUpTo != 0 {
-		question.SelectUpTo = req.SelectUpTo
-	}
+	// if req.SelectUpTo != 0 {
+	// 	question.SelectUpTo = req.SelectUpTo
+	// }
 
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
@@ -901,16 +951,20 @@ func (s *service) UpdateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 		QuestionPoolID: questionPoolHistoryID,
 		Type:           question.Type,
 		Order:          question.Order,
+		PoolOrder:			question.PoolOrder,
+		PoolRequired:   question.PoolRequired,
 		Content:        question.Content,
 		Note:           question.Note,
 		Media:          question.Media,
+		MediaType:			question.MediaType,
 		UseTemplate:    question.UseTemplate,
 		TimeLimit:      question.TimeLimit,
 		HaveTimeFactor: question.HaveTimeFactor,
 		TimeFactor:     question.TimeFactor,
 		FontSize:       question.FontSize,
 		LayoutIdx:      question.LayoutIdx,
-		SelectUpTo:     question.SelectUpTo,
+		SelectMin:      question.SelectMin,
+		SelectMax:      question.SelectMax,
 	}
 
 	question, er := s.Repository.UpdateQuestion(c, tx, question)
@@ -934,15 +988,19 @@ func (s *service) UpdateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 				QuestionPoolID: question.QuestionPoolID,
 				Type:           question.Type,
 				Order:          question.Order,
+				PoolOrder:			question.PoolOrder,
+				PoolRequired:   question.PoolRequired,
 				Content:        question.Content,
 				Note:           question.Note,
 				Media:          question.Media,
+				MediaType:			question.MediaType,
 				TimeLimit:      question.TimeLimit,
 				HaveTimeFactor: question.HaveTimeFactor,
 				TimeFactor:     question.TimeFactor,
 				FontSize:       question.FontSize,
 				LayoutIdx:      question.LayoutIdx,
-				SelectUpTo:     question.SelectUpTo,
+				SelectMin:      question.SelectMin,
+				SelectMax:      question.SelectMax,
 				CreatedAt:      question.CreatedAt,
 				UpdatedAt:      question.UpdatedAt,
 				DeletedAt:      question.DeletedAt,
@@ -996,16 +1054,20 @@ func (s *service) GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.
 				QuestionPoolID: q.QuestionPoolID,
 				Type:           q.Type,
 				Order:          q.Order,
+				PoolOrder:			q.PoolOrder,
+				PoolRequired:   q.PoolRequired,
 				Content:        q.Content,
 				Note:           q.Note,
 				Media:          q.Media,
+				MediaType:			q.MediaType,
 				UseTemplate:    q.UseTemplate,
 				TimeLimit:      q.TimeLimit,
 				HaveTimeFactor: q.HaveTimeFactor,
 				TimeFactor:     q.TimeFactor,
 				FontSize:       q.FontSize,
 				LayoutIdx:      q.LayoutIdx,
-				SelectUpTo:     q.SelectUpTo,
+				SelectMin:      q.SelectMin,
+				SelectMax:      q.SelectMax,
 				CreatedAt:      q.CreatedAt,
 				UpdatedAt:      q.UpdatedAt,
 				DeletedAt:      q.DeletedAt,
@@ -1534,6 +1596,7 @@ func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 		Order:      req.Order,
 		Content:    req.Content,
 		Type:       req.Type,
+		Color:			req.Color,
 		Eliminate:  req.Eliminate,
 	}
 
@@ -1544,6 +1607,7 @@ func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 		Order:            om.Order,
 		Content:          om.Content,
 		Type:             om.Type,
+		Color:						om.Color,
 		Eliminate:        om.Eliminate,
 	}
 
@@ -1564,6 +1628,7 @@ func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 			Order:      optionMatching.Order,
 			Content:    optionMatching.Content,
 			Type:       optionMatching.Type,
+			Color:			optionMatching.Color,
 			Eliminate:  optionMatching.Eliminate,
 			CreatedAt:  optionMatching.CreatedAt,
 			UpdatedAt:  optionMatching.UpdatedAt,
@@ -1590,6 +1655,7 @@ func (s *service) GetMatchingOptionsByQuestionID(ctx context.Context, questionID
 				Order:      om.Order,
 				Content:    om.Content,
 				Type:       om.Type,
+				Color:			om.Color,
 				Eliminate:  om.Eliminate,
 				CreatedAt:  om.CreatedAt,
 				UpdatedAt:  om.UpdatedAt,
@@ -1619,6 +1685,7 @@ func (s *service) GetDeleteMatchingOptionsByQuestionID(ctx context.Context, ques
 				Order:      om.Order,
 				Content:    om.Content,
 				Type:       om.Type,
+				Color:			om.Color,
 				Eliminate:  om.Eliminate,
 				CreatedAt:  om.CreatedAt,
 				UpdatedAt:  om.UpdatedAt,
@@ -1646,6 +1713,7 @@ func (s *service) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, que
 			Order:      optionMatching.Order,
 			Content:    optionMatching.Content,
 			Type:       optionMatching.Type,
+			Color:			optionMatching.Color,
 			Eliminate:  optionMatching.Eliminate,
 			CreatedAt:  optionMatching.CreatedAt,
 			UpdatedAt:  optionMatching.UpdatedAt,
@@ -1683,6 +1751,7 @@ func (s *service) UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 		Order:            optionMatching.Order,
 		Content:          optionMatching.Content,
 		Type:             optionMatching.Type,
+		Color:						optionMatching.Color,
 		Eliminate:        optionMatching.Eliminate,
 	}
 
@@ -1703,6 +1772,7 @@ func (s *service) UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 			Order:      optionMatching.Order,
 			Content:    optionMatching.Content,
 			Type:       optionMatching.Type,
+			Color:			optionMatching.Color,
 			Eliminate:  optionMatching.Eliminate,
 			CreatedAt:  optionMatching.CreatedAt,
 			UpdatedAt:  optionMatching.UpdatedAt,
@@ -1754,6 +1824,7 @@ func (s *service) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, qu
 				Order:            om.Order,
 				Content:          om.Content,
 				Type:             om.Type,
+				Color:						om.Color,
 				Eliminate:        om.Eliminate,
 				CreatedAt:        om.CreatedAt,
 				UpdatedAt:        om.UpdatedAt,
@@ -1763,6 +1834,32 @@ func (s *service) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, qu
 	}
 
 	return res, nil
+}
+
+func (s *service) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionHistoryByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionHistoryResponse{
+		MatchingOptionHistory: MatchingOptionHistory{
+			ID:               om.ID,
+			OptionMatchingID: om.OptionMatchingID,
+			QuestionID:       om.QuestionID,
+			Order:            om.Order,
+			Content:          om.Content,
+			Type:             om.Type,
+			Color:						om.Color,
+			Eliminate:        om.Eliminate,
+			CreatedAt:        om.CreatedAt,
+			UpdatedAt:        om.UpdatedAt,
+			DeletedAt:        om.DeletedAt,
+		},
+	}, nil
 }
 
 // ------ Matching Answer ------
@@ -1868,7 +1965,7 @@ func (s *service) GetDeleteMatchingAnswersByQuestionID(ctx context.Context, ques
 	return res, nil
 }
 
-func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB,req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
+func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 

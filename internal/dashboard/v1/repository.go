@@ -54,12 +54,29 @@ func (r *repository) GetAnswerResponseByParticipantID(ctx context.Context, parti
 	return answerResponses, nil
 }
 
-// For Testing
-func (r *repository) CreateAnswerResponse(ctx context.Context, tx *gorm.DB, answerResponse *AnswerResponse) (*AnswerResponse, error) {
-	res := tx.WithContext(ctx).Create(answerResponse)
+func (r *repository) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error) {
+	var answerResponses []AnswerResponse
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND question_id = ?", liveQuizSessionID, questionID).Find(&answerResponses)
 	if res.Error != nil {
-		tx.Rollback()
-		return nil, res.Error
+		return []AnswerResponse{}, res.Error
 	}
-	return answerResponse, nil
+	return answerResponses, nil
+}
+
+func (r *repository) GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error) {
+	var participant Participant
+	res := r.db.WithContext(ctx).Where("id = ?", participantID).Find(&participant)
+	if res.Error != nil {
+		return &Participant{}, res.Error
+	}
+	return &participant, nil
+}
+
+func(r *repository) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]Participant, error) {
+	var participant []Participant
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ?", liveQuizSessionID).Order("marks DESC,name ASC").Find(&participant)
+	if res.Error != nil {
+		return []Participant{}, res.Error
+	}
+	return participant, nil
 }

@@ -19,46 +19,6 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s *service) CreateAnswerResponse(ctx context.Context, req *LiveAnswerRequest) (*LiveAnswerResponse, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	tx, err := s.Repository.BeginTransaction()
-	if err != nil {
-		return nil, err
-	}
-
-	la := &AnswerResponse{
-		ID:                uuid.New(),
-		LiveQuizSessionID: req.LiveQuizSessionID,
-		ParticipantID:     req.ParticipantID,
-		Type:              req.Type,
-		QuestionID:        req.QuestionID,
-		Answer:            req.Answer,
-	}
-
-	liveAnswer, err := s.Repository.CreateAnswerResponse(c, tx, la)
-	if err != nil {
-		return &LiveAnswerResponse{}, err
-	}
-
-	s.Repository.CommitTransaction(tx)
-
-	return &LiveAnswerResponse{
-		AnswerResponse: AnswerResponse{
-			ID:                liveAnswer.ID,
-			LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
-			ParticipantID:     liveAnswer.ParticipantID,
-			Type:              liveAnswer.Type,
-			QuestionID:        liveAnswer.QuestionID,
-			Answer:            liveAnswer.Answer,
-			CreatedAt:         liveAnswer.CreatedAt,
-			UpdatedAt:         liveAnswer.UpdatedAt,
-			DeletedAt:         liveAnswer.DeletedAt,
-		},
-	}, nil
-}
-
 func (s *service) GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error) {
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -140,6 +100,77 @@ func (s *service) GetAnswerResponseByParticipantID(ctx context.Context, particip
 				UpdatedAt:         liveAnswer.UpdatedAt,
 				DeletedAt:         liveAnswer.DeletedAt,
 			},
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	liveAnswers, err := s.Repository.GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx, liveQuizSessionID, questionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []LiveAnswerResponse
+	for _, liveAnswer := range liveAnswers {
+		res = append(res, LiveAnswerResponse{
+			AnswerResponse: AnswerResponse{
+				ID:                liveAnswer.ID,
+				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
+				ParticipantID:     liveAnswer.ParticipantID,
+				Type:              liveAnswer.Type,
+				QuestionID:        liveAnswer.QuestionID,
+				Answer:            liveAnswer.Answer,
+				CreatedAt:         liveAnswer.CreatedAt,
+				UpdatedAt:         liveAnswer.UpdatedAt,
+				DeletedAt:         liveAnswer.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
+
+}
+
+func (s *service) GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participant, err := s.Repository.GetParticipantByID(c, liveQuizSessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Participant{
+		ID:                participant.ID,
+		UserID:            participant.UserID,
+		LiveQuizSessionID: participant.LiveQuizSessionID,
+		Status:            participant.Status,
+		Name:              participant.Name,
+		Marks:             participant.Marks,
+	}, nil
+}
+
+func (s *service) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participant, err := s.Repository.GetOrderParticipantsByLiveQuizSessionID(c, liveQuizSessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []ParticipantResponse
+	for _, pRes := range participant {
+		res = append(res, ParticipantResponse{
+			ID: pRes.ID,
+			UserID: pRes.UserID,
+			Name: pRes.Name,
+			Marks: pRes.Marks,
 		})
 	}
 

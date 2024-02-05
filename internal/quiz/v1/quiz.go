@@ -21,7 +21,8 @@ type Quiz struct {
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	Mark           int            `json:"mark" gorm:"column:mark;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CaseSensitive  bool           `json:"case_sensitive" gorm:"column:case_sensitive;type:boolean"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -45,7 +46,8 @@ type QuizHistory struct {
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	Mark           int            `json:"mark" gorm:"column:mark;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CaseSensitive  bool           `json:"case_sensitive" gorm:"column:case_sensitive;type:boolean"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -61,9 +63,11 @@ type QuestionPool struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
@@ -82,9 +86,11 @@ type QuestionPoolHistory struct {
 	QuestionPoolID uuid.UUID      `json:"question_pool_id" gorm:"column:question_pool_id;type:uuid;not null;references:question_pool(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
@@ -103,18 +109,22 @@ type Question struct {
 	ID             uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool(id)"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired   bool           `json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	UseTemplate    bool           `json:"use_template" gorm:"column:use_template;type:boolean"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	LayoutIdx      int            `json:"layout_idx" gorm:"column:layout_idx;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -129,18 +139,22 @@ type QuestionHistory struct {
 	QuestionID     uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	QuizID         uuid.UUID      `json:"quiz_id" gorm:"column:quiz_id;type:uuid;not null;references:quiz_history(id)"`
 	QuestionPoolID *uuid.UUID     `json:"question_pool_id,omitempty" gorm:"column:question_pool_id;type:uuid;references:question_pool_history(id)"`
+	PoolOrder      int            `json:"pool_order" gorm:"column:pool_order;type:int"`
+	PoolRequired   bool           `json:"pool_required" gorm:"column:pool_required;type:bool"`
 	Type           string         `json:"type" gorm:"column:type;type:text"`
 	Order          int            `json:"order" gorm:"column:order;type:int"`
 	Content        string         `json:"content" gorm:"column:content;type:text"`
 	Note           string         `json:"note" gorm:"column:note;type:text"`
 	Media          string         `json:"media" gorm:"column:media;type:text"`
+	MediaType      string         `json:"media_type" gorm:"column:media_type;type:text"`
 	UseTemplate    bool           `json:"use_template" gorm:"column:use_template;type:boolean"`
 	TimeLimit      int            `json:"time_limit" gorm:"column:time_limit;type:int"`
 	HaveTimeFactor bool           `json:"have_time_factor" gorm:"column:have_time_factor;type:boolean"`
 	TimeFactor     int            `json:"time_factor" gorm:"column:time_factor;type:int"`
 	FontSize       int            `json:"font_size" gorm:"column:font_size;type:int"`
 	LayoutIdx      int            `json:"layout_idx" gorm:"column:layout_idx;type:int"`
-	SelectUpTo     int            `json:"select_up_to" gorm:"column:select_up_to;type:int"`
+	SelectMin      int            `json:"select_min" gorm:"column:select_min;type:int"`
+	SelectMax      int            `json:"select_max" gorm:"column:select_max;type:int"`
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -228,6 +242,7 @@ type MatchingOption struct {
 	Type       string         `json:"type" gorm:"column:type;type:text"`
 	Order      int            `json:"order" gorm:"column:order;type:int"`
 	Content    string         `json:"content" gorm:"column:content;type:text"`
+	Color      string         `json:"color" gorm:"column:color;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -245,6 +260,7 @@ type MatchingOptionHistory struct {
 	Type             string         `json:"type" gorm:"column:type;type:text"`
 	Order            int            `json:"order" gorm:"column:order;type:int"`
 	Content          string         `json:"content" gorm:"column:content;type:text"`
+	Color            string         `json:"color" gorm:"column:color;type:text"`
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
@@ -292,7 +308,7 @@ type Repository interface {
 	CommitTransaction(tx *gorm.DB) error
 
 	// ---------- Quiz related repository methods ---------- //
-	CreateQuiz(ctx context.Context, tx *gorm.DB ,quiz *Quiz) (*Quiz, error)
+	CreateQuiz(ctx context.Context, tx *gorm.DB, quiz *Quiz) (*Quiz, error)
 	GetQuizzesByUserID(ctx context.Context, uid uuid.UUID) ([]Quiz, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID) (*Quiz, error)
 	UpdateQuiz(ctx context.Context, tx *gorm.DB, quiz *Quiz) (*Quiz, error)
@@ -395,7 +411,7 @@ type Repository interface {
 	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswerByID(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
-	GetDeleteMatchingAnswersByQuestionID(ctx context.Context,questionID uuid.UUID) ([]MatchingAnswer, error)
+	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
@@ -405,7 +421,8 @@ type Repository interface {
 // ---------- Quiz related structs ---------- //
 type QuizResponse struct {
 	Quiz
-	Questions []QuestionResponse `json:"questions"`
+	CreatorName string             `json:"creator_name"`
+	Questions   []QuestionResponse `json:"questions"`
 }
 
 type CreateQuizRequest struct {
@@ -431,6 +448,7 @@ type UpdateQuizRequest struct {
 
 type QuizHistoryResponse struct {
 	QuizHistory
+	CreatorName     string                    `json:"creator_name"`
 	QuestionHistory []QuestionHistoryResponse `json:"questions"`
 }
 
@@ -498,7 +516,7 @@ type ChoiceOptionRequest struct {
 	ChoiceOption
 }
 
-type ChoiceOptionHistoryResponse struct{
+type ChoiceOptionHistoryResponse struct {
 	ChoiceOptionHistory
 }
 
@@ -529,32 +547,34 @@ type MatchingOptionAndAnswerResponse struct {
 	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
 	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question(id)"`
 	Type       string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order      int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content    string         `json:"content,omitempty" gorm:"column:content;type:text"`
+	Order      *int           `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content    *string        `json:"content,omitempty" gorm:"column:content;type:text"`
+	Color      *string        `json:"color,omitempty" gorm:"column:color;type:text"`
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID   uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID   uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark       int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	PromptID   *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID   *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark       *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
 }
 
 type MatchingOptionAndAnswerHistoryResponse struct {
-	ID         uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
-	OptionMatchingID   uuid.UUID      `json:"option_matching_id,omitempty"`
-	AmswerMatchingID   uuid.UUID      `json:"answer_matching_id,omitempty"`
-	QuestionID uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
-	Type       string         `json:"type,omitempty" gorm:"column:type;type:text"`
-	Order      int            `json:"order,omitempty" gorm:"column:order;type:int"`
-	Content    string         `json:"content,omitempty" gorm:"column:content;type:text"`
-	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
-	PromptID   uuid.UUID      `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
-	OptionID   uuid.UUID      `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark       int            `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
-	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
-	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
-	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
+	ID               uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey;not null"`
+	OptionMatchingID *uuid.UUID     `json:"option_matching_id,omitempty"`
+	AmswerMatchingID *uuid.UUID     `json:"answer_matching_id,omitempty"`
+	QuestionID       uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid;not null;references:question_history(id)"`
+	Type             string         `json:"type,omitempty" gorm:"column:type;type:text"`
+	Order            *int           `json:"order,omitempty" gorm:"column:order;type:int"`
+	Content          *string        `json:"content,omitempty" gorm:"column:content;type:text"`
+	Color            *string        `json:"color,omitempty" gorm:"column:color;type:text"`
+	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
+	PromptID         *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
+	OptionID         *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
+	Mark             *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt        gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
 }
 
 // ------ Matching Option ------
@@ -584,8 +604,8 @@ type MatchingAnswerResponse struct {
 }
 
 type MatchingAnswerRequest struct {
-	Prompt int `json:"prompt"`
-	Option int `json:"option"`
+	Prompt int `json:"prompt_id"`
+	Option int `json:"option_id"`
 	MatchingAnswer
 }
 
@@ -604,8 +624,8 @@ type MatchingAnswerHistoryResponse struct {
 type Service interface {
 	// ---------- Transaction related service methods ---------- //
 	BeginTransaction(ctx context.Context) (*gorm.DB, error)
-	CommitTransaction(ctx context.Context,tx *gorm.DB) (error) 
-	
+	CommitTransaction(ctx context.Context, tx *gorm.DB) error
+
 	// ---------- Quiz related service methods ---------- //
 	CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
 	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
@@ -613,7 +633,7 @@ type Service interface {
 	GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
 	DeleteQuiz(ctx context.Context, tx *gorm.DB, quizID uuid.UUID) error
-	RestoreQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreQuiz(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetQuizHistories(ctx context.Context, uid uuid.UUID) ([]QuizHistoryResponse, error)
 	GetQuizHistoryByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizHistoryResponse, error)
@@ -621,10 +641,10 @@ type Service interface {
 	// ---------- Question Pool related service methods ---------- //
 	CreateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, quizID uuid.UUID, quizHistoryID uuid.UUID) (*CreateQuestionPoolResponse, error)
 	GetQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
-	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error) 
+	GetDeleteQuestionPoolsByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolResponse, error)
 	UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionPoolID uuid.UUID, quizHistoryID uuid.UUID) (*UpdateQuestionPoolResponse, error)
 	DeleteQuestionPool(ctx context.Context, tx *gorm.DB, questionPoolID uuid.UUID) error
-	RestoreQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreQuestionPool(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetQuestionPoolHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionPoolHistoryResponse, error)
 
@@ -636,9 +656,9 @@ type Service interface {
 	GetQuestionCountByQuizID(ctx context.Context, quizID uuid.UUID) (int, error)
 	UpdateQuestion(ctx context.Context, tx *gorm.DB, req *QuestionRequest, user_id uuid.UUID, questionID uuid.UUID, quizHistoryID uuid.UUID, questionPoolHistoryID *uuid.UUID) (*UpdateQuestionResponse, error)
 	DeleteQuestion(ctx context.Context, tx *gorm.DB, questionID uuid.UUID) error
-	RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
-	GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistoryResponse, error) 
+	GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistoryResponse, error)
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
@@ -648,7 +668,7 @@ type Service interface {
 	GetChoiceAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]ChoiceOptionResponse, error)
 	UpdateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateChoiceOptionResponse, error)
 	DeleteChoiceOption(ctx context.Context, tx *gorm.DB, choiceOptionID uuid.UUID) error
-	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistoryResponse, error)
 
@@ -659,7 +679,7 @@ type Service interface {
 	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	UpdateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
 	DeleteTextOption(ctx context.Context, tx *gorm.DB, textOptionID uuid.UUID) error
-	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetTextOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionHistoryResponse, error)
 
@@ -671,9 +691,10 @@ type Service interface {
 	GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error)
 	UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingOptionResponse, error)
 	DeleteMatchingOption(ctx context.Context, tx *gorm.DB, matchingOptionID uuid.UUID) error
-	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
-	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error) 
+	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error)
+	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error)
 
 	// ----- Matching Answer ------
 	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
@@ -681,7 +702,7 @@ type Service interface {
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
 	UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
 	DeleteMatchingAnswer(ctx context.Context, tx *gorm.DB, matchingAnswerID uuid.UUID) error
-	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) (error)
+	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistoryResponse, error)
 }
