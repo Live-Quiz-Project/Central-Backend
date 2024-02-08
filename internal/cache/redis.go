@@ -2,7 +2,9 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -12,9 +14,15 @@ type Cache struct {
 }
 
 func NewCache(ctx context.Context) (*Cache, error) {
+	host := os.Getenv("CACHE_HOST")
+	port := os.Getenv("CACHE_PORT")
+	pass := os.Getenv("CACHE_PASS")
+	
+	address := fmt.Sprintf("%s:%s",host,port)
+
 	cli := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     address,
+		Password: pass,
 		DB:       0,
 	})
 
