@@ -2,6 +2,10 @@ FROM --platform=linux/amd64 golang:latest
 
 WORKDIR /app
 
+# Set GOPROXY and GOSUMDB environment variables
+ENV GOPROXY=direct
+ENV GOSUMDB=off
+
 COPY go.mod go.sum ./
 
 RUN go mod download -x
