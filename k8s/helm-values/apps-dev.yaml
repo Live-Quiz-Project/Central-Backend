@@ -9,6 +9,7 @@ ingress:
   host: backend.dev.livequizplatform.online
   path: /
   serviceType: ClusterIP
+  tlsSecretName: tls-backend-dev
 extraEnv:
   HOST: postgresql.default.svc.cluster.local
   PORT: "8080"

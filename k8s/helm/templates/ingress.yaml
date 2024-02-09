@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Values.apps.namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: "cloudflare-issuer"
 spec:
   ingressClassName: nginx
   rules:
@@ -16,3 +18,7 @@ spec:
             name: {{ .Release.Name }}
             port:
               number: {{ .Values.apps.port }}
+  tls:
+  - hosts:
+      - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tlsSecretName }}
