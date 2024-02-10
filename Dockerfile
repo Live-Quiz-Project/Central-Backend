@@ -5,10 +5,6 @@ ENV GOOS=linux
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-
-RUN go mod download -x
-
 COPY . .
 
 RUN go build -o app ./cmd/main.go
