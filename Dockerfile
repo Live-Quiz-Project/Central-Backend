@@ -1,6 +1,5 @@
 FROM --platform=linux/amd64 golang:alpine3.18
 
-ENV GOPROXY=https://goproxy.io,direct
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
