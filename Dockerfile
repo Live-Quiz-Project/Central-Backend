@@ -1,10 +1,6 @@
-FROM --platform=linux/amd64 golang:latest
+FROM --platform=linux/amd64 golang:alpine3.18
 
 WORKDIR /app
-
-# Set GOPROXY and GOSUMDB environment variables
-ENV GO111MODULE=on
-ENV GOPROXY=https://proxy.golang.org,direct
 
 COPY go.mod go.sum ./
 
