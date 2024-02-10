@@ -11,6 +11,7 @@ ingress:
   serviceType: ClusterIP
   tlsSecretName: tls-backend-prd
 extraEnv:
+  ALLOW_ORIGINS: 'https://inquesto.livequizplatform.online,https://live.inquesto.livequizplatform.online'
   HOST: postgresql.default.svc.cluster.local
   PORT: "8080"
   DB_HOST: postgresql.default.svc.cluster.local
