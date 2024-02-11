@@ -51,6 +51,11 @@ spec:
   
   //Start Pipeline
   stages {
+      stage('Notify Pipeline Start') {
+          steps{
+              discordSend description: "Jenkins Pipeline Build", footer: "Start Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discord.com/api/webhooks/1206185835834380329/xp7XmY_RNHGZiQTPTJAwPIvmQwkofZoezFdK5ZRXfnBwRb2Kcu9x5Lw2x1GgdqwGe2ZB"
+          }
+      }
       
       // ***** Stage Clone *****
       stage('Clone reviews source code') {
@@ -108,4 +113,14 @@ spec:
       }
 
   }// End stages
+
+  post {
+    success {
+        discordSend description: "Jenkins Pipeline Build", footer: "Finish Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discord.com/api/webhooks/1206185835834380329/xp7XmY_RNHGZiQTPTJAwPIvmQwkofZoezFdK5ZRXfnBwRb2Kcu9x5Lw2x1GgdqwGe2ZB"
+    }
+    
+    failure {
+        discordSend description: "Jenkins Pipeline Build", footer: "Failed", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "https://discord.com/api/webhooks/1206185835834380329/xp7XmY_RNHGZiQTPTJAwPIvmQwkofZoezFdK5ZRXfnBwRb2Kcu9x5Lw2x1GgdqwGe2ZB"
+    }
+  }
 }// End pipeline
