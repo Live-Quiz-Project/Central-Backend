@@ -42,7 +42,6 @@ spec:
   }//End agent
   
     environment {
-        BRANCH_NAME = "dev"
         ENV_NAME = "${BRANCH_NAME == "main" ? "prd" : "${BRANCH_NAME}"}"
 
         GIT_SSH = "git@github.com:Live-Quiz-Project/Central-Backend.git"
