@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   display_emoji TEXT,
   display_color TEXT,
   account_status TEXT,
-  google_id UUID,
+  google_id TEXT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ
