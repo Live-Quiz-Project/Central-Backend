@@ -18,8 +18,10 @@ import (
 )
 
 func main() {
-	env.Initialize()
-
+	if os.Getenv("USE_ENV_FILE") == "TRUE" {
+		env.Initialize()
+ 	}
+	
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	dbConn, err := db.NewDatabase()
@@ -48,7 +50,7 @@ func main() {
 
 	hub := l.NewHub()
 	lRepo := l.NewRepository(dbConn.GetDB(), cacheConn.GetCache())
-	lServ := l.NewService(lRepo)
+	lServ := l.NewService(lRepo, uRepo)
 
 	liveHandler := l.NewHandler(hub, lServ, qServ)
 

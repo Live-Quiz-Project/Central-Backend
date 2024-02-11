@@ -43,7 +43,7 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 	defer cancel()
 
 	q := &Quiz{
-		ID:             uuid.New(),
+		ID:             req.ID,
 		CreatorID:      uid,
 		Title:          req.Title,
 		Description:    req.Description,

@@ -4,19 +4,23 @@ import (
 	"context"
 	"time"
 
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
+
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 )
 
 type service struct {
 	Repository
-	timeout time.Duration
+	timeout  time.Duration
+	userRepo u.Repository
 }
 
-func NewService(r Repository) Service {
+func NewService(r Repository, uRepo u.Repository) Service {
 	return &service{
 		Repository: r,
 		timeout:    time.Duration(3) * time.Second,
+		userRepo:   uRepo,
 	}
 }
 
@@ -103,7 +107,7 @@ func (s *service) CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuiz
 	}, nil
 }
 
-func (s *service) GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSessionResponse, error) {
+func (s *service) GetLiveQuizSessions(ctx context.Context, hub *Hub) ([]LiveQuizSessionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -114,13 +118,17 @@ func (s *service) GetLiveQuizSessions(ctx context.Context) ([]LiveQuizSessionRes
 
 	var lqsesRes []LiveQuizSessionResponse
 	for _, lqs := range lqses {
-		lqsesRes = append(lqsesRes, LiveQuizSessionResponse{
-			ID:     lqs.ID,
-			HostID: lqs.HostID,
-			QuizID: lqs.QuizID,
-			Status: lqs.Status,
-			Code:   lqs.Code,
-		})
+		for _, lq := range hub.LiveQuizSessions {
+			if lqs.ID == lq.ID {
+				lqsesRes = append(lqsesRes, LiveQuizSessionResponse{
+					ID:     lq.ID,
+					HostID: lq.HostID,
+					QuizID: lq.QuizID,
+					Status: lq.Status,
+					Code:   lq.Code,
+				})
+			}
+		}
 	}
 
 	return lqsesRes, nil
@@ -257,11 +265,11 @@ func (s *service) FlushLiveQuizSessionCache(ctx context.Context, code string) er
 	return nil
 }
 
-func (s *service) CreateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error {
+func (s *service) CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.CreateLiveQuizSessionResponseCache(c, code, response)
+	err := s.Repository.CreateLiveQuizSessionResponsesCache(c, code, response)
 	if err != nil {
 		return err
 	}
@@ -269,11 +277,11 @@ func (s *service) CreateLiveQuizSessionResponseCache(ctx context.Context, code s
 	return nil
 }
 
-func (s *service) GetLiveQuizSessionResponseCache(ctx context.Context, code string) (any, error) {
+func (s *service) GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	res, err := s.Repository.GetLiveQuizSessionResponseCache(c, code)
+	res, err := s.Repository.GetLiveQuizSessionResponsesCache(c, code)
 	if err != nil {
 		return nil, err
 	}
@@ -281,11 +289,11 @@ func (s *service) GetLiveQuizSessionResponseCache(ctx context.Context, code stri
 	return res, nil
 }
 
-func (s *service) UpdateLiveQuizSessionResponseCache(ctx context.Context, code string, response any) error {
+func (s *service) UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.UpdateLiveQuizSessionResponseCache(c, code, response)
+	err := s.Repository.UpdateLiveQuizSessionResponsesCache(c, code, response)
 	if err != nil {
 		return err
 	}
@@ -293,11 +301,11 @@ func (s *service) UpdateLiveQuizSessionResponseCache(ctx context.Context, code s
 	return nil
 }
 
-func (s *service) FlushLiveQuizSessionResponseCache(ctx context.Context, code string) error {
+func (s *service) FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.FlushLiveQuizSessionResponseCache(c, code)
+	err := s.Repository.FlushLiveQuizSessionResponsesCache(c, code)
 	if err != nil {
 		return err
 	}

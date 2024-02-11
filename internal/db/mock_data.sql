@@ -1,12 +1,11 @@
--- Import uuid extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 SELECT * FROM "quiz"
-
 
 SELECT * FROM "quiz_history"
 
 SELECT * FROM "quiz" WHERE id = 'd90fe3d4-56c4-4cb3-9204-07b2c201d644';
+
+-- Import uuid extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Insert mock data in live_quiz_session
 INSERT INTO "live_quiz_session" (id, host_id, quiz_id, status, exempted_question_ids, created_at, updated_at)

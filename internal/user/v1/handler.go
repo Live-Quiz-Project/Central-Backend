@@ -50,7 +50,7 @@ func (h *Handler) LogOut(c *gin.Context) {
 func (h *Handler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("token")
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
 		return
@@ -66,7 +66,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := util.GenerateToken(claims.UserID, time.Now().Add(24*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(claims.UserID, claims.Name, claims.DisplayName, claims.DisplayColor, claims.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -78,23 +78,44 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 }
 
 func (h *Handler) DecodeToken(c *gin.Context) {
-	var req DecodeTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	res, err := util.DecodeToken(req.Token, os.Getenv("ACCESS_TOKEN_SECRET"))
+	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	uname, ok := c.Get("name")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayName, ok := c.Get("display_name")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayColor, ok := c.Get("display_color")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	displayEmoji, ok := c.Get("display_emoji")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, util.Claims{
+		UserID:       userID,
+		Name:         uname.(string),
+		DisplayName:  displayName.(string),
+		DisplayColor: displayColor.(string),
+		DisplayEmoji: displayEmoji.(string),
+	})
 }
 
 // ---------- User related handlers ---------- //
@@ -116,7 +137,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	}
 
 	c.SetCookie("token", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusCreated, res)
 }
 
 func (h *Handler) GetUsers(c *gin.Context) {
@@ -246,6 +267,152 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusUnauthorized, gin.H{
 		"error": "unauthorized",
 	})
+}
+
+func (h *Handler) ChangePassword(c *gin.Context) {
+	var request struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.NewPassword != request.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New password and confirm password do not match"})
+		return
+	}
+
+	if err := h.Service.VerifyPassword(c.Request.Context(), id, request.CurrentPassword); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
+		return
+	}
+
+	if err := h.Service.ChangePassword(c.Request.Context(), id, request.NewPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func (h *Handler) GoogleSignIn(c *gin.Context) {
+	var request struct {
+		Token string `json:"token"`
+	}
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userResponse, refreshToken, err := h.Service.GoogleSignIn(c.Request.Context(), request.Token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.SetCookie("jwt", refreshToken, 60*60*24*7, "/", os.Getenv("HOST"), false, true)
+	c.JSON(http.StatusOK, userResponse)
+}
+
+var otpSecret string
+var otpCode string
+var expireTime time.Time
+
+func (h *Handler) SendOTPCode(c *gin.Context) {
+	var request struct {
+		Email string `json:"email"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.Service.GetUserByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if otpSecret == "" {
+		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := gin.H{
+		"message":    "Confirmation code sent successfully",
+		"code":       otpCode,
+		"secret":     otpSecret,
+		"expireTime": expireTime,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) VerifyOTPCode(c *gin.Context) {
+	var request struct {
+		OtpCode string `json:"otp"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	expireTimeParsed, err := time.Parse(time.RFC3339, expireTime.Format(time.RFC3339))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing expiration time"})
+		return
+	}
+
+	if time.Now().After(expireTimeParsed) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
+		return
+	}
+
+	validResponse := gin.H{
+		"message": "OTP code is valid",
+		"otpCode": request.OtpCode,
+		"secret":  otpSecret,
+	}
+
+	invalidResponse := gin.H{
+		"message": "OTP code is invalid",
+		"otpCode": request.OtpCode,
+		"secret":  otpSecret,
+	}
+
+	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+		return
+	}
+
+	c.JSON(http.StatusOK, validResponse)
 }
 
 // ---------- Admin related handlers ---------- //
