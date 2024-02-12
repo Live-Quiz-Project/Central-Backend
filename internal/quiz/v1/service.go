@@ -1077,6 +1077,44 @@ func (s *service) GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.
 	return res, nil
 }
 
+func (s *service) GetQuestionHistoryByID(ctx context.Context, id uuid.UUID) (*QuestionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	q, err := s.Repository.GetQuestionHistoryByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &QuestionHistoryResponse{
+		QuestionHistory: QuestionHistory{
+			ID:             q.ID,
+			QuestionID:     q.QuestionID,
+			QuizID:         q.QuizID,
+			QuestionPoolID: q.QuestionPoolID,
+			Type:           q.Type,
+			Order:          q.Order,
+			PoolOrder:      q.PoolOrder,
+			PoolRequired:   q.PoolRequired,
+			Content:        q.Content,
+			Note:           q.Note,
+			Media:          q.Media,
+			MediaType:      q.MediaType,
+			UseTemplate:    q.UseTemplate,
+			TimeLimit:      q.TimeLimit,
+			HaveTimeFactor: q.HaveTimeFactor,
+			TimeFactor:     q.TimeFactor,
+			FontSize:       q.FontSize,
+			LayoutIdx:      q.LayoutIdx,
+			SelectMin:      q.SelectMin,
+			SelectMax:      q.SelectMax,
+			CreatedAt:      q.CreatedAt,
+			UpdatedAt:      q.UpdatedAt,
+			DeletedAt:      q.DeletedAt,
+		},
+	}, nil
+}
+
 // ---------- Options related service methods ---------- //
 // Choice related service methods
 func (s *service) CreateChoiceOption(ctx context.Context, tx *gorm.DB, req *ChoiceOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateChoiceOptionResponse, error) {
@@ -1337,6 +1375,33 @@ func (s *service) GetChoiceOptionHistoriesByQuestionID(ctx context.Context, ques
 	return res, nil
 }
 
+func (s *service) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	oc, err := s.Repository.GetChoiceOptionHistoryByQuestionIDAndContent(c, questionID, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ChoiceOptionHistoryResponse{
+		ChoiceOptionHistory: ChoiceOptionHistory{
+			ID:             oc.ID,
+			ChoiceOptionID: oc.ChoiceOptionID,
+			QuestionID:     oc.QuestionID,
+			Order:          oc.Order,
+			Content:        oc.Content,
+			Mark:           oc.Mark,
+			Color:          oc.Color,
+			Correct:        oc.Correct,
+			CreatedAt:      oc.CreatedAt,
+			UpdatedAt:      oc.UpdatedAt,
+			DeletedAt:      oc.DeletedAt,
+		},
+	}, nil
+
+}
+
 // Text related service methods
 func (s *service) CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
@@ -1584,6 +1649,31 @@ func (s *service) GetTextOptionHistoriesByQuestionID(ctx context.Context, questi
 	return res, nil
 }
 
+func (s *service) GetTextOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*TextOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	ot, err := s.Repository.GetTextOptionHistoryByQuestionIDAndContent(c, questionID, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TextOptionHistoryResponse{
+		TextOptionHistory: TextOptionHistory{
+			ID:            ot.ID,
+			OptionTextID:  ot.OptionTextID,
+			QuestionID:    ot.QuestionID,
+			Order:         ot.Order,
+			Content:       ot.Content,
+			Mark:          ot.Mark,
+			CaseSensitive: ot.CaseSensitive,
+			CreatedAt:     ot.CreatedAt,
+			UpdatedAt:     ot.UpdatedAt,
+			DeletedAt:     ot.DeletedAt,
+		},
+	}, nil
+}
+
 // ------ Matching Option ------
 
 func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *MatchingOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingOptionResponse, error) {
@@ -1616,7 +1706,7 @@ func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 		return &CreateMatchingOptionResponse{}, err
 	}
 
-	_, er := s.Repository.CreateMatchingOptionHistory(c, tx, omh)
+	optionMatchingHistory, er := s.Repository.CreateMatchingOptionHistory(c, tx, omh)
 	if er != nil {
 		return &CreateMatchingOptionResponse{}, er
 	}
@@ -1634,6 +1724,7 @@ func (s *service) CreateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 			UpdatedAt:  optionMatching.UpdatedAt,
 			DeletedAt:  optionMatching.DeletedAt,
 		},
+		MatchingOptionHistoryID: optionMatchingHistory.ID,
 	}, nil
 }
 
@@ -1836,6 +1927,58 @@ func (s *service) GetMatchingOptionHistoriesByQuestionID(ctx context.Context, qu
 	return res, nil
 }
 
+func (s *service) GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionHistoryByQuestionIDAndContent(c, questionID, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionHistoryResponse{
+		MatchingOptionHistory: MatchingOptionHistory{
+			ID:               om.ID,
+			OptionMatchingID: om.OptionMatchingID,
+			QuestionID:       om.QuestionID,
+			Order:            om.Order,
+			Content:          om.Content,
+			Type:             om.Type,
+			Color:            om.Color,
+			Eliminate:        om.Eliminate,
+			CreatedAt:        om.CreatedAt,
+			UpdatedAt:        om.UpdatedAt,
+			DeletedAt:        om.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionHistoryByOptionMatchingID(c, optionMatchingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionHistoryResponse{
+		MatchingOptionHistory: MatchingOptionHistory{
+			ID:               om.ID,
+			OptionMatchingID: om.OptionMatchingID,
+			QuestionID:       om.QuestionID,
+			Order:            om.Order,
+			Content:          om.Content,
+			Type:             om.Type,
+			Color:            om.Color,
+			Eliminate:        om.Eliminate,
+			CreatedAt:        om.CreatedAt,
+			UpdatedAt:        om.UpdatedAt,
+			DeletedAt:        om.DeletedAt,
+		},
+	}, nil
+}
+
 func (s *service) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -1864,7 +2007,7 @@ func (s *service) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID
 
 // ------ Matching Answer ------
 
-func (s *service) CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
+func (s *service) CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, matchingOptionPromptHistoryID uuid.UUID, matchingOptionOptionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -1880,8 +2023,8 @@ func (s *service) CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *Ma
 		ID:               uuid.New(),
 		AnswerMatchingID: am.ID,
 		QuestionID:       questionHistoryID,
-		PromptID:         am.PromptID,
-		OptionID:         am.OptionID,
+		PromptID:         matchingOptionPromptHistoryID,
+		OptionID:         matchingOptionOptionHistoryID,
 		Mark:             am.Mark,
 	}
 
@@ -2067,4 +2210,52 @@ func (s *service) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, qu
 	}
 
 	return res, nil
+}
+
+func (s *service) GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	am, err := s.Repository.GetMatchingAnswerHistoryByQuestionIDAndContent(c, questionID, content)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingAnswerHistoryResponse{
+		MatchingAnswerHistory: MatchingAnswerHistory{
+			ID:               am.ID,
+			AnswerMatchingID: am.AnswerMatchingID,
+			QuestionID:       am.QuestionID,
+			PromptID:         am.PromptID,
+			OptionID:         am.OptionID,
+			Mark:             am.Mark,
+			CreatedAt:        am.CreatedAt,
+			UpdatedAt:        am.UpdatedAt,
+			DeletedAt:        am.DeletedAt,
+		},
+	}, nil
+}
+
+func (s *service) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	am, err := s.Repository.GetMatchingAnswerHistoryByPromptIDAndOptionID(c, promptID, optionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingAnswerHistoryResponse{
+		MatchingAnswerHistory: MatchingAnswerHistory{
+			ID:               am.ID,
+			AnswerMatchingID: am.AnswerMatchingID,
+			QuestionID:       am.QuestionID,
+			PromptID:         am.PromptID,
+			OptionID:         am.OptionID,
+			Mark:             am.Mark,
+			CreatedAt:        am.CreatedAt,
+			UpdatedAt:        am.UpdatedAt,
+			DeletedAt:        am.DeletedAt,
+		},
+	}, nil
 }

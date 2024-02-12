@@ -370,6 +370,7 @@ type Repository interface {
 	CreateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	GetChoiceOptionHistoryByID(ctx context.Context, id uuid.UUID) (*ChoiceOptionHistory, error)
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistory, error)
+	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID,content string) (*ChoiceOptionHistory, error)
 	UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	DeleteChoiceOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -385,6 +386,7 @@ type Repository interface {
 	CreateTextOptionHistory(ctx context.Context, tx *gorm.DB, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
 	GetTextOptionHistoryByID(ctx context.Context, id uuid.UUID) (*TextOptionHistory, error)
 	GetTextOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionHistory, error)
+	GetTextOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*TextOptionHistory, error)
 	UpdateTextOptionHistory(ctx context.Context, tx *gorm.DB, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error)
 	DeleteTextOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -398,9 +400,11 @@ type Repository interface {
 	DeleteMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*MatchingOption, error)
 	CreateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
+	GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistory, error)
 	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistory, error)
 	GetOptionMatchingHistories(ctx context.Context) ([]MatchingOptionHistory, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistory, error)
+	GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistory, error)
 	UpdateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
 	DeleteMatchingOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -414,6 +418,8 @@ type Repository interface {
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error)
+	GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistory, error)
+	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	DeleteMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 }
@@ -588,10 +594,12 @@ type MatchingOptionRequest struct {
 
 type UpdateMatchingOptionResponse struct {
 	MatchingOption
+	MatchingOptionHistoryID uuid.UUID `json:"matching_option_history_id"`
 }
 
 type CreateMatchingOptionResponse struct {
 	MatchingOption
+	MatchingOptionHistoryID uuid.UUID `json:"matching_option_history_id"`
 }
 
 type MatchingOptionHistoryResponse struct {
@@ -659,6 +667,7 @@ type Service interface {
 	RestoreQuestion(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetQuestionHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuestionHistoryResponse, error)
+	GetQuestionHistoryByID(ctx context.Context, id uuid.UUID) (*QuestionHistoryResponse, error)
 
 	// ---------- Options related service methods ---------- //
 	// Choice related service methods
@@ -671,6 +680,7 @@ type Service interface {
 	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistoryResponse, error)
+	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistoryResponse, error)
 
 	// Text related service methods
 	CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
@@ -682,6 +692,7 @@ type Service interface {
 	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetTextOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionHistoryResponse, error)
+	GetTextOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*TextOptionHistoryResponse, error)
 
 	// Matching related service methods
 	// ----- Matching Option ------
@@ -694,10 +705,12 @@ type Service interface {
 	RestoreMatchingOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistoryResponse, error)
+	GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistoryResponse, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error)
+	GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistoryResponse, error)
 
 	// ----- Matching Answer ------
-	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
+	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, matchingOptionPromptHistoryID uuid.UUID, matchingOptionOptionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerResponse, error)
 	UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateMatchingAnswerResponse, error)
@@ -705,4 +718,6 @@ type Service interface {
 	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistoryResponse, error)
+	GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistoryResponse, error)
+	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistoryResponse, error)
 }

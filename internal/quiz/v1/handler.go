@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/Live-Quiz-Project/Backend/internal/util"
@@ -64,7 +63,6 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		if q.Type == util.Pool {
 			txPool, _ := h.Service.BeginTransaction(c.Request.Context())
 			
-			log.Println("HERE")
 			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), txPool, &q, res.ID, res.QuizHistoryID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -184,13 +182,25 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),prompt.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),option.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
 							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), txMatching, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
 									Mark:     int(qst["mark"].(float64)),
 								},
-							}, qRes.ID, qRes.QuestionHistoryID, userID)
+							}, qRes.ID, qRes.QuestionHistoryID, promptH.ID, optionH.ID, userID)
 
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -743,8 +753,6 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			for _, amr := range amRes {
-
-				log.Println(amr)
 				o = append(o, MatchingOptionAndAnswerResponse{
 					ID:         amr.ID,
 					QuestionID: amr.QuestionID,
@@ -1017,6 +1025,18 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 								return
 							}
 
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),prompt.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),option.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
 							if id != uuid.Nil {
 								_, err = h.Service.UpdateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
 									MatchingAnswer: MatchingAnswer{
@@ -1034,7 +1054,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 										OptionID: option.ID,
 										Mark:     int(qst["mark"].(float64)),
 									},
-								}, qRes.ID, qRes.QuestionHistoryID, userID)
+								}, qRes.ID, qRes.QuestionHistoryID, promptH.ID, optionH.ID, userID)
 							}
 						}
 					}
@@ -1159,13 +1179,25 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 								return
 							}
 
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),prompt.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(),option.ID)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+								return
+							}
+
 							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
 									Mark:     int(qst["mark"].(float64)),
 								},
-							}, qRes.ID, qRes.QuestionHistoryID, userID)
+							}, qRes.ID, qRes.QuestionHistoryID, promptH.ID, optionH.ID, userID)
 
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

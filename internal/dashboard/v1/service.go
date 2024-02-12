@@ -19,93 +19,6 @@ func NewService(repo Repository) Service {
 	}
 }
 
-func (s *service) GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error) {
-	_, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	liveAnswers, err := s.Repository.GetAnswerResponseByLiveQuizSessionID(ctx, liveSessionID)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []LiveAnswerResponse
-	for _, liveAnswer := range liveAnswers {
-		res = append(res, LiveAnswerResponse{
-			AnswerResponse: AnswerResponse{
-				ID:                liveAnswer.ID,
-				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
-				ParticipantID:     liveAnswer.ParticipantID,
-				Type:              liveAnswer.Type,
-				QuestionID:        liveAnswer.QuestionID,
-				Answer:            liveAnswer.Answer,
-				CreatedAt:         liveAnswer.CreatedAt,
-				UpdatedAt:         liveAnswer.UpdatedAt,
-				DeletedAt:         liveAnswer.DeletedAt,
-			},
-		})
-	}
-
-	return res, nil
-}
-
-func (s *service) GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error) {
-	_, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	liveAnswers, err := s.Repository.GetAnswerResponseByQuestionID(ctx, questionID)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []LiveAnswerResponse
-	for _, liveAnswer := range liveAnswers {
-		res = append(res, LiveAnswerResponse{
-			AnswerResponse: AnswerResponse{
-				ID:                liveAnswer.ID,
-				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
-				ParticipantID:     liveAnswer.ParticipantID,
-				Type:              liveAnswer.Type,
-				QuestionID:        liveAnswer.QuestionID,
-				Answer:            liveAnswer.Answer,
-				CreatedAt:         liveAnswer.CreatedAt,
-				UpdatedAt:         liveAnswer.UpdatedAt,
-				DeletedAt:         liveAnswer.DeletedAt,
-			},
-		})
-	}
-
-	return res, nil
-}
-
-func (s *service) GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error) {
-	_, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	liveAnswers, err := s.Repository.GetAnswerResponseByParticipantID(ctx, participantID)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []LiveAnswerResponse
-	for _, liveAnswer := range liveAnswers {
-		res = append(res, LiveAnswerResponse{
-			AnswerResponse: AnswerResponse{
-				ID:                liveAnswer.ID,
-				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
-				ParticipantID:     liveAnswer.ParticipantID,
-				Type:              liveAnswer.Type,
-				QuestionID:        liveAnswer.QuestionID,
-				Answer:            liveAnswer.Answer,
-				CreatedAt:         liveAnswer.CreatedAt,
-				UpdatedAt:         liveAnswer.UpdatedAt,
-				DeletedAt:         liveAnswer.DeletedAt,
-			},
-		})
-	}
-
-	return res, nil
-}
-
 func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error) {
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -125,6 +38,7 @@ func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx 
 				Type:              liveAnswer.Type,
 				QuestionID:        liveAnswer.QuestionID,
 				Answer:            liveAnswer.Answer,
+				UseTime: 					 liveAnswer.UseTime,
 				CreatedAt:         liveAnswer.CreatedAt,
 				UpdatedAt:         liveAnswer.UpdatedAt,
 				DeletedAt:         liveAnswer.DeletedAt,
@@ -133,7 +47,36 @@ func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx 
 	}
 
 	return res, nil
+}
 
+func (s *service) GetAnswerResponsesByLiveQuizSessionIDAndParticipantID(ctx context.Context, liveQuizSessionID uuid.UUID, participantID uuid.UUID) ([]LiveAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	liveAnswers, err := s.Repository.GetAnswerResponsesByLiveQuizSessionIDAndParticipantID(ctx, liveQuizSessionID, participantID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []LiveAnswerResponse
+	for _, liveAnswer := range liveAnswers {
+		res = append(res, LiveAnswerResponse{
+			AnswerResponse: AnswerResponse{
+				ID:                liveAnswer.ID,
+				LiveQuizSessionID: liveAnswer.LiveQuizSessionID,
+				ParticipantID:     liveAnswer.ParticipantID,
+				Type:              liveAnswer.Type,
+				QuestionID:        liveAnswer.QuestionID,
+				Answer:            liveAnswer.Answer,
+				UseTime:           liveAnswer.UseTime,	
+				CreatedAt:         liveAnswer.CreatedAt,
+				UpdatedAt:         liveAnswer.UpdatedAt,
+				DeletedAt:         liveAnswer.DeletedAt,
+			},
+		})
+	}
+
+	return res, nil
 }
 
 func (s *service) GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error) {
@@ -176,3 +119,4 @@ func (s *service) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, l
 
 	return res, nil
 }
+

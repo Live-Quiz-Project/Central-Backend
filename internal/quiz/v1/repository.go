@@ -621,6 +621,16 @@ func (r *repository) GetChoiceOptionHistoriesByQuestionID(ctx context.Context, q
 	return optionChoiceHistories, nil
 }
 
+func (r *repository) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID,content string) (*ChoiceOptionHistory, error) {
+	var optionChoiceHistory ChoiceOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? and content = ?", questionID, content).Find(&optionChoiceHistory)
+	if res.Error != nil {
+		return &ChoiceOptionHistory{}, res.Error
+	}
+
+	return &optionChoiceHistory, nil
+}
+
 func (r *repository) UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error) {
 	res := tx.WithContext(ctx).Save(optionChoiceHistory)
 	if res.Error != nil {
@@ -758,6 +768,16 @@ func (r *repository) GetTextOptionHistoriesByQuestionID(ctx context.Context, que
 	return optionTextHistories, nil
 }
 
+func (r *repository) GetTextOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*TextOptionHistory, error) {
+	var optionTextHistory TextOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content).Find(&optionTextHistory)
+	if res.Error != nil {
+		return &TextOptionHistory{}, res.Error
+	}
+
+	return &optionTextHistory, nil
+}
+
 func (r *repository) UpdateTextOptionHistory(ctx context.Context, tx *gorm.DB, optionTextHistory *TextOptionHistory) (*TextOptionHistory, error) {
 	res := tx.WithContext(ctx).Save(optionTextHistory)
 	if res.Error != nil {
@@ -867,9 +887,18 @@ func (r *repository) CreateMatchingOptionHistory(ctx context.Context, tx *gorm.D
 	return optionMatchingHistory, nil
 }
 
+func (r *repository) GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistory, error) {
+	var optionMatchingHistory MatchingOptionHistory
+	res := r.db.WithContext(ctx).Where("option_matching_id = ?", optionMatchingID).First(&optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return &optionMatchingHistory, nil
+}
+
 func (r *repository) GetMatchingOptionHistoryByID(ctx context.Context, id uuid.UUID) (*MatchingOptionHistory, error) {
 	var optionMatchingHistory MatchingOptionHistory
-	res := r.db.WithContext(ctx).Where("option_matching_id = ?", id).First(&optionMatchingHistory)
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&optionMatchingHistory)
 	if res.Error != nil {
 		return &MatchingOptionHistory{}, res.Error
 	}
@@ -892,6 +921,15 @@ func (r *repository) GetMatchingOptionHistoriesByQuestionID(ctx context.Context,
 		return []MatchingOptionHistory{}, res.Error
 	}
 	return optionMatchingHistories, nil
+}
+
+func (r *repository) GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistory, error) {
+	var optionMatchingHistory MatchingOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content ).Find(&optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return &optionMatchingHistory, nil
 }
 
 func (r *repository) UpdateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error) {
@@ -998,6 +1036,24 @@ func (r *repository) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context,
 		return []MatchingAnswerHistory{}, res.Error
 	}
 	return answerMatchingHistories, nil
+}
+
+func (r *repository) GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistory, error) {
+	var answerMatchingHistory MatchingAnswerHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content).Find(&answerMatchingHistory)
+	if res.Error != nil {
+		return &MatchingAnswerHistory{}, res.Error
+	}
+	return &answerMatchingHistory, nil
+}
+
+func (r *repository) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error) {
+	var answerMatchingHistory MatchingAnswerHistory
+	res := r.db.WithContext(ctx).Where("prompt_id = ? AND option_id = ?", promptID, optionID).Find(&answerMatchingHistory)
+	if res.Error != nil {
+		return &MatchingAnswerHistory{}, res.Error
+	}
+	return &answerMatchingHistory, nil
 }
 
 func (r *repository) UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error) {
