@@ -121,7 +121,6 @@ func TestGetQuizzesByUserID(t *testing.T) {
 	assert.Nil(t, mock.ExpectationsWereMet())	
 }
 
-
 func TestGetQuizByID(t *testing.T) {
 	// Setup Test
 	sqlDB, db, mock := DbMock(t)
@@ -168,4 +167,97 @@ func TestGetQuizByID(t *testing.T) {
 	assert.Nil(t, mock.ExpectationsWereMet())
 }
 
+func TestGetDeleteQuizByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
 
+	// Variables
+	id := uuid.New()
+
+	// Mock Data
+	quiz := &Quiz{
+		ID:             id,
+		CreatorID:      uuid.New(),
+		Title:          "Test Title",
+		Description:    "Test Description",
+		CoverImage:     "Test CoverImage",
+		Visibility:     "PRIVATE",
+		TimeLimit:      20,
+		HaveTimeFactor: false,
+		TimeFactor:     1,
+		FontSize:       24,
+		Mark:           10,
+		SelectMin:      1,
+		SelectMax:      1,
+		CaseSensitive:  true,
+	}
+
+	// Add rows to 'Test' Database
+	quizzes := sqlmock.NewRows([]string{"id", "creator_id", "title", "description", "cover_image", "visibility", "time_limit", "have_time_factor", "time_factor", "font_size", "mark", "select_min", "select_max", "case_sensitive"}).
+		AddRow(quiz.ID.String(),quiz.CreatorID.String(), quiz.Title, quiz.Description, quiz.CoverImage, quiz.Visibility, quiz.TimeLimit, quiz.HaveTimeFactor, quiz.TimeFactor, quiz.FontSize, quiz.Mark, quiz.SelectMin, quiz.SelectMax, quiz.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"quiz\" WHERE id =(.+)"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(id.String()).
+		WillReturnRows(quizzes)
+
+	// Actual Function
+	res, err := repo.GetDeleteQuizByID(context.TODO(), id)
+
+	// Unit Test
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateQuiz(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Variables
+
+	// Mock Data
+	quiz := &Quiz{
+		ID:             uuid.New(),
+		CreatorID:      uuid.New(),
+		Title:          "Test Title",
+		Description:    "Test Description",
+		CoverImage:     "Test CoverImage",
+		Visibility:     "PRIVATE",
+		TimeLimit:      20,
+		HaveTimeFactor: false,
+		TimeFactor:     1,
+		FontSize:       24,
+		Mark:           10,
+		SelectMin:      1,
+		SelectMax:      1,
+		CaseSensitive:  true,
+	}
+
+	// Add rows to 'Test' Database
+	sqlmock.NewRows([]string{"id", "creator_id", "title", "description", "cover_image", "visibility", "time_limit", "have_time_factor", "time_factor", "font_size", "mark", "select_min", "select_max", "case_sensitive"}).
+		AddRow(quiz.ID.String(),quiz.CreatorID.String(), quiz.Title, quiz.Description, quiz.CoverImage, quiz.Visibility, quiz.TimeLimit, quiz.HaveTimeFactor, quiz.TimeFactor, quiz.FontSize, quiz.Mark, quiz.SelectMin, quiz.SelectMax, quiz.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "UPDATE \"quiz\" SET (.+) WHERE id = (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(quiz.ID.String(),quiz.CreatorID.String(), quiz.Title, quiz.Description, quiz.CoverImage, quiz.Visibility, quiz.TimeLimit, quiz.HaveTimeFactor, quiz.TimeFactor, quiz.FontSize, quiz.Mark, quiz.SelectMin, quiz.SelectMax, quiz.CaseSensitive, quiz.ID)
+	mock.ExpectCommit()
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(id.String()).
+	// 	WillReturnRows(quizzes)
+
+	// Actual Function
+	res, err := repo.UpdateQuiz(context.TODO(), db, quiz)
+
+	// Unit Test
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
