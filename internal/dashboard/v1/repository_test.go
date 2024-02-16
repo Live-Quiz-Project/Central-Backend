@@ -30,56 +30,6 @@ func DbMock(t *testing.T) (*sql.DB, *gorm.DB, sqlmock.Sqlmock) {
 	return sqldb, gormdb, mock
 }
 
-func TestTemplate(t *testing.T) {
-	// Setup Test
-	sqlDB, db, mock := DbMock(t)
-	defer sqlDB.Close()
-	repo := NewRepository(db)
-
-	// Mock Data
-	data := &AnswerResponse{
-		ID:                uuid.New(),
-		LiveQuizSessionID: uuid.New(),
-		ParticipantID:     uuid.New(),
-		Type:              "Type",
-		QuestionID:        uuid.New(),
-		Answer:            "Answer",
-		UseTime:           5,
-	}
-
-	// ===== CREATE  =====
-	// expectedSQL := "INSERT INTO \"answer_response\" (.+) VALUES (.+)"
-	// mock.ExpectBegin()
-	// mock.ExpectExec(expectedSQL).
-	// 	WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
-	// 	WillReturnResult(sqlmock.NewResult(1, 1))
-	// mock.ExpectCommit()
-
-	// ===== GET RESTORE =====
-	// sample := sqlmock.NewRows([]string{"id", "live_quiz_session_id", "participant_id", "type", "question_id", "answer", "use_time"}).
-	// 	AddRow(data.ID.String(), data.LiveQuizSessionID.String(), data.ParticipantID.String(), data.Type, data.QuestionID.String(), data.Answer, data.UseTime)
-
-	// // Expected Query
-	// expectedSQL := "SELECT (.+) FROM \"answer_response\" .+"
-	// mock.ExpectQuery(expectedSQL).
-	// 	WithArgs(data.QuizID).
-	// 	WillReturnRows(sample)
-
-	// ===== UPDATE DELETE RESTORE =====
-	// mock.ExpectBegin()
-	// mock.ExpectExec("UPDATE \"answer_response\" SET .+").
-	// 	WillReturnResult(sqlmock.NewResult(1, 1))
-	// mock.ExpectCommit()
-
-	// Actual Function
-	res, err := repo.GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(context.TODO(), data.ID, data.ID)
-
-	// Unit Test
-	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.Nil(t, mock.ExpectationsWereMet())
-}
-
 func TestGetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(t *testing.T) {
 	// Setup Test
 	sqlDB, db, mock := DbMock(t)
@@ -199,8 +149,8 @@ func TestGetParticipantByID(t *testing.T) {
 	}
 
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id","user_id", "live_quiz_session_id", "status", "name", "marks"}).
-		AddRow(data.ID.String(),data.UserID.String(), data.LiveQuizSessionID.String(), data.Status, data.Name, data.Marks )
+	sample := sqlmock.NewRows([]string{"id", "user_id", "live_quiz_session_id", "status", "name", "marks"}).
+		AddRow(data.ID.String(), data.UserID.String(), data.LiveQuizSessionID.String(), data.Status, data.Name, data.Marks)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"participant\" .+"
@@ -236,8 +186,8 @@ func TestGetOrderParticipantsByLiveQuizSessionID(t *testing.T) {
 	}
 
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id","user_id", "live_quiz_session_id", "status", "name", "marks"}).
-		AddRow(data.ID.String(),data.UserID.String(), data.LiveQuizSessionID.String(), data.Status, data.Name, data.Marks )
+	sample := sqlmock.NewRows([]string{"id", "user_id", "live_quiz_session_id", "status", "name", "marks"}).
+		AddRow(data.ID.String(), data.UserID.String(), data.LiveQuizSessionID.String(), data.Status, data.Name, data.Marks)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"participant\" .+"
