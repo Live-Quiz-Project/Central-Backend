@@ -31,56 +31,6 @@ func DbMock(t *testing.T) (*sql.DB, *gorm.DB, sqlmock.Sqlmock) {
 	return sqldb, gormdb, mock
 }
 
-func TestTemplate(t *testing.T) {
-	// Setup Test
-	sqlDB, db, mock := DbMock(t)
-	defer sqlDB.Close()
-	repo := NewRepository(db)
-
-	// Mock Data
-	data := &MatchingOption{
-		ID:         uuid.New(),
-		QuestionID: uuid.New(),
-		Type:       "OPTION",
-		Order:      1,
-		Content:    "Content",
-		Color:      "BLACK",
-		Eliminate:  true,
-	}
-
-	// ===== CREATE  =====
-	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
-	// mock.ExpectBegin()
-	// mock.ExpectExec(expectedSQL).
-	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
-	// 	WillReturnResult(sqlmock.NewResult(1, 1))
-	// mock.ExpectCommit()
-
-	// ===== GET RESTORE =====
-	// sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
-	// 	AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
-
-	// // Expected Query
-	// expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
-	// mock.ExpectQuery(expectedSQL).
-	// 	WithArgs(data.QuizID).
-	// 	WillReturnRows(sample)
-
-	// ===== UPDATE DELETE RESTORE =====
-	// mock.ExpectBegin()
-	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
-	// 	WillReturnResult(sqlmock.NewResult(1, 1))
-	// mock.ExpectCommit()
-
-	// Actual Function
-	res, err := repo.RestoreQuestion(context.TODO(), db, data.ID)
-
-	// Unit Test
-	assert.NoError(t, err)
-	assert.NotNil(t, res)
-	assert.Nil(t, mock.ExpectationsWereMet())
-}
-
 func TestCreateQuiz(t *testing.T) {
 	// Test Setup
 	sqlDB, db, mock := DbMock(t)
@@ -3478,6 +3428,1393 @@ func TestDeleteTextOptionHistory(t *testing.T) {
 
 	// Actual Function
 	err := repo.DeleteTextOptionHistory(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	//assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateMatchingOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateMatchingOption(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionByID(context.TODO(), data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionsByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionsByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDeleteMatchingOptionsByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetDeleteMatchingOptionsByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionByQuestionIDAndOrder(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID, data.Order).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionByQuestionIDAndOrder(context.TODO(), data.QuestionID, data.Order)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateMatchingOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateMatchingOption(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteMatchingOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteMatchingOption(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	//assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestRestoreMatchingOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.RestoreMatchingOption(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateMatchingOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(),data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateMatchingOptionHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionHistoryByOptionMatchingID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.OptionMatchingID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionHistoryByOptionMatchingID(context.TODO(), data.OptionMatchingID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionHistoryByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionHistoryByID(context.TODO(), data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetOptionMatchingHistories(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetOptionMatchingHistories(context.TODO())
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionHistoriesByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionHistoriesByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingOptionHistoryByQuestionIDAndContent(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+		AddRow(data.ID.String(), data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID, data.Content).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingOptionHistoryByQuestionIDAndContent(context.TODO(), data.QuestionID, data.Content)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateMatchingOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(),data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateMatchingOptionHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteMatchingOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingOptionHistory{
+		ID:               uuid.New(),
+		OptionMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		Type:             "OPTION",
+		Order:            1,
+		Content:          "Content",
+		Color:            "BLACK",
+		Eliminate:        true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_option_id", "question_id", "type", "order", "content", "color", "eliminate"}).
+	// 	AddRow(data.ID.String(),data.OptionMatchingID.String(), data.QuestionID.String(), data.Type, data.Order, data.Content, data.Color, data.Eliminate)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_matching_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteMatchingOptionHistory(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	//assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateMatchingAnswer(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateMatchingAnswer(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+func TestGetMatchingAnswerByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingAnswerByID(context.TODO(), data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingAnswersByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingAnswersByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDeleteMatchingAnswersByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetDeleteMatchingAnswersByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateMatchingAnswer(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateMatchingAnswer(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteMatchingAnswer(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteMatchingAnswer(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	//assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestRestoreMatchingAnswer(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswer{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		PromptID:   uuid.New(),
+		OptionID:   uuid.New(),
+		Mark:       10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"answer_matching\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.RestoreMatchingAnswer(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateMatchingAnswerHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		AnswerMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		PromptID:         uuid.New(),
+		OptionID:         uuid.New(),
+		Mark:             10,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"answer_matching_history\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_answer_id","question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.AnswerMatchingID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateMatchingAnswerHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingAnswerHistoriesByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		AnswerMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		PromptID:         uuid.New(),
+		OptionID:         uuid.New(),
+		Mark:             10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_answer_id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.AnswerMatchingID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingAnswerHistoriesByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetMatchingAnswerHistoryByPromptIDAndOptionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		AnswerMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		PromptID:         uuid.New(),
+		OptionID:         uuid.New(),
+		Mark:             10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "matching_answer_id", "question_id", "prompt_id", "option_id", "mark"}).
+		AddRow(data.ID.String(), data.AnswerMatchingID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"answer_matching_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.PromptID, data.OptionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"answer_matching_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetMatchingAnswerHistoryByPromptIDAndOptionID(context.TODO(), data.PromptID, data.OptionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateMatchingAnswerHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		AnswerMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		PromptID:         uuid.New(),
+		OptionID:         uuid.New(),
+		Mark:             10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_answer_id","question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.AnswerMatchingID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"answer_matching_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateMatchingAnswerHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteMatchingAnswerHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &MatchingAnswerHistory{
+		ID:               uuid.New(),
+		AnswerMatchingID: uuid.New(),
+		QuestionID:       uuid.New(),
+		PromptID:         uuid.New(),
+		OptionID:         uuid.New(),
+		Mark:             10,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"answer_matching_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "matching_answer_id","question_id", "prompt_id", "option_id", "mark"}).
+	// 	AddRow(data.ID.String(), data.AnswerMatchingID.String(), data.QuestionID.String(), data.PromptID.String(), data.OptionID.String(), data.Mark)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"answer_matching_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"answer_matching_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteMatchingAnswerHistory(context.TODO(), db, data.ID)
 
 	// Unit Test
 	assert.NoError(t, err)

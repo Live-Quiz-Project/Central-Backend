@@ -2183,30 +2183,6 @@ func (s *service) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, qu
 	return res, nil
 }
 
-func (s *service) GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistoryResponse, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	am, err := s.Repository.GetMatchingAnswerHistoryByQuestionIDAndContent(c, questionID, content)
-	if err != nil {
-		return nil, err
-	}
-
-	return &MatchingAnswerHistoryResponse{
-		MatchingAnswerHistory: MatchingAnswerHistory{
-			ID:               am.ID,
-			AnswerMatchingID: am.AnswerMatchingID,
-			QuestionID:       am.QuestionID,
-			PromptID:         am.PromptID,
-			OptionID:         am.OptionID,
-			Mark:             am.Mark,
-			CreatedAt:        am.CreatedAt,
-			UpdatedAt:        am.UpdatedAt,
-			DeletedAt:        am.DeletedAt,
-		},
-	}, nil
-}
-
 func (s *service) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistoryResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()

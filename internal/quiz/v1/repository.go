@@ -1028,15 +1028,6 @@ func (r *repository) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context,
 	return answerMatchingHistories, nil
 }
 
-func (r *repository) GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistory, error) {
-	var answerMatchingHistory MatchingAnswerHistory
-	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content).Find(&answerMatchingHistory)
-	if res.Error != nil {
-		return &MatchingAnswerHistory{}, res.Error
-	}
-	return &answerMatchingHistory, nil
-}
-
 func (r *repository) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error) {
 	var answerMatchingHistory MatchingAnswerHistory
 	res := r.db.WithContext(ctx).Where("prompt_id = ? AND option_id = ?", promptID, optionID).Find(&answerMatchingHistory)

@@ -418,7 +418,6 @@ type Repository interface {
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error)
-	GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	DeleteMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
@@ -717,6 +716,5 @@ type Service interface {
 	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistoryResponse, error)
-	GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistoryResponse, error)
 	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistoryResponse, error)
 }
