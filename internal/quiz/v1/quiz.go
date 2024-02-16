@@ -380,7 +380,6 @@ type Repository interface {
 	GetTextOptionByID(ctx context.Context, id uuid.UUID) (*TextOption, error)
 	GetTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
-	GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error)
 	UpdateTextOption(ctx context.Context, tx *gorm.DB, optionText *TextOption) (*TextOption, error)
 	DeleteTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*TextOption, error)
@@ -687,7 +686,6 @@ type Service interface {
 	CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)
 	GetTextOptionsByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOptionResponse, error)
-	GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error)
 	UpdateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error)
 	DeleteTextOption(ctx context.Context, tx *gorm.DB, textOptionID uuid.UUID) error
 	RestoreTextOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) error

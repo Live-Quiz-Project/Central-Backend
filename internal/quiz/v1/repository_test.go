@@ -38,39 +38,37 @@ func TestTemplate(t *testing.T) {
 	repo := NewRepository(db)
 
 	// Mock Data
-	data := &ChoiceOptionHistory{
-		ID:             uuid.New(),
-		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+	data := &MatchingOption{
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Type:       "OPTION",
+		Order:      1,
+		Content:    "Content",
+		Color:      "BLACK",
+		Eliminate:  true,
 	}
 
 	// ===== CREATE  =====
-	// expectedSQL := "INSERT INTO \"option_choice_history\" (.+) VALUES (.+)"
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
 	// mock.ExpectBegin()
 	// mock.ExpectExec(expectedSQL).
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	// sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
-	// 	AddRow(data.ID.String(), data.ChoiceOptionID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
+	// sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
 
 	// // Expected Query
-	// expectedSQL := "SELECT (.+) FROM \"option_choice_history\" .+"
+	// expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
 	// mock.ExpectQuery(expectedSQL).
 	// 	WithArgs(data.QuizID).
 	// 	WillReturnRows(sample)
 
 	// ===== UPDATE DELETE RESTORE =====
 	// mock.ExpectBegin()
-	// mock.ExpectExec("UPDATE \"option_choice_history\" SET .+").
+	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
@@ -1166,7 +1164,7 @@ func TestCreateQuestion(t *testing.T) {
 		SelectMin:      1,
 		SelectMax:      4,
 	}
-	
+
 	// Expected Query
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT INTO \"question\" (.+) VALUES (.+)").
@@ -1215,8 +1213,8 @@ func TestGetQuestions(t *testing.T) {
 	}
 
 	// Add rows to 'Test' Database
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\""
@@ -1264,8 +1262,8 @@ func TestGetQuestionByID(t *testing.T) {
 	}
 
 	// Add rows to 'Test' Database
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\" WHERE id = .+"
@@ -1314,8 +1312,8 @@ func TestGetQuestionsByQuizID(t *testing.T) {
 	}
 
 	// Add rows to 'Test' Database
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\" WHERE quiz_id = .+"
@@ -1364,8 +1362,8 @@ func TestGetDeleteQuestionsByQuizID(t *testing.T) {
 	}
 
 	// Add rows to 'Test' Database
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\" WHERE quiz_id = .+"
@@ -1414,13 +1412,13 @@ func TestGetQuestionByQuizIDAndOrder(t *testing.T) {
 	}
 
 	// Add rows to 'Test' Database
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\" WHERE .+ "
 	mock.ExpectQuery(expectedSQL).
-		WithArgs(data.QuizID,data.Order).
+		WithArgs(data.QuizID, data.Order).
 		WillReturnRows(sample)
 
 	// Actual Function
@@ -1555,8 +1553,8 @@ func TestRestoreQuestion(t *testing.T) {
 		SelectMax:      4,
 	}
 
-	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question\" .+"
@@ -1589,7 +1587,7 @@ func TestCreateQuestionHistory(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1610,15 +1608,13 @@ func TestCreateQuestionHistory(t *testing.T) {
 		SelectMax:      4,
 	}
 
-
 	// ===== CREATE  =====
 	expectedSQL := "INSERT INTO \"question_history\" (.+) VALUES (.+)"
 	mock.ExpectBegin()
 	mock.ExpectExec(expectedSQL).
-		WithArgs(sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg()). // Number of Data in Struct
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
@@ -1655,7 +1651,7 @@ func TestGetQuestionHistories(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1684,10 +1680,9 @@ func TestGetQuestionHistories(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question_history\" .+"
@@ -1719,7 +1714,7 @@ func TestGetQuestionHistoryByID(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1748,10 +1743,9 @@ func TestGetQuestionHistoryByID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id","quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question_history\" .+"
@@ -1784,7 +1778,7 @@ func TestGetQuestionHistoriesByQuizID(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1813,10 +1807,9 @@ func TestGetQuestionHistoriesByQuizID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question_history\" .+"
@@ -1849,7 +1842,7 @@ func TestGetQuestionHistoriesByQuestionID(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1878,10 +1871,9 @@ func TestGetQuestionHistoriesByQuestionID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question_history\" .+"
@@ -1914,7 +1906,7 @@ func TestGetQuestionHistoryByQuestionIDAndCreatedDate(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -1943,10 +1935,9 @@ func TestGetQuestionHistoryByQuestionIDAndCreatedDate(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
-		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
+	sample := sqlmock.NewRows([]string{"id", "question_id", "quiz_id", "question_pool_id", "pool_order", "pool_required", "type", "order", "content", "note", "media", "media_type", "use_template", "time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired, data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
 
 	// Expected Query
 	expectedSQL := "SELECT (.+) FROM \"question_history\" .+"
@@ -1979,7 +1970,7 @@ func TestUpdateQuestionHistory(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -2007,7 +1998,6 @@ func TestUpdateQuestionHistory(t *testing.T) {
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
@@ -2044,7 +2034,7 @@ func TestDeleteQuestionHistory(t *testing.T) {
 	id := uuid.New()
 	data := &QuestionHistory{
 		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
+		QuestionID:     uuid.New(),
 		QuizID:         uuid.New(),
 		QuestionPoolID: &id,
 		PoolOrder:      -1,
@@ -2073,7 +2063,6 @@ func TestDeleteQuestionHistory(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "quiz_id", "question_pool_id", "pool_order","pool_required", "type", "order", "content", "note", "media", "media_type", "use_template","time_limit", "have_time_factor", "time_factor", "font_size", "layout_idx", "select_min", "select_max"}).
 	// 	AddRow(data.ID.String(), data.QuizID.String(), data.QuestionPoolID.String(), data.PoolOrder, data.PoolRequired,data.Type, data.Order, data.Content, data.Note, data.Media, data.MediaType, data.UseTemplate, data.TimeLimit, data.HaveTimeFactor, data.TimeFactor, data.FontSize, data.LayoutIdx, data.SelectMin, data.SelectMax)
@@ -2091,7 +2080,7 @@ func TestDeleteQuestionHistory(t *testing.T) {
 	mock.ExpectCommit()
 
 	// Actual Function
-	err := repo.DeleteQuestionHistory(context.TODO(), db , data.ID)
+	err := repo.DeleteQuestionHistory(context.TODO(), db, data.ID)
 
 	// Unit Test
 	assert.NoError(t, err)
@@ -2107,23 +2096,22 @@ func TestCreateChoiceOption(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
 	expectedSQL := "INSERT INTO \"option_choice\" (.+) VALUES (.+)"
 	mock.ExpectBegin()
 	mock.ExpectExec(expectedSQL).
-		WithArgs(sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg()). // Number of Data in Struct
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2158,13 +2146,13 @@ func TestGetChoiceOptionByID(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2175,9 +2163,8 @@ func TestGetChoiceOptionByID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2209,13 +2196,13 @@ func TestGetChoiceOptionsByQuestionID(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2226,9 +2213,8 @@ func TestGetChoiceOptionsByQuestionID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2260,13 +2246,13 @@ func TestGetDeleteChoiceOptionsByQuestionID(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2277,9 +2263,8 @@ func TestGetDeleteChoiceOptionsByQuestionID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2311,13 +2296,13 @@ func TestGetChoiceAnswersByQuestionID(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2328,9 +2313,8 @@ func TestGetChoiceAnswersByQuestionID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2362,13 +2346,13 @@ func TestUpdateChoiceOption(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2378,7 +2362,6 @@ func TestUpdateChoiceOption(t *testing.T) {
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2413,13 +2396,13 @@ func TestDeleteChoiceOption(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2429,7 +2412,6 @@ func TestDeleteChoiceOption(t *testing.T) {
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2464,13 +2446,13 @@ func TestRestoreChoiceOption(t *testing.T) {
 
 	// Mock Data
 	data := &ChoiceOption{
-		ID:             uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
-		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		ID:         uuid.New(),
+		QuestionID: uuid.New(),
+		Order:      1,
+		Content:    "Content",
+		Mark:       10,
+		Color:      "WHITE",
+		Correct:    true,
 	}
 
 	// ===== CREATE  =====
@@ -2481,9 +2463,8 @@ func TestRestoreChoiceOption(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2517,22 +2498,21 @@ func TestCreateChoiceOptionHistory(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
 	expectedSQL := "INSERT INTO \"option_choice_history\" (.+) VALUES (.+)"
 	mock.ExpectBegin()
 	mock.ExpectExec(expectedSQL).
-		WithArgs(sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg(),sqlmock.AnyArg()). // Number of Data in Struct
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2569,12 +2549,12 @@ func TestGetChoiceOptionHistoryByID(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2585,9 +2565,8 @@ func TestGetChoiceOptionHistoryByID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.ChoiceOptionID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2621,12 +2600,12 @@ func TestGetOptionChoiceHistories(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2637,9 +2616,8 @@ func TestGetOptionChoiceHistories(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.ChoiceOptionID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2672,12 +2650,12 @@ func TestGetChoiceOptionHistoriesByQuestionID(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2688,9 +2666,8 @@ func TestGetChoiceOptionHistoriesByQuestionID(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.ChoiceOptionID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2724,12 +2701,12 @@ func TestGetChoiceOptionHistoryByQuestionIDAndContent(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2740,9 +2717,8 @@ func TestGetChoiceOptionHistoryByQuestionIDAndContent(t *testing.T) {
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
 
-
 	// ===== GET RESTORE =====
-	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
+	sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content", "mark", "color", "correct"}).
 		AddRow(data.ID.String(), data.ChoiceOptionID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.Color, data.Correct)
 
 	// Expected Query
@@ -2758,7 +2734,7 @@ func TestGetChoiceOptionHistoryByQuestionIDAndContent(t *testing.T) {
 	// mock.ExpectCommit()
 
 	// Actual Function
-	res, err := repo.GetChoiceOptionHistoryByQuestionIDAndContent(context.TODO(), data.QuestionID , data.Content)
+	res, err := repo.GetChoiceOptionHistoryByQuestionIDAndContent(context.TODO(), data.QuestionID, data.Content)
 
 	// Unit Test
 	assert.NoError(t, err)
@@ -2776,12 +2752,12 @@ func TestUpdateChoiceOptionHistory(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2791,7 +2767,6 @@ func TestUpdateChoiceOptionHistory(t *testing.T) {
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2828,12 +2803,12 @@ func TestDeleteChoiceOptionHistory(t *testing.T) {
 	data := &ChoiceOptionHistory{
 		ID:             uuid.New(),
 		ChoiceOptionID: uuid.New(),
-		QuestionID:			uuid.New(),
-		Order:					1,
+		QuestionID:     uuid.New(),
+		Order:          1,
 		Content:        "Content",
-		Mark:						10,
-		Color:					"WHITE",
-		Correct:				true,
+		Mark:           10,
+		Color:          "WHITE",
+		Correct:        true,
 	}
 
 	// ===== CREATE  =====
@@ -2843,7 +2818,6 @@ func TestDeleteChoiceOptionHistory(t *testing.T) {
 	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
 	// 	WillReturnResult(sqlmock.NewResult(1, 1))
 	// mock.ExpectCommit()
-
 
 	// ===== GET RESTORE =====
 	// sample := sqlmock.NewRows([]string{"id", "option_choice_id", "question_id", "order", "content","mark", "color", "correct"}).
@@ -2867,5 +2841,646 @@ func TestDeleteChoiceOptionHistory(t *testing.T) {
 	// Unit Test
 	assert.NoError(t, err)
 	// assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateTextOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateTextOption(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+func TestGetTextOptionByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetTextOptionByID(context.TODO(), data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+func TestGetTextOptionsByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetTextOptionsByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDeleteTextOptionsByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetDeleteTextOptionsByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTextOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_text\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateTextOption(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteTextOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_text\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteTextOption(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	// assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestRestoreTextOption(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOption{
+		ID:            uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_text\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.RestoreTextOption(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateTextOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	mock.ExpectBegin()
+	mock.ExpectExec(expectedSQL).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()). // Number of Data in Struct
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.CreateTextOptionHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetTextOptionHistoryByID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetTextOptionHistoryByID(context.TODO(), data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetTextOptionHistoriesByQuestionID(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetTextOptionHistoriesByQuestionID(context.TODO(), data.QuestionID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestGetTextOptionHistoryByQuestionIDAndContent(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+		AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(data.QuestionID, data.Content).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	// mock.ExpectBegin()
+	// mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.GetTextOptionHistoryByQuestionIDAndContent(context.TODO(), data.QuestionID, data.Content)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTextOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	res, err := repo.UpdateTextOptionHistory(context.TODO(), db, data)
+
+	// Unit Test
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+	assert.Nil(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteTextOptionHistory(t *testing.T) {
+	// Setup Test
+	sqlDB, db, mock := DbMock(t)
+	defer sqlDB.Close()
+	repo := NewRepository(db)
+
+	// Mock Data
+	data := &TextOptionHistory{
+		ID:            uuid.New(),
+		OptionTextID:  uuid.New(),
+		QuestionID:    uuid.New(),
+		Order:         1,
+		Content:       "Content",
+		Mark:          10,
+		CaseSensitive: true,
+	}
+
+	// ===== CREATE  =====
+	// expectedSQL := "INSERT INTO \"option_text_history\" (.+) VALUES (.+)"
+	// mock.ExpectBegin()
+	// mock.ExpectExec(expectedSQL).
+	// 	WithArgs(sqlmock.AnyArg()). // Number of Data in Struct
+	// 	WillReturnResult(sqlmock.NewResult(1, 1))
+	// mock.ExpectCommit()
+
+	// ===== GET RESTORE =====
+	// sample := sqlmock.NewRows([]string{"id", "option_text_id", "question_id", "order", "content", "mark", "case_sensitive"}).
+	// 	AddRow(data.ID.String(), data.OptionTextID.String(), data.QuestionID.String(), data.Order, data.Content, data.Mark, data.CaseSensitive)
+
+	// // Expected Query
+	// expectedSQL := "SELECT (.+) FROM \"option_text_history\" .+"
+	// mock.ExpectQuery(expectedSQL).
+	// 	WithArgs(data.QuizID).
+	// 	WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE \"option_text_history\" SET .+").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	// Actual Function
+	err := repo.DeleteTextOptionHistory(context.TODO(), db, data.ID)
+
+	// Unit Test
+	assert.NoError(t, err)
+	//assert.NotNil(t, res)
 	assert.Nil(t, mock.ExpectationsWereMet())
 }

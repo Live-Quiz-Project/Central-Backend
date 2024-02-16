@@ -692,16 +692,6 @@ func (r *repository) GetDeleteTextOptionsByQuestionID(ctx context.Context, quest
 	return optionTexts, nil
 }
 
-func (r *repository) GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
-	var optionTexts []TextOption
-	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionTexts)
-	if res.Error != nil {
-		return []TextOption{}, res.Error
-	}
-
-	return optionTexts, nil
-}
-
 func (r *repository) UpdateTextOption(ctx context.Context, tx *gorm.DB, optionText *TextOption) (*TextOption, error) {
 	res := tx.WithContext(ctx).Save(optionText)
 	if res.Error != nil {

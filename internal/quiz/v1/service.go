@@ -1509,35 +1509,6 @@ func (s *service) GetDeleteTextOptionsByQuestionID(ctx context.Context, question
 	return res, nil
 }
 
-func (s *service) GetTextAnswersByQuestionID(ctx context.Context, id uuid.UUID) ([]TextOptionResponse, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	optionTexts, err := s.Repository.GetTextAnswersByQuestionID(c, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []TextOptionResponse
-	for _, ot := range optionTexts {
-		res = append(res, TextOptionResponse{
-			TextOption: TextOption{
-				ID:            ot.ID,
-				QuestionID:    ot.QuestionID,
-				Order:         ot.Order,
-				Content:       ot.Content,
-				Mark:          ot.Mark,
-				CaseSensitive: ot.CaseSensitive,
-				CreatedAt:     ot.CreatedAt,
-				UpdatedAt:     ot.UpdatedAt,
-				DeletedAt:     ot.DeletedAt,
-			},
-		})
-	}
-
-	return res, nil
-}
-
 func (s *service) UpdateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, userID uuid.UUID, optionID uuid.UUID, questionHistoryID uuid.UUID) (*UpdateTextOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
