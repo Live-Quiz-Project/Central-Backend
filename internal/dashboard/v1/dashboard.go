@@ -26,12 +26,15 @@ func (AnswerResponse) TableName() string {
 }
 
 type Participant struct {
-	ID                uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	UserID            *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
-	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
-	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
-	Name              string     `json:"name" gorm:"column:name;type:text"`
-	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+	ID                uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	UserID            *uuid.UUID     `json:"user_id" gorm:"column:user_id;type:uuid"`
+	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
+	Status            string         `json:"status" gorm:"column:status;type:text;not null"`
+	Name              string         `json:"name" gorm:"column:name;type:text"`
+	Marks             int            `json:"marks" gorm:"column:marks;type:int"`
+	CreatedAt         time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt         time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt         gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
 }
 
 func (Participant) TableName() string {
@@ -76,22 +79,22 @@ type AnswerViewQuizResponse struct {
 }
 
 type AnswerViewParticipantResponse struct {
-	ID         uuid.UUID                    `json:"id"`
-	UserID     *uuid.UUID                   `json:"user_id"`
-	Name       string                       `json:"name"`
-	Marks      int                          `json:"marks"`
-	Corrects   int                          `json:"corrects"`
-	Incorrects int                          `json:"incorrects"`
-	Unanswered int                          `json:"unanswered"`
-	TotalQuestions int 											`json:"total_questions"`
-	TotalMarks int 													`json:"total_marks"`
-	Questions  []AnswerViewQuestionResponse `json:"questions"`
+	ID             uuid.UUID                    `json:"id"`
+	UserID         *uuid.UUID                   `json:"user_id"`
+	Name           string                       `json:"name"`
+	Marks          int                          `json:"marks"`
+	Corrects       int                          `json:"corrects"`
+	Incorrects     int                          `json:"incorrects"`
+	Unanswered     int                          `json:"unanswered"`
+	TotalQuestions int                          `json:"total_questions"`
+	TotalMarks     int                          `json:"total_marks"`
+	Questions      []AnswerViewQuestionResponse `json:"questions"`
 }
 
 type AnswerViewQuestionResponse struct {
 	ID      uuid.UUID `json:"id"`
 	Type    string    `json:"type"`
-	Order   int    		`json:"order"`
+	Order   int       `json:"order"`
 	Content string    `json:"content"`
 	Answer  string    `json:"answer"`
 	Mark    int       `json:"mark"`
@@ -119,7 +122,7 @@ type QuestionViewQuizResponse struct {
 type QuestionViewQuestionResponse struct {
 	ID             uuid.UUID     `json:"id"`
 	Type           string        `json:"type"`
-	PoolOrder 		 int					 `json:"pool_order"`
+	PoolOrder      int           `json:"pool_order"`
 	Order          int           `json:"order"`
 	Content        string        `json:"content"`
 	Note           string        `json:"note"`
