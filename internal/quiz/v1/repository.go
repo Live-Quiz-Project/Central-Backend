@@ -465,7 +465,7 @@ func (r *repository) GetQuestionHistoriesByQuestionID(ctx context.Context, quest
 
 func (r *repository) GetQuestionHistoryByQuestionIDAndCreatedDate(ctx context.Context, questionID uuid.UUID, createdDate time.Time) (*QuestionHistory, error) {
 	var questionHistory QuestionHistory
-	res := r.db.WithContext(ctx).Where("question_id = ? AND created_date = ?", questionID, createdDate).First(&questionHistory)
+	res := r.db.WithContext(ctx).Where("question_id = ? AND created_at = ?", questionID, createdDate).First(&questionHistory)
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}

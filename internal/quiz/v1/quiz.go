@@ -369,6 +369,7 @@ type Repository interface {
 	RestoreChoiceOption(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*ChoiceOption, error)
 	CreateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	GetChoiceOptionHistoryByID(ctx context.Context, id uuid.UUID) (*ChoiceOptionHistory, error)
+	GetOptionChoiceHistories(ctx context.Context) ([]ChoiceOptionHistory, error)
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistory, error)
 	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID,content string) (*ChoiceOptionHistory, error)
 	UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
@@ -559,7 +560,7 @@ type MatchingOptionAndAnswerResponse struct {
 	Eliminate  bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	PromptID   *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
 	OptionID   *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark       *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	Mark       *int           `json:"mark,omitempty" gorm:"column:mark;type:int"`
 	CreatedAt  time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt  time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
@@ -577,7 +578,7 @@ type MatchingOptionAndAnswerHistoryResponse struct {
 	Eliminate        bool           `json:"eliminate" gorm:"column:eliminate;type:boolean"`
 	PromptID         *uuid.UUID     `json:"prompt_id,omitempty" gorm:"column:prompt_id;type:uuid"`
 	OptionID         *uuid.UUID     `json:"option_id,omitempty" gorm:"column:option_id;type:uuid"`
-	Mark             *int           `json:"mark,omitemtpy" gorm:"column:mark;type:int"`
+	Mark             *int           `json:"mark,omitempty" gorm:"column:mark;type:int"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
 	DeletedAt        gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
