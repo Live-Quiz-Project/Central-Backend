@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"testing"
-	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -269,8 +268,6 @@ func TestDeleteQuiz(t *testing.T) {
 	// Variables
 	id := uuid.New()
 
-	// // Add rows to 'Test' Database
-
 	// Expected Query
 	expectedSQL := "UPDATE \"quiz\" SET .+"
 	mock.ExpectBegin()
@@ -293,12 +290,9 @@ func TestRestoreQuiz(t *testing.T) {
 	defer sqlDB.Close()
 	repo := NewRepository(db)
 
-	// Variables
-	quizID := uuid.New()
-
 	// Mock Data
 	quiz := &Quiz{
-		ID:             quizID,
+		ID:             uuid.New(),
 		CreatorID:      uuid.New(),
 		Title:          "Test Title",
 		Description:    "Test Description",
@@ -312,24 +306,26 @@ func TestRestoreQuiz(t *testing.T) {
 		SelectMin:      1,
 		SelectMax:      1,
 		CaseSensitive:  true,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-		DeletedAt:      gorm.DeletedAt{},
 	}
 
-	mock.ExpectQuery("SELECT (.+) FROM \"quiz\" WHERE \"quiz\".\"id\" = (.+)").
-		WithArgs(quizID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "creator_id", "title", "description", "cover_image", "visibility", "time_limit", "have_time_factor", "time_factor", "font_size", "mark", "select_min", "select_max", "case_sensitive", "created_at", "updated_at", "deleted_at"}).
-			AddRow(quiz.ID, quiz.CreatorID, quiz.Title, quiz.Description, quiz.CoverImage, quiz.Visibility, quiz.TimeLimit, quiz.HaveTimeFactor, quiz.TimeFactor, quiz.FontSize, quiz.Mark, quiz.SelectMin, quiz.SelectMax, quiz.CaseSensitive, quiz.CreatedAt, quiz.UpdatedAt, quiz.DeletedAt.Time))
+	// ===== GET RESTORE =====
+	sample := sqlmock.NewRows([]string{"id", "creator_id", "title", "description", "cover_image", "visibility", "time_limit", "have_time_factor", "time_factor", "font_size", "mark", "select_min", "select_max", "case_sensitive"}).
+		AddRow(quiz.ID.String(), quiz.CreatorID.String(), quiz.Title, quiz.Description, quiz.CoverImage, quiz.Visibility, quiz.TimeLimit, quiz.HaveTimeFactor, quiz.TimeFactor, quiz.FontSize, quiz.Mark, quiz.SelectMin, quiz.SelectMax, quiz.CaseSensitive)
 
-		// Mocking the Update call in the Model chain
+	// Expected Query
+	expectedSQL := "SELECT (.+) FROM \"quiz\" .+"
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(quiz.ID).
+		WillReturnRows(sample)
+
+	// ===== UPDATE DELETE RESTORE =====
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE \"quiz\" SET .+").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
 	// Actual Function
-	res, err := repo.RestoreQuiz(context.TODO(), db, quizID)
+	res, err := repo.RestoreQuiz(context.TODO(), db, quiz.ID)
 
 	// Unit Test
 	assert.NoError(t, err)
