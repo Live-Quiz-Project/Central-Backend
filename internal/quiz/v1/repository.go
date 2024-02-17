@@ -465,7 +465,7 @@ func (r *repository) GetQuestionHistoriesByQuestionID(ctx context.Context, quest
 
 func (r *repository) GetQuestionHistoryByQuestionIDAndCreatedDate(ctx context.Context, questionID uuid.UUID, createdDate time.Time) (*QuestionHistory, error) {
 	var questionHistory QuestionHistory
-	res := r.db.WithContext(ctx).Where("question_id = ? AND created_date = ?", questionID, createdDate).First(&questionHistory)
+	res := r.db.WithContext(ctx).Where("question_id = ? AND created_at = ?", questionID, createdDate).First(&questionHistory)
 	if res.Error != nil {
 		return &QuestionHistory{}, res.Error
 	}
@@ -685,16 +685,6 @@ func (r *repository) GetTextOptionsByQuestionID(ctx context.Context, questionID 
 func (r *repository) GetDeleteTextOptionsByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
 	var optionTexts []TextOption
 	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&optionTexts)
-	if res.Error != nil {
-		return []TextOption{}, res.Error
-	}
-
-	return optionTexts, nil
-}
-
-func (r *repository) GetTextAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]TextOption, error) {
-	var optionTexts []TextOption
-	res := r.db.WithContext(ctx).Where("question_id = ? AND is_correct = ?", questionID, true).Find(&optionTexts)
 	if res.Error != nil {
 		return []TextOption{}, res.Error
 	}
@@ -1036,15 +1026,6 @@ func (r *repository) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context,
 		return []MatchingAnswerHistory{}, res.Error
 	}
 	return answerMatchingHistories, nil
-}
-
-func (r *repository) GetMatchingAnswerHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingAnswerHistory, error) {
-	var answerMatchingHistory MatchingAnswerHistory
-	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content).Find(&answerMatchingHistory)
-	if res.Error != nil {
-		return &MatchingAnswerHistory{}, res.Error
-	}
-	return &answerMatchingHistory, nil
 }
 
 func (r *repository) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error) {
