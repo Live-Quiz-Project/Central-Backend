@@ -119,7 +119,7 @@ spec:
                           def helmListExitCode = sh(script: "helm list -q -n ${ENV_NAME} | grep ${APP_NAME}", returnStatus: true)
 
                           if (helmListExitCode == 0) {
-                              echo "helm delete --namepsace ${ENV_NAME} ${APP_NAME} --wait"
+                              sh "helm delete --namepsace ${ENV_NAME} ${APP_NAME} --wait"
                           }
 
                           sh "helm upgrade -i ${APP_NAME} k8s/helm -f k8s/helm-values/apps-${ENV_NAME}.yaml --wait --namespace ${ENV_NAME}"
