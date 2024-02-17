@@ -72,6 +72,17 @@ spec:
         }
       }
       
+      // ***** Unit Test ******
+      stage('Run Unit Test'){
+          steps{
+              container('golang') {
+                  script{
+                      sh 'go test ./...'
+                  }
+              }
+          }
+      }
+
       // ***** Dependency Check ******
       stage('Download Package Dependencies'){
           steps{
@@ -98,13 +109,18 @@ spec:
               }
           }
       }
-      
+
       // ***** Deploy ******
       stage('Deploy reviews with Helm Chart') {
           steps {
               container('helm') {
                   script {
                       withKubeConfig([credentialsId: 'kubeconfig']) {
+                          def helmListExitCode = sh(script: "helm list -q -n ${ENV_NAME} | grep ${APP_NAME}", returnStatus: true)
+
+                          if (helmListExitCode == 0) {
+                              echo "helm delete --namepsace ${ENV_NAME} ${APP_NAME} --wait"
+                          }
 
                           sh "helm upgrade -i ${APP_NAME} k8s/helm -f k8s/helm-values/apps-${ENV_NAME}.yaml --wait --namespace ${ENV_NAME}"
 
@@ -113,7 +129,6 @@ spec:
               }
           }
       }
-
   }// End stages
 
   post {
