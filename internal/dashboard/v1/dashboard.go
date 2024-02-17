@@ -13,7 +13,7 @@ type AnswerResponse struct {
 	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null;references:live_quiz_session(id)"`
 	ParticipantID     uuid.UUID      `json:"participant_id" gorm:"column:participant_id;type:uuid;not null;references:participant(id)"`
 	Type              string         `json:"type" gorm:"column:type;type:text"`
-	QuestionID        uuid.UUID      `json:"question_id" gorm:"column:question_id:type:uuid"`
+	QuestionID        uuid.UUID      `json:"question_id" gorm:"column:question_id;type:uuid"`
 	Answer            string         `json:"answer" gorm:"column:answer;type:text"`
 	UseTime           int            `json:"use_time" gorm:"column:use_time;type:int"`
 	CreatedAt         time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
@@ -26,12 +26,15 @@ func (AnswerResponse) TableName() string {
 }
 
 type Participant struct {
-	ID                uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	UserID            *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
-	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
-	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
-	Name              string     `json:"name" gorm:"column:name;type:text"`
-	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+	ID                uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	UserID            *uuid.UUID     `json:"user_id" gorm:"column:user_id;type:uuid"`
+	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
+	Status            string         `json:"status" gorm:"column:status;type:text;not null"`
+	Name              string         `json:"name" gorm:"column:name;type:text"`
+	Marks             int            `json:"marks" gorm:"column:marks;type:int"`
+	CreatedAt         time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt         time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt         gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
 }
 
 func (Participant) TableName() string {
@@ -53,18 +56,49 @@ func (Session) TableName() string {
 	return "live_quiz_session"
 }
 
+type ParticipantResponse struct {
+	ID     uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	UserID *uuid.UUID `json:"user_id" gorm:"column:user_id;type:uuid"`
+	Name   string     `json:"name" gorm:"column:name;type:text"`
+	Marks  int        `json:"marks" gorm:"column:marks;type:int"`
+}
+
 type CreateLiveAnswerRequest struct {
 	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null;references:live_quiz_session(id)"`
 	Answers           []AnswerResponse
 }
 
-type ParticipantResponse struct {
-	ID                uuid.UUID  `json:"id" `
-	UserID            *uuid.UUID `json:"user_id"`
-	LiveQuizSessionID *uuid.UUID `json:"live_quiz_session_id,omitempty"`
-	Status            string     `json:"status,omitempty"`
-	Name              string     `json:"name"`
-	Marks             int        `json:"marks,omitempty"`
+type AnswerViewQuizResponse struct {
+	ID           uuid.UUID                       `json:"id"`
+	CreatorID    uuid.UUID                       `json:"creator_id"`
+	Title        string                          `json:"title"`
+	Description  string                          `json:"description"`
+	CoverImage   string                          `json:"cover_image"`
+	CreatedAt    time.Time                       `json:"created_at"`
+	Participants []AnswerViewParticipantResponse `json:"participants"`
+}
+
+type AnswerViewParticipantResponse struct {
+	ID             uuid.UUID                    `json:"id"`
+	UserID         *uuid.UUID                   `json:"user_id"`
+	Name           string                       `json:"name"`
+	Marks          int                          `json:"marks"`
+	Corrects       int                          `json:"corrects"`
+	Incorrects     int                          `json:"incorrects"`
+	Unanswered     int                          `json:"unanswered"`
+	TotalQuestions int                          `json:"total_questions"`
+	TotalMarks     int                          `json:"total_marks"`
+	Questions      []AnswerViewQuestionResponse `json:"questions"`
+}
+
+type AnswerViewQuestionResponse struct {
+	ID      uuid.UUID `json:"id"`
+	Type    string    `json:"type"`
+	Order   int       `json:"order"`
+	Content string    `json:"content"`
+	Answer  string    `json:"answer"`
+	Mark    int       `json:"mark"`
+	UseTime int       `json:"use_time"`
 }
 
 type LiveAnswerRequest struct {
@@ -86,21 +120,21 @@ type QuestionViewQuizResponse struct {
 }
 
 type QuestionViewQuestionResponse struct {
-	ID             uuid.UUID `json:"id"`
-	Order          int       `json:"order"`
-	Content        string    `json:"content"`
-	Type           string    `json:"type"`
-	Note           string    `json:"note"`
-	Media          string    `json:"media"`
-	UseTemplate    bool      `json:"use_template"`
-	TimeLimit      int       `json:"time_limit"`
-	HaveTimeFactor bool      `json:"have_time_factor"`
-	TimeFactor     int       `json:"time_factor"`
-	FontSize       int       `json:"font_size"`
-	// SelectUpTo     int           `json:"select_up_to"`
-	SelectMin int           `json:"select_min"`
-	SelectMax int           `json:"select_max"`
-	Options   []interface{} `json:"options"`
+	ID             uuid.UUID     `json:"id"`
+	Type           string        `json:"type"`
+	PoolOrder      int           `json:"pool_order"`
+	Order          int           `json:"order"`
+	Content        string        `json:"content"`
+	Note           string        `json:"note"`
+	Media          string        `json:"media"`
+	UseTemplate    bool          `json:"use_template"`
+	TimeLimit      int           `json:"time_limit"`
+	HaveTimeFactor bool          `json:"have_time_factor"`
+	TimeFactor     int           `json:"time_factor"`
+	FontSize       int           `json:"font_size"`
+	SelectMin      int           `json:"select_min"`
+	SelectMax      int           `json:"select_max"`
+	Options        []interface{} `json:"options"`
 }
 
 type QuestionViewOptionChoice struct {
@@ -136,17 +170,6 @@ type QuestionViewParticipant struct {
 	Name string
 }
 
-type Ranking struct {
-	ID        uuid.UUID
-	Order     int
-	Name      string
-	Marks     string
-	Correct   int
-	Incorrect int
-	Timeup    int
-	TimeUse   int
-}
-
 type SessionHistory struct {
 	ID          uuid.UUID      `json:"id"`
 	CreatorName string         `json:"creator_name"`
@@ -165,25 +188,18 @@ type Repository interface {
 	BeginTransaction() (*gorm.DB, error)
 	CommitTransaction(tx *gorm.DB) error
 
-	// GET
-
 	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]AnswerResponse, error)
-	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]AnswerResponse, error)
-	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]AnswerResponse, error)
-	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]AnswerResponse, error)
-	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error)
+	GetAnswerResponsesByLiveQuizSessionIDAndParticipantID(ctx context.Context, liveQuizSessionID uuid.UUID, participantID uuid.UUID) ([]AnswerResponse, error)
 
+	GetParticipantByID(ctx context.Context, participantID uuid.UUID) (*Participant, error)
 	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]Participant, error)
 }
 
 // #################### SERVICE START ####################
 type Service interface {
-	// GET
-	GetAnswerResponseByLiveQuizSessionID(ctx context.Context, liveSessionID uuid.UUID) ([]LiveAnswerResponse, error)
-	GetAnswerResponseByQuestionID(ctx context.Context, questionID uuid.UUID) ([]LiveAnswerResponse, error)
-	GetAnswerResponseByParticipantID(ctx context.Context, participantID uuid.UUID) ([]LiveAnswerResponse, error)
 	GetAnswerResponsesByLiveQuizSessionIDAndQuestionHistoryID(ctx context.Context, liveQuizSessionID uuid.UUID, questionID uuid.UUID) ([]LiveAnswerResponse, error)
-	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
+	GetAnswerResponsesByLiveQuizSessionIDAndParticipantID(ctx context.Context, liveQuizSessionID uuid.UUID, participantID uuid.UUID) ([]LiveAnswerResponse, error)
 
+	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
 	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error)
 }
