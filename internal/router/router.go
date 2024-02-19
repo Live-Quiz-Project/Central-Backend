@@ -7,8 +7,6 @@ import (
 
 	"github.com/Live-Quiz-Project/Backend/internal/dashboard"
 	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
-	"github.com/Live-Quiz-Project/Backend/internal/leaderboard"
-	lb "github.com/Live-Quiz-Project/Backend/internal/leaderboard/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/live"
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/quiz"
@@ -22,7 +20,7 @@ import (
 
 var r *gin.Engine
 
-func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler, dashboardHandler *d.Handler, leaderboardHandler *lb.Handler) {
+func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler, dashboardHandler *d.Handler) {
 	r = gin.Default()
 	allowOriginsEnv := os.Getenv("ALLOW_ORIGINS")
 	allowOrigins := strings.Split(allowOriginsEnv, ",")
@@ -49,7 +47,6 @@ func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.H
 	quiz.QuizRoutes(v1, quizHandler)
 	live.LiveRoutes(v1, liveHandler)
 	dashboard.DashboardRoutes(v1, dashboardHandler)
-	leaderboard.LeaderboardRoutes(v1, leaderboardHandler)
 }
 
 func Run(addr string) error {

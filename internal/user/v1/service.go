@@ -286,7 +286,7 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 			GoogleId:      &tokenInfo.GoogleID,
 			Name:          tokenInfo.Name,
 			Email:         tokenInfo.Email,
-			Image:         "default.png",
+			Image:         tokenInfo.PictureURL,
 			DisplayName:   formattedName,
 			DisplayEmoji:  util.SmileyFace,
 			DisplayColor:  util.Gray,
