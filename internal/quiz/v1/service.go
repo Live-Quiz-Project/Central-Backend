@@ -47,7 +47,7 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 		CreatorID:      uid,
 		Title:          req.Title,
 		Description:    req.Description,
-		CoverImage:     "default.png",
+		CoverImage:     req.CoverImage,
 		Visibility:     req.Visibility,
 		TimeLimit:      req.TimeLimit,
 		HaveTimeFactor: req.HaveTimeFactor,
