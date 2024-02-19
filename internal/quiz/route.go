@@ -14,7 +14,7 @@ func QuizRoutes(r *gin.RouterGroup, h *q.Handler) {
 	quizR.GET("/:id", h.GetQuizByID)       // Use for Get All Quiz Detail By QuizID
 	quizR.PUT("/:id", h.UpdateQuiz)        // Use for Update Quiz
 	quizR.DELETE("/:id", h.DeleteQuiz)     // Use for Soft Delete Quiz
-	quizR.PUT("/trash/:id", h.RestoreQuiz) // Use for Restore Quiz
+	quizR.PATCH("/:id", h.RestoreQuiz) 		 // Use for Restore Quiz
 
 	quizR.GET("/history", h.GetQuizHistories)
 	quizR.GET("/history/:id", h.GetQuizHistoryByID)
