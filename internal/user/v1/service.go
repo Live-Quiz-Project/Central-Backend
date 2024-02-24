@@ -249,6 +249,10 @@ func (s *service) ChangePassword(ctx context.Context, id uuid.UUID, newPassword 
 	return s.Repository.ChangePassword(ctx, id, newPassword)
 }
 
+func (s *service) ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error {
+	return s.Repository.ResetPassword(ctx, id, newPassword)
+}
+
 func (s *service) VerifyPassword(ctx context.Context, userID uuid.UUID, currentPassword string) error {
 	user, err := s.Repository.GetUserByID(ctx, userID)
 	if err != nil {

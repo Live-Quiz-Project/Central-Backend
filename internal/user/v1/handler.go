@@ -307,6 +307,32 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
 
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var request struct {
+		Password string `json:"password"`
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.ResetPassword(c.Request.Context(), id, request.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
 func (h *Handler) GoogleSignIn(c *gin.Context) {
 	var request struct {
 		Token string `json:"token"`

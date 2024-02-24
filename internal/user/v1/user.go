@@ -31,13 +31,12 @@ func (User) TableName() string {
 
 // ---------- Admin related models ---------- //
 type Admin struct {
-	ID       uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	Email    string    `json:"email" gorm:"column:email;type:text;unique"`
-	Password string    `json:"password" gorm:"column:password;type:text"`
-	CreatedAt     time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
-	UpdatedAt     time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
-	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
-
+	ID        uuid.UUID      `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	Email     string         `json:"email" gorm:"column:email;type:text;unique"`
+	Password  string         `json:"password" gorm:"column:password;type:text"`
+	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at;type:timestamp;not null"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at;type:timestamp;not null"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"column:deleted_at;type:timestamp"`
 }
 
 func (Admin) TableName() string {
@@ -54,6 +53,7 @@ type Repository interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetUserByGoogleID(ctx context.Context, googleId string) (*User, error)
 	ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error
+	ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error
 	RestoreUser(ctx context.Context, id uuid.UUID) error
 
 	// ---------- Admin related repository methods ---------- //
@@ -120,6 +120,7 @@ type Service interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GoogleSignIn(context.Context, string) (*LogInResponse, string, error)
 	ChangePassword(ctx context.Context, id uuid.UUID, newPassword string) error
+	ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error
 	VerifyPassword(ctx context.Context, userID uuid.UUID, currentPassword string) error
 
 	// ---------- Admin related service methods ---------- //
