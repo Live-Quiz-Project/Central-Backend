@@ -22,20 +22,17 @@ func GenerateTOTPKey() (string, string, time.Time, error) {
 		return "", "", time.Time{}, err
 	}
 
-	ops := totp.ValidateOpts{
+	passcode, _ := totp.GenerateCodeCustom(key.Secret(), expirationTime, totp.ValidateOpts{
 		Period:    uint(expirationTime.Second()),
 		Skew:      0,
 		Digits:    otp.DigitsSix,
 		Algorithm: otp.AlgorithmSHA512,
-	}
-
-	passcode, _ := totp.GenerateCodeCustom(key.Secret(), expirationTime, ops)
+	})
 
 	return passcode, key.Secret(), expirationTime, nil
 }
 
-func VerifyOTP(userOTP, secret string) (bool, error) {
-	expirationTime := time.Now().Add(time.Duration(1) * time.Minute)
+func VerifyOTP(userOTP, secret string, expirationTime time.Time) (bool, error) {
 	ops := totp.ValidateOpts{
 		Period:    uint(expirationTime.Second()),
 		Skew:      0,

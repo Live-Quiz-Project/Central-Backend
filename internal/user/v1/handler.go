@@ -351,12 +351,10 @@ func (h *Handler) SendOTPCode(c *gin.Context) {
 		return
 	}
 
-	if otpSecret == "" {
-		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
@@ -391,24 +389,32 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	}
 
 	if time.Now().After(expireTimeParsed) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP code has expired"})
 		return
 	}
 
 	validResponse := gin.H{
 		"message": "OTP code is valid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
+		// "otpCode": request.OtpCode,
+		// "secret":  otpSecret,
+		// "time":    expireTimeParsed,
 	}
 
 	invalidResponse := gin.H{
 		"message": "OTP code is invalid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
+		"error":   "Invalid OTP code",
+		// "otpCode": request.OtpCode,
+		// "secret":  otpSecret,
 	}
 
-	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+	result, err := util.VerifyOTP(request.OtpCode, otpSecret, expireTimeParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying OTP"})
+		return
+	}
+
+	if !result {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidResponse})
 		return
 	}
 
