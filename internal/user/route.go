@@ -10,7 +10,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.POST("/login", h.LogIn)
 	r.GET("/logout", h.LogOut)
 	r.GET("/refresh", h.RefreshToken)
-	r.POST("/decode", h.DecodeToken)
+	r.GET("/decode", middleware.UserRequiredAuthentication, h.DecodeToken)
 	r.POST("/google-signin", h.GoogleSignIn)
 	r.POST("/otp", h.SendOTPCode)
 	r.POST("/verify-otp", h.VerifyOTPCode)

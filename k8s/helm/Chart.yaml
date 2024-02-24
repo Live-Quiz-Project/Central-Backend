@@ -1,0 +1,11 @@
+apiVersion: v1
+description: Online Quiz Platform Helm Chart (Backend)
+name: oqp-backend
+version: 1.0.0
+appVersion: 1.0.0
+home: "https://backend.livequizplatform.online/"
+maintainers:
+  - name: Phurit Sararattnakaul
+    email: 63010769@kmitl.ac.th
+sources:
+  - https://github.com/Live-Quiz-Project

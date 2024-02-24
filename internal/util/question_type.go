@@ -5,7 +5,8 @@ const (
 	Choice    = "CHOICE"
 	TrueFalse = "TRUE_FALSE"
 	Paragraph = "PARAGRAPH"
-	ShortText = "SHORT_TEXT"
+	FillBlank = "FILL_BLANK"
 	Matching  = "MATCHING"
-	Pin       = "PIN"
+
+	ANSWER_SPLIT = "<!#XyZ@?>"
 )

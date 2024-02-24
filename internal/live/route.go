@@ -7,6 +7,7 @@ import (
 )
 
 func LiveRoutes(r *gin.RouterGroup, h *l.Handler) {
+	r.GET("live/check/:code", h.CheckLiveQuizSessionAvailability)
 	r.GET("live/join/:code", h.JoinLiveQuizSession)
 
 	liveR := r.Group("/live")
@@ -17,7 +18,9 @@ func LiveRoutes(r *gin.RouterGroup, h *l.Handler) {
 	// liveR.PUT("/:id", h.UpdateLiveQuizSession)
 	// liveR.DELETE("/:id", h.DeleteLiveQuizSession)
 	liveR.GET("/:id/end", h.EndLiveQuizSession)
-	liveR.GET("/:id/check", h.CheckLiveQuizSessionAvailability)
 	liveR.GET("/:id/host", h.GetHost)
 	liveR.GET("/:id/participants", h.GetParticipants)
+
+	liveR.GET("/:id/cache", h.GetLiveQuizSessionCache)
+	liveR.GET("/:id/cache/responses", h.GetLiveQuizSessionResponsesCache)
 }

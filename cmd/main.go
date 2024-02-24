@@ -7,6 +7,7 @@ import (
 	"os/signal"
 
 	"github.com/Live-Quiz-Project/Backend/internal/cache"
+	d "github.com/Live-Quiz-Project/Backend/internal/dashboard/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/db"
 	"github.com/Live-Quiz-Project/Backend/internal/env"
 	l "github.com/Live-Quiz-Project/Backend/internal/live/v1"
@@ -16,8 +17,10 @@ import (
 )
 
 func main() {
-	env.Initialize()
-
+	if os.Getenv("USE_ENV_FILE") == "TRUE" {
+		env.Initialize()
+ 	}
+	
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	dbConn, err := db.NewDatabase()
@@ -42,16 +45,20 @@ func main() {
 
 	qRepo := q.NewRepository(dbConn.GetDB())
 	qServ := q.NewService(qRepo)
-	quizHandler := q.NewHandler(qServ)
+	quizHandler := q.NewHandler(qServ, uServ)
 
 	hub := l.NewHub()
 	lRepo := l.NewRepository(dbConn.GetDB(), cacheConn.GetCache())
-	lServ := l.NewService(lRepo)
+	lServ := l.NewService(lRepo, uRepo)
 
 	liveHandler := l.NewHandler(hub, lServ, qServ)
 
+	dashboardRepo := d.NewRepository(dbConn.GetDB())
+	dashboardServ := d.NewService(dashboardRepo)
+	dashboardHandler := d.NewHandler(dashboardServ, qServ, lServ, uServ)
+
 	go hub.Run()
-	router.Initialize(userHandler, quizHandler, liveHandler)
+	router.Initialize(userHandler, quizHandler, liveHandler, dashboardHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

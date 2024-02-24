@@ -1,0 +1,14 @@
+apps:
+  namespace: dev
+  image: ghcr.io/phurits/oqp-backend
+  tag: dev
+  replicas: 1
+  imagePullSecrets: ghcr-registry
+  port: 8080
+ingress:
+  host: backend.dev.livequizplatform.online
+  path: /
+  serviceType: ClusterIP
+  tlsSecretName: tls-backend-dev
+extraEnv:
+  secretName: oqp-backend-env

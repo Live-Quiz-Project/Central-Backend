@@ -1,0 +1,14 @@
+apps:
+  namespace: prd
+  image: ghcr.io/phurits/oqp-backend
+  tag: prd
+  replicas: 1
+  imagePullSecrets: ghcr-registry
+  port: 8080
+ingress:
+  host: backend.livequizplatform.online
+  path: /
+  serviceType: ClusterIP
+  tlsSecretName: tls-backend-prd
+extraEnv:
+  secretName: oqp-backend-env

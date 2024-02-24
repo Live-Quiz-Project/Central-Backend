@@ -36,6 +36,10 @@ func UserRequiredAuthentication(c *gin.Context) {
 			return
 		}
 		c.Set("uid", claims["uid"])
+		c.Set("name", claims["name"])
+		c.Set("display_name", claims["display_name"])
+		c.Set("display_emoji", claims["display_emoji"])
+		c.Set("display_color", claims["display_color"])
 
 		c.Next()
 	} else {
