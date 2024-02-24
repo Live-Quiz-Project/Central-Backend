@@ -351,12 +351,10 @@ func (h *Handler) SendOTPCode(c *gin.Context) {
 		return
 	}
 
-	if otpSecret == "" {
-		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
@@ -365,10 +363,8 @@ func (h *Handler) SendOTPCode(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"message":    "Confirmation code sent successfully",
-		"code":       otpCode,
-		"secret":     otpSecret,
-		"expireTime": expireTime,
+		"message": "Confirmation code sent successfully",
+		"code":    otpCode,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -391,28 +387,74 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	}
 
 	if time.Now().After(expireTimeParsed) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP code has expired"})
 		return
 	}
 
 	validResponse := gin.H{
 		"message": "OTP code is valid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
 	}
 
 	invalidResponse := gin.H{
 		"message": "OTP code is invalid",
-		"otpCode": request.OtpCode,
-		"secret":  otpSecret,
+		"error":   "Invalid OTP code",
 	}
 
-	if result, err := util.VerifyOTP(request.OtpCode, otpSecret); !result && err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+	result, err := util.VerifyOTP(request.OtpCode, otpSecret, expireTimeParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying OTP"})
+		return
+	}
+
+	if !result {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidResponse})
 		return
 	}
 
 	c.JSON(http.StatusOK, validResponse)
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var request struct {
+		OTP      string `json:"otp"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.Service.GetUserByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	expireTimeParsed, err := time.Parse(time.RFC3339, expireTime.Format(time.RFC3339))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing expiration time"})
+		return
+	}
+
+	result, err := util.VerifyOTP(request.OTP, otpSecret, expireTimeParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying OTP"})
+		return
+	}
+
+	if !result {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP"})
+		return
+	}
+
+	if err := h.Service.ResetPassword(c.Request.Context(), user.ID, request.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }
 
 // ---------- Admin related handlers ---------- //
