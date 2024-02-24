@@ -109,6 +109,27 @@ func (r *repository) ChangePassword(ctx context.Context, id uuid.UUID, newPasswo
 	return nil
 }
 
+func (r *repository) ResetPassword(ctx context.Context, id uuid.UUID, password string) error {
+	var user User
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&user)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	hashedPassword, err := util.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	res = r.db.WithContext(ctx).Save(&user)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
 func (r *repository) GetUserByGoogleID(ctx context.Context, googleId string) (*User, error) {
 	var user User
 	res := r.db.WithContext(ctx).Where("google_id = ?", googleId).First(&user)
