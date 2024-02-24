@@ -351,12 +351,10 @@ func (h *Handler) SendOTPCode(c *gin.Context) {
 		return
 	}
 
-	if otpSecret == "" {
-		otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+	otpCode, otpSecret, expireTime, err = util.GenerateTOTPKey()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err := util.SendConfirmationCode(request.Email, otpCode); err != nil {
