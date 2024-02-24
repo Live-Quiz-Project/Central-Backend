@@ -307,32 +307,6 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
 
-func (h *Handler) ResetPassword(c *gin.Context) {
-	var request struct {
-		Password string `json:"password"`
-	}
-
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
-		return
-	}
-
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := h.Service.ResetPassword(c.Request.Context(), id, request.Password); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
-}
-
 func (h *Handler) GoogleSignIn(c *gin.Context) {
 	var request struct {
 		Token string `json:"token"`
@@ -389,10 +363,8 @@ func (h *Handler) SendOTPCode(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"message":    "Confirmation code sent successfully",
-		"code":       otpCode,
-		"secret":     otpSecret,
-		"expireTime": expireTime,
+		"message": "Confirmation code sent successfully",
+		"code":    otpCode,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -421,16 +393,11 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 
 	validResponse := gin.H{
 		"message": "OTP code is valid",
-		// "otpCode": request.OtpCode,
-		// "secret":  otpSecret,
-		// "time":    expireTimeParsed,
 	}
 
 	invalidResponse := gin.H{
 		"message": "OTP code is invalid",
 		"error":   "Invalid OTP code",
-		// "otpCode": request.OtpCode,
-		// "secret":  otpSecret,
 	}
 
 	result, err := util.VerifyOTP(request.OtpCode, otpSecret, expireTimeParsed)
@@ -445,6 +412,49 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, validResponse)
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var request struct {
+		OTP      string `json:"otp"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.Service.GetUserByEmail(c, request.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	expireTimeParsed, err := time.Parse(time.RFC3339, expireTime.Format(time.RFC3339))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing expiration time"})
+		return
+	}
+
+	result, err := util.VerifyOTP(request.OTP, otpSecret, expireTimeParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verifying OTP"})
+		return
+	}
+
+	if !result {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP"})
+		return
+	}
+
+	if err := h.Service.ResetPassword(c.Request.Context(), user.ID, request.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }
 
 // ---------- Admin related handlers ---------- //

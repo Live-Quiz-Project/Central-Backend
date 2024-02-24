@@ -14,7 +14,7 @@ func UserRoutes(r *gin.RouterGroup, h *u.Handler) {
 	r.POST("/google-signin", h.GoogleSignIn)
 	r.POST("/otp", h.SendOTPCode)
 	r.POST("/verify-otp", h.VerifyOTPCode)
-	r.PATCH("/reset-password/:id", h.ResetPassword)
+	r.PATCH("/reset-password", h.ResetPassword)
 
 	userR := r.Group("/users")
 	userR.POST("", h.CreateUser)

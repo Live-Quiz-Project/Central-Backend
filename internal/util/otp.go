@@ -9,7 +9,7 @@ import (
 )
 
 func GenerateTOTPKey() (string, string, time.Time, error) {
-	expirationTime := time.Now().Add(time.Duration(1) * time.Minute)
+	expirationTime := time.Now().Add(time.Duration(3) * time.Minute)
 
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      os.Getenv("OTP_ISSUER"),
