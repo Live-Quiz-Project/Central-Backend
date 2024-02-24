@@ -391,7 +391,7 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	}
 
 	if time.Now().After(expireTimeParsed) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "OTP code has expired"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP code has expired"})
 		return
 	}
 
@@ -416,7 +416,7 @@ func (h *Handler) VerifyOTPCode(c *gin.Context) {
 	}
 
 	if !result {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": invalidResponse})
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidResponse})
 		return
 	}
 
