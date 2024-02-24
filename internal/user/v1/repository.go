@@ -109,14 +109,14 @@ func (r *repository) ChangePassword(ctx context.Context, id uuid.UUID, newPasswo
 	return nil
 }
 
-func (r *repository) ResetPassword(ctx context.Context, id uuid.UUID, password string) error {
+func (r *repository) ResetPassword(ctx context.Context, id uuid.UUID, newPassword string) error {
 	var user User
 	res := r.db.WithContext(ctx).Where("id = ?", id).First(&user)
 	if res.Error != nil {
 		return res.Error
 	}
 
-	hashedPassword, err := util.HashPassword(password)
+	hashedPassword, err := util.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}
