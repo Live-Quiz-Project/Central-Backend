@@ -55,7 +55,11 @@ spec:
   stages {
       stage('Notify Pipeline Start') {
           steps{
-              discordSend description: "Jenkins Pipeline Build", footer: "Start Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+            script {
+                withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
+                    discordSend description: "Jenkins Pipeline Build", footer: "Start Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+                }
+            }
           }
       }
       
@@ -133,11 +137,19 @@ spec:
 
   post {
     success {
-        discordSend description: "Jenkins Pipeline Build", footer: "Finish Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+      script {
+          withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
+              discordSend description: "Jenkins Pipeline Build", footer: "Finish Build", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+          }
+      }
     }
     
     failure {
-        discordSend description: "Jenkins Pipeline Build", footer: "Failed", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+      script {
+          withCredentials([string(credentialsId: 'discord-webhook', variable: 'DISCORD_WEBHOOK')]) {
+              discordSend description: "Jenkins Pipeline Build", footer: "Failed", link: env.BUILD_URL, result: currentBuild.currentResult, title: JOB_NAME, webhookURL: "${DISCORD_WEBHOOK}"
+          }
+      }
     }
   }
 }// End pipeline
