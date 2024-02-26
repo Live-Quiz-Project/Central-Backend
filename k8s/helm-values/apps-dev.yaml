@@ -6,7 +6,7 @@ apps:
   imagePullSecrets: ghcr-registry
   port: 8080
 ingress:
-  host: backend.dev.livequizplatform.online
+  host: dev.backend.inquesto.online
   path: /
   serviceType: ClusterIP
   tlsSecretName: tls-backend-dev
