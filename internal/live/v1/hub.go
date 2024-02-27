@@ -10,6 +10,8 @@ type Hub struct {
 	Register         chan *Client
 	Unregister       chan *Client
 	Broadcast        chan *Message
+	Converse         chan *Message
+	Inject           chan *Message
 }
 
 func NewHub() *Hub {
@@ -18,6 +20,8 @@ func NewHub() *Hub {
 		Register:         make(chan *Client),
 		Unregister:       make(chan *Client),
 		Broadcast:        make(chan *Message, 5),
+		Converse:         make(chan *Message, 5),
+		Inject:           make(chan *Message, 5),
 	}
 }
 
@@ -37,11 +41,12 @@ func (h *Hub) Run() {
 					if len(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients) != 0 {
 						h.Broadcast <- &Message{
 							Content: Content{
-								Type:    util.LeftLQS,
+								Type:    util.LeaveLQS,
 								Payload: nil,
 							},
 							LiveQuizSessionID: cl.LiveQuizSessionID,
-							UserID:            cl.ID,
+							ClientID:          cl.ID,
+							UserID:            cl.UserID,
 						}
 					}
 					delete(h.LiveQuizSessions[cl.LiveQuizSessionID].Clients, cl.ID)
@@ -53,6 +58,20 @@ func (h *Hub) Run() {
 			if _, ok := h.LiveQuizSessions[m.LiveQuizSessionID]; ok {
 				for _, cl := range h.LiveQuizSessions[m.LiveQuizSessionID].Clients {
 					cl.Message <- m
+				}
+			}
+		case m := <-h.Converse:
+			if _, ok := h.LiveQuizSessions[m.LiveQuizSessionID]; ok {
+				for _, cl := range h.LiveQuizSessions[m.LiveQuizSessionID].Clients {
+					if cl.ID == m.ClientID || cl.IsHost {
+						cl.Message <- m
+					}
+				}
+			}
+		case m := <-h.Inject:
+			if _, ok := h.LiveQuizSessions[m.LiveQuizSessionID]; ok {
+				if _, ok = h.LiveQuizSessions[m.LiveQuizSessionID].Clients[m.ClientID]; ok {
+					h.LiveQuizSessions[m.LiveQuizSessionID].Clients[m.ClientID].Message <- m
 				}
 			}
 		}

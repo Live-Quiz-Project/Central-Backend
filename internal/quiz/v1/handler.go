@@ -98,7 +98,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 			continue
 		} else {
 			txQuestion, _ := h.Service.BeginTransaction(c.Request.Context())
-			if q.IsInPool == true {
+			if q.IsInPool {
 				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -897,7 +897,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 				continue
 
 			} else {
-				if q.IsInPool == true {
+				if q.IsInPool {
 					qRes, err = h.Service.UpdateQuestion(c.Request.Context(), tx, &q, userID, q.ID, res.QuizHistoryID, qphResID)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1112,7 +1112,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 				continue
 			}
 
-			if q.IsInPool == true {
+			if q.IsInPool {
 				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, quizID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

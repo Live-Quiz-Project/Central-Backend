@@ -2,6 +2,9 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
+	"log"
+	"sort"
 	"time"
 
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
@@ -78,14 +81,14 @@ func (s *service) GetLiveQuizSessionsByUserID(ctx context.Context, userID uuid.U
 }
 
 // ---------- Live Quiz Session related service methods ---------- //
-func (s *service) CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error) {
+func (s *service) CreateLiveQuizSession(ctx context.Context, quizID uuid.UUID, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	sess := &Session{
 		ID:                  id,
 		HostID:              hostID,
-		QuizID:              req.QuizID,
+		QuizID:              quizID,
 		Status:              util.Idle,
 		ExemptedQuestionIDs: nil,
 	}
@@ -148,7 +151,6 @@ func (s *service) GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*Li
 		HostID: lqs.HostID,
 		QuizID: lqs.QuizID,
 		Status: lqs.Status,
-		Code:   lqs.Code,
 	}, nil
 }
 
@@ -166,7 +168,6 @@ func (s *service) GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UU
 		HostID: lqs.HostID,
 		QuizID: lqs.QuizID,
 		Status: lqs.Status,
-		Code:   lqs.Code,
 	}, nil
 }
 
@@ -196,7 +197,6 @@ func (s *service) UpdateLiveQuizSession(ctx context.Context, req *UpdateLiveQuiz
 		HostID: lqs.HostID,
 		QuizID: lqs.QuizID,
 		Status: lqs.Status,
-		Code:   lqs.Code,
 	}, nil
 }
 
@@ -221,7 +221,7 @@ func (s *service) CreateLiveQuizSessionCache(ctx context.Context, code string, c
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.CreateLiveQuizSessionCache(c, code, cache)
+	err := s.Repository.CreateCache(c, code, cache)
 	if err != nil {
 		return err
 	}
@@ -233,19 +233,28 @@ func (s *service) GetLiveQuizSessionCache(ctx context.Context, code string) (*Ca
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	lqs, err := s.Repository.GetLiveQuizSessionCache(c, code)
+	cache, err := s.Repository.GetCache(c, code)
 	if err != nil {
 		return &Cache{}, err
 	}
 
-	return lqs, nil
+	var mod *Cache
+	err = json.Unmarshal([]byte(cache), &mod)
+	if err != nil {
+		if err.Error() == "redis: nil" {
+			return &Cache{}, nil
+		}
+		return &Cache{}, err
+	}
+
+	return mod, nil
 }
 
 func (s *service) UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.UpdateLiveQuizSessionCache(c, code, cache)
+	err := s.Repository.UpdateCache(c, code, cache)
 	if err != nil {
 		return err
 	}
@@ -257,7 +266,7 @@ func (s *service) FlushLiveQuizSessionCache(ctx context.Context, code string) er
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.FlushLiveQuizSessionCache(c, code)
+	err := s.Repository.FlushCache(c, code)
 	if err != nil {
 		return err
 	}
@@ -265,86 +274,11 @@ func (s *service) FlushLiveQuizSessionCache(ctx context.Context, code string) er
 	return nil
 }
 
-func (s *service) CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
+func (s *service) DoesLiveQuizSessionCacheExist(ctx context.Context, code string) (bool, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.CreateLiveQuizSessionResponsesCache(c, code, response)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *service) GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	res, err := s.Repository.GetLiveQuizSessionResponsesCache(c, code)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (s *service) UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	err := s.Repository.UpdateLiveQuizSessionResponsesCache(c, code, response)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *service) FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	err := s.Repository.FlushLiveQuizSessionResponsesCache(c, code)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ---------- Participant related service methods ---------- //
-func (s *service) CreateParticipant(ctx context.Context, participant *Participant) (*Participant, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	participant, err := s.Repository.CreateParticipant(c, participant)
-	if err != nil {
-		return &Participant{}, err
-	}
-
-	return participant, nil
-}
-
-func (s *service) GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) (*ParticipantsResponse, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	participants, err := s.Repository.GetParticipantsByLiveQuizSessionID(c, lqsID)
-	if err != nil {
-		return &ParticipantsResponse{}, err
-	}
-
-	return &ParticipantsResponse{
-		Participants: participants,
-	}, nil
-}
-
-func (s *service) DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error) {
-	c, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	exists, err := s.Repository.DoesParticipantExists(c, uid, lqsID)
+	exists, err := s.Repository.DoesCacheExist(c, code)
 	if err != nil {
 		return false, err
 	}
@@ -352,11 +286,31 @@ func (s *service) DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsI
 	return exists, nil
 }
 
-func (s *service) UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error) {
+func (s *service) FlushAllLiveQuizSessionRelatedCache(ctx context.Context, code string) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	p, err := s.Repository.UpdateParticipantStatus(c, uid, lqsID, status)
+	keys, err := s.Repository.ScanCache(c, code+"*")
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		err := s.Repository.FlushCache(c, k)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ---------- Participant related service methods ---------- //
+func (s *service) CreateParticipant(ctx context.Context, p *Participant) (*Participant, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	p, err := s.Repository.CreateParticipant(c, p)
 	if err != nil {
 		return &Participant{}, err
 	}
@@ -364,97 +318,186 @@ func (s *service) UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lq
 	return p, nil
 }
 
-func (s *service) UnregisterParticipants(ctx context.Context, lqsID uuid.UUID) error {
+func (s *service) GetParticipantByID(ctx context.Context, id uuid.UUID) (*Participant, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	err := s.Repository.UnregisterParticipants(c, lqsID)
+	p, err := s.Repository.GetParticipantByID(c, id)
 	if err != nil {
-		return err
+		return &Participant{}, err
 	}
 
-	return nil
+	return p, nil
+}
+
+func (s *service) GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participants, err := s.Repository.GetParticipantsByLiveQuizSessionID(c, lqsID)
+	if err != nil {
+		return []Participant{}, err
+	}
+
+	return participants, nil
+}
+
+func (s *service) DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	exists, err := s.Repository.DoesParticipantExist(c, id)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (s *service) UpdateParticipant(ctx context.Context, p *Participant) (*Participant, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	p, err := s.Repository.UpdateParticipant(c, p)
+	if err != nil {
+		return &Participant{}, err
+	}
+
+	return p, nil
 }
 
 // ---------- Response related service methods ---------- //
-// Choice response related methods
-func (s *service) CreateChoiceResponse(ctx context.Context, req *CreateChoiceResponseRequest, uid uuid.UUID) error {
+func (s *service) CreateResponse(ctx context.Context, code string, qid string, pid string, response any) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	cr := &ChoiceResponse{
-		ID:             uuid.New(),
-		ParticipantID:  uid,
-		OptionChoiceID: req.OptionChoiceID,
-	}
-
-	_, err := s.Repository.CreateChoiceResponse(c, cr)
-	if err != nil {
+	if err := s.Repository.CreateCache(c, code+qid+pid, response); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *service) GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponseResponse, error) {
+func (s *service) GetResponses(ctx context.Context, code string, qid string) ([]any, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	choiceResponses, err := s.Repository.GetChoiceResponsesByParticipantID(c, participantID)
+	keys, err := s.Repository.ScanCache(c, code+qid+"*")
 	if err != nil {
-		return []ChoiceResponseResponse{}, err
+		return nil, err
 	}
 
-	var choiceResponsesRes []ChoiceResponseResponse
-	for _, cr := range choiceResponses {
-		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
+	res := make([]any, 0)
+	for _, k := range keys {
+		response, err := s.Repository.GetCache(c, k)
+		if err != nil {
+			return nil, err
+		}
+		if response == "" {
+			return nil, nil
+		}
+		var r any
+		err = json.Unmarshal([]byte(response), &r)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, r)
 	}
 
-	return choiceResponsesRes, nil
+	return res, nil
 }
 
-func (s *service) GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponseResponse, error) {
+func (s *service) GetResponse(ctx context.Context, code string, qid string, pid string) (any, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	choiceResponses, err := s.Repository.GetChoiceResponsesByQuizID(c, quizID)
+	response, err := s.Repository.GetCache(c, code+qid+pid)
 	if err != nil {
-		return []ChoiceResponseResponse{}, err
+		return nil, err
 	}
-
-	var choiceResponsesRes []ChoiceResponseResponse
-	for _, cr := range choiceResponses {
-		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
+	if response == "" {
+		return nil, nil
 	}
+	var res any
+	err = json.Unmarshal([]byte(response), &res)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(res)
 
-	return choiceResponsesRes, nil
+	return res, nil
 }
 
-func (s *service) GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponseResponse, error) {
+func (s *service) UpdateResponse(ctx context.Context, code string, qid string, pid string, response any) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	choiceResponses, err := s.Repository.GetChoiceResponsesByQuestionID(c, questionID)
-	if err != nil {
-		return []ChoiceResponseResponse{}, err
+	if err := s.Repository.UpdateCache(c, code+qid+pid, response); err != nil {
+		return err
 	}
 
-	var choiceResponsesRes []ChoiceResponseResponse
-	for _, cr := range choiceResponses {
-		choiceResponsesRes = append(choiceResponsesRes, ChoiceResponseResponse{ChoiceResponse: cr})
-	}
-
-	return choiceResponsesRes, nil
+	return nil
 }
 
-func (s *service) GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponseResponse, error) {
+func (s *service) FlushResponse(ctx context.Context, code string, qid string, pid string) error {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	cr, err := s.Repository.GetChoiceResponseByParticipantIDAndQuestionID(c, participantID, questionID)
-	if err != nil {
-		return &ChoiceResponseResponse{}, err
+	if err := s.Repository.FlushCache(c, code+qid+pid); err != nil {
+		return err
 	}
 
-	return &ChoiceResponseResponse{ChoiceResponse: *cr}, nil
+	return nil
+}
+
+func (s *service) DoesResponseExist(ctx context.Context, code string, qid string, pid string) (bool, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	exists, err := s.Repository.DoesCacheExist(c, code+qid+pid)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (s *service) CountResponses(ctx context.Context, code string, qid string) (int, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	count, err := s.Repository.ScanCache(c, code+qid+"*")
+	if err != nil {
+		return 0, err
+	}
+	log.Println("Count: ", count)
+
+	return len(count), nil
+}
+
+func (s *service) SaveResponse(ctx context.Context, response *Response) (*Response, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	response, err := s.Repository.CreateResponse(c, response)
+	if err != nil {
+		return &Response{}, err
+	}
+
+	return response, nil
+}
+
+// ---------- Leaderboard related service methods ---------- //
+func (s *service) GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Participant, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	p, err := s.Repository.GetParticipantsByLiveQuizSessionID(c, lqsID)
+	if err != nil {
+		return []Participant{}, err
+	}
+
+	sort.Sort(ByMarks(p))
+
+	return p, nil
 }

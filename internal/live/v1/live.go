@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	q "github.com/Live-Quiz-Project/Backend/internal/quiz/v1"
 	"github.com/google/uuid"
 )
 
@@ -31,16 +30,22 @@ type LiveQuizSession struct {
 }
 
 type Cache struct {
-	ID              uuid.UUID      `json:"id"`
-	QuizID          uuid.UUID      `json:"quiz_id"`
-	QuestionCount   int            `json:"question_count"`
-	CurrentQuestion int            `json:"current_question"`
-	Question        *q.Question    `json:"question"`
-	Options         any            `json:"options"`
-	Answers         any            `json:"answer"`
-	Status          string         `json:"status"`
-	Config          Configurations `json:"config"`
-	Orders          []int          `json:"orders"`
+	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id"`
+	QuizID            uuid.UUID      `json:"quiz_id"`
+	HostID            uuid.UUID      `json:"host_id"`
+	QuizTitle         string         `json:"quiz_title"`
+	QuestionCount     int            `json:"question_count"`
+	CurrentQuestion   int            `json:"current_question"`
+	Questions         []any          `json:"questions"`
+	Answers           []any          `json:"answers"`
+	AnswerCounts      map[string]int `json:"answer_counts"`
+	Status            string         `json:"status"`
+	Config            Configurations `json:"config"`
+	Locked            bool           `json:"locked"`
+	Interrupted       bool           `json:"interrupted"`
+	Orders            []int          `json:"orders"`
+	ResponseCount     int            `json:"response_count"`
+	ParticipantCount  int            `json:"participant_count"`
 }
 
 type SessionResponse struct {
@@ -64,8 +69,8 @@ type ParticipantConfigurations struct {
 }
 
 type LeaderboardConfigurations struct {
-	DuringQuestions  bool `json:"during"`
-	BetweenQuestions bool `json:"between"`
+	DuringQuestions bool `json:"during"`
+	AfterQuestions  bool `json:"after"`
 }
 
 type OptionConfigurations struct {
@@ -80,9 +85,12 @@ type Participant struct {
 	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
 	Status            string     `json:"status" gorm:"column:status;type:text;not null"`
 	Name              string     `json:"display_name" gorm:"column:name;type:text"`
-	// Emoji             string     `json:"display_emoji"`
-	// Color             string     `json:"display_color"`
-	Marks int `json:"marks" gorm:"column:marks;type:int"`
+	Emoji             string     `json:"display_emoji" gorm:"column:emoji;type:text"`
+	Color             string     `json:"display_color" gorm:"column:color;type:text"`
+	Marks             int        `json:"marks" gorm:"column:marks;type:int"`
+	CreatedAt         time.Time  `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
+	UpdatedAt         time.Time  `json:"updated_at" gorm:"column:updated_at;type:timestamptz;not null"`
+	DeletedAt         *time.Time `json:"deleted_at" gorm:"column:deleted_at;type:timestamptz"`
 }
 
 func (Participant) TableName() string {
@@ -90,56 +98,60 @@ func (Participant) TableName() string {
 }
 
 // ---------- Response related models ---------- //
-// Choice response related models
-type ChoiceResponse struct {
-	ID             uuid.UUID `json:"id" gorm:"column:id;type:uuid;primaryKey"`
-	ParticipantID  uuid.UUID `json:"participant_id" gorm:"column:participant_id;type:uuid;not null"`
-	OptionChoiceID uuid.UUID `json:"option_choice_id" gorm:"column:option_choice_id;type:uuid;not null"`
+type Response struct {
+	ID                uuid.UUID  `json:"id" gorm:"column:id;type:uuid;primaryKey"`
+	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id" gorm:"column:live_quiz_session_id;type:uuid;not null"`
+	ParticipantID     uuid.UUID  `json:"participant_id" gorm:"column:participant_id;type:uuid;not null"`
+	QuestionID        uuid.UUID  `json:"question_id" gorm:"column:question_id;type:uuid;not null"`
+	Type              string     `json:"type" gorm:"column:type;type:text;not null"`
+	Answer            any        `json:"answer" gorm:"column:answer;type:text;not null"`
+	TimeTaken         int        `json:"time_taken" gorm:"column:use_time;type:int;not null"`
+	CreatedAt         time.Time  `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
+	UpdatedAt         time.Time  `json:"updated_at" gorm:"column:updated_at;type:timestamptz;not null"`
+	DeletedAt         *time.Time `json:"deleted_at" gorm:"column:deleted_at;type:timestamptz"`
 }
 
-func (ChoiceResponse) TableName() string {
-	return "response_choice"
+func (Response) TableName() string {
+	return "answer_response"
 }
 
 type Repository interface {
-	// ---------- Session related repository methods ---------- //
 	GetLiveQuizSessionBySessionID(ctx context.Context, id uuid.UUID) (*Session, error)
 	GetLiveQuizSessionsByUserID(ctx context.Context, id uuid.UUID) ([]Session, error)
 
 	// ---------- Live Quiz Session related repository methods ---------- //
 	CreateLiveQuizSession(ctx context.Context, lqs *Session) (*Session, error)
 	GetLiveQuizSessions(ctx context.Context) ([]Session, error)
-	GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*LiveQuizSession, error)
-	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSession, error)
-	GetLiveQuizSessionByCode(ctx context.Context, code string) (*LiveQuizSession, error)
-	UpdateLiveQuizSession(ctx context.Context, lqs *LiveQuizSession, id uuid.UUID) (*LiveQuizSession, error)
+	GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*Session, error)
+	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*Session, error)
+	GetLiveQuizSessionByCode(ctx context.Context, code string) (*Session, error)
+	UpdateLiveQuizSession(ctx context.Context, lqs *Session, id uuid.UUID) (*Session, error)
 	EndLiveQuizSession(ctx context.Context, id uuid.UUID) error
 	DeleteLiveQuizSession(ctx context.Context, id uuid.UUID) error
 
-	CreateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error
-	GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error)
-	UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error
-	FlushLiveQuizSessionCache(ctx context.Context, code string) error
-	CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
-	GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error)
-	UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
-	FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error
+	CreateCache(ctx context.Context, key string, value any) error
+	GetCache(ctx context.Context, key string) (string, error)
+	UpdateCache(ctx context.Context, key string, value any) error
+	FlushCache(ctx context.Context, key string) error
+	DoesCacheExist(ctx context.Context, key string) (bool, error)
+	ScanCache(ctx context.Context, pattern string) ([]string, error)
 
 	// ---------- Participant related repository methods ---------- //
 	CreateParticipant(ctx context.Context, participant *Participant) (*Participant, error)
-	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]ParticipantResponse, error)
-	GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (*Participant, error)
-	DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error)
-	UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error)
-	UnregisterParticipants(ctx context.Context, lqsID uuid.UUID) error
+	GetParticipantByID(ctx context.Context, id uuid.UUID) (*Participant, error)
+	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
+	GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid *uuid.UUID, lqsID uuid.UUID) (*Participant, error)
+	DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error)
+	UpdateParticipant(ctx context.Context, participant *Participant) (*Participant, error)
 
 	// ---------- Response related repository methods ---------- //
+	CreateResponse(ctx context.Context, ansRes *Response) (*Response, error)
 	// Choice response related repository methods
-	CreateChoiceResponse(ctx context.Context, r *ChoiceResponse) (*ChoiceResponse, error)
-	GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponse, error)
-	GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponse, error)
-	GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponse, error)
-	GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponse, error)
+	// CreateChoiceResponse(ctx context.Context, r *ChoiceResponse) (*ChoiceResponse, error)
+	// GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponse, error)
+	// GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponse, error)
+	// GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponse, error)
+	// GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponse, error)
 }
 
 // ---------- Live Quiz Session related structs ---------- //
@@ -150,7 +162,6 @@ type LiveQuizSessionResponse struct {
 	Code   string    `json:"code"`
 	Status string    `json:"status"`
 }
-
 type CreateLiveQuizSessionRequest struct {
 	QuizID uuid.UUID      `json:"quiz_id"`
 	Config Configurations `json:"config"`
@@ -164,6 +175,17 @@ type UpdateLiveQuizSessionRequest struct {
 	Status          string  `json:"status"`
 	ExemptedQuesIDs *string `json:"exempted_question_ids"`
 }
+
+type JoinedMessage struct {
+	Code    string    `json:"code"`
+	ID      uuid.UUID `json:"participant_id"`
+	Name    string    `json:"participant_name"`
+	Emoji   string    `json:"participant_emoji"`
+	Color   string    `json:"participant_color"`
+	IsHost  bool      `json:"is_host"`
+	Answers any       `json:"answers"`
+}
+
 type CheckLiveQuizSessionAvailabilityResponse struct {
 	ID              uuid.UUID `json:"id"`
 	QuizID          uuid.UUID `json:"quiz_id"`
@@ -174,42 +196,47 @@ type CheckLiveQuizSessionAvailabilityResponse struct {
 }
 type CountDownPayload struct {
 	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id"`
-	TimeLeft          int       `json:"time_left"`
+	TimeLeft          float64   `json:"time_left"`
 	QuestionCount     int       `json:"question_count"`
 	CurrentQuestion   int       `json:"current_question"`
 	Status            string    `json:"status"`
 }
 
-// ---------- Participant related structs ---------- //
-type ParticipantResponse struct {
-	Participant
-	Name  string `json:"display_name"`
-	Emoji string `json:"display_emoji"`
-	Color string `json:"display_color"`
-}
-type ParticipantsResponse struct {
-	Participants []ParticipantResponse `json:"participants"`
+type ByMarks []Participant
+
+func (a ByMarks) Len() int      { return len(a) }
+func (a ByMarks) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByMarks) Less(i, j int) bool {
+	if a[i].Marks == a[j].Marks {
+		return a[i].Name < a[j].Name
+	}
+	return a[i].Marks > a[j].Marks
 }
 
-// ---------- Response related structs ---------- //
-// Choice response related structs
-type ChoiceResponseResponse struct {
-	ChoiceResponse
+type HostAnswerResponse struct {
+	Answers      []any          `json:"answers"`
+	AnswerCounts map[string]int `json:"answer_counts"`
+	Leaderboard  []Participant  `json:"leaderboard"`
 }
-type CreateChoiceResponseRequest struct {
-	OptionChoiceID uuid.UUID `json:"option_choice_id"`
+type ChoiceAnswer struct {
+	ID      string `json:"id"`
+	Content string `json:"content"`
+	Color   string `json:"color"`
+	Mark    *int   `json:"mark"`
+	Correct *bool  `json:"correct"`
 }
-type UpdateChoiceResponseRequest struct {
-	OptionChoiceID uuid.UUID `json:"option_choice_id"`
+type ChoiceAnswerResponse struct {
+	Answers   []ChoiceAnswer `json:"answers"`
+	Marks     int            `json:"marks"`
+	TimeTaken int            `json:"time_taken"`
 }
 
 type Service interface {
-	// ---------- Session related service methods ---------- //
 	GetLiveQuizSessionBySessionID(ctx context.Context, sessionID uuid.UUID) (*SessionResponse, error)
 	GetLiveQuizSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]SessionResponse, error)
 
 	// ---------- Live Quiz Session related service methods ---------- //
-	CreateLiveQuizSession(ctx context.Context, req *CreateLiveQuizSessionRequest, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
+	CreateLiveQuizSession(ctx context.Context, quizID uuid.UUID, id uuid.UUID, code string, hostID uuid.UUID) (*CreateLiveQuizSessionResponse, error)
 	GetLiveQuizSessions(ctx context.Context, hub *Hub) ([]LiveQuizSessionResponse, error)
 	GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*LiveQuizSessionResponse, error)
 	GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSessionResponse, error)
@@ -220,23 +247,27 @@ type Service interface {
 	GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error)
 	UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error
 	FlushLiveQuizSessionCache(ctx context.Context, code string) error
-	CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
-	GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error)
-	UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error
-	FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error
+	DoesLiveQuizSessionCacheExist(ctx context.Context, code string) (bool, error)
+
+	FlushAllLiveQuizSessionRelatedCache(ctx context.Context, code string) error
 
 	// ---------- Participant related service methods ---------- //
-	CreateParticipant(ctx context.Context, participant *Participant) (*Participant, error)
-	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) (*ParticipantsResponse, error)
-	DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error)
-	UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error)
-	UnregisterParticipants(ctx context.Context, lqsID uuid.UUID) error
+	CreateParticipant(ctx context.Context, p *Participant) (*Participant, error)
+	GetParticipantByID(ctx context.Context, id uuid.UUID) (*Participant, error)
+	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
+	DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error)
+	UpdateParticipant(ctx context.Context, p *Participant) (*Participant, error)
 
 	// ---------- Response related service methods ---------- //
-	// Choice response related service methods
-	CreateChoiceResponse(ctx context.Context, req *CreateChoiceResponseRequest, uid uuid.UUID) error
-	GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponseResponse, error)
-	GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponseResponse, error)
-	GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponseResponse, error)
-	GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponseResponse, error)
+	CreateResponse(ctx context.Context, code string, qid string, pid string, response any) error
+	GetResponses(ctx context.Context, code string, qid string) ([]any, error)
+	GetResponse(ctx context.Context, code string, qid string, pid string) (any, error)
+	UpdateResponse(ctx context.Context, code string, qid string, pid string, response any) error
+	FlushResponse(ctx context.Context, code string, qid string, pid string) error
+	DoesResponseExist(ctx context.Context, code string, qid string, pid string) (bool, error)
+	CountResponses(ctx context.Context, code string, qid string) (int, error)
+	SaveResponse(ctx context.Context, response *Response) (*Response, error)
+
+	// ---------- Leaderboard related service methods ---------- //
+	GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
 }
