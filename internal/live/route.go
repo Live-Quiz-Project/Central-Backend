@@ -7,20 +7,11 @@ import (
 )
 
 func LiveRoutes(r *gin.RouterGroup, h *l.Handler) {
-	r.GET("live/check/:code", h.CheckLiveQuizSessionAvailability)
-	r.GET("live/join/:code", h.JoinLiveQuizSession)
-
-	liveR := r.Group("/live")
-	liveR.Use(middleware.UserRequiredAuthentication)
-	liveR.POST("", h.CreateLiveQuizSession)
-	// liveR.GET("", h.GetLiveQuizSessions)
-	// liveR.GET("/:id", h.GetLiveQuizSessionByID)
-	// liveR.PUT("/:id", h.UpdateLiveQuizSession)
-	// liveR.DELETE("/:id", h.DeleteLiveQuizSession)
-	liveR.GET("/:id/end", h.EndLiveQuizSession)
-	liveR.GET("/:id/host", h.GetHost)
-	liveR.GET("/:id/participants", h.GetParticipants)
-
-	liveR.GET("/:id/cache", h.GetLiveQuizSessionCache)
-	liveR.GET("/:id/cache/responses", h.GetLiveQuizSessionResponsesCache)
+	r.POST("live", middleware.UserRequiredAuthentication, h.CreateLiveQuizSession)
+	liveR := r.Group("/live/:code")
+	liveR.GET("/check", h.CheckLiveQuizSessionAvailability)
+	liveR.GET("/join", h.JoinLiveQuizSession)
+	liveR.GET("/mod", h.UpdateModerator)
+	liveR.GET("/interrupt", h.InterruptCountdown)
+	liveR.GET("/end", middleware.UserRequiredAuthentication, h.EndLiveQuizSession)
 }

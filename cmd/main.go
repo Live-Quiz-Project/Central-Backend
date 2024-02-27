@@ -19,8 +19,8 @@ import (
 func main() {
 	if os.Getenv("USE_ENV_FILE") == "TRUE" {
 		env.Initialize()
- 	}
-	
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	dbConn, err := db.NewDatabase()

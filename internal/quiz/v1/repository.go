@@ -621,7 +621,7 @@ func (r *repository) GetChoiceOptionHistoriesByQuestionID(ctx context.Context, q
 	return optionChoiceHistories, nil
 }
 
-func (r *repository) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID,content string) (*ChoiceOptionHistory, error) {
+func (r *repository) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistory, error) {
 	var optionChoiceHistory ChoiceOptionHistory
 	res := r.db.WithContext(ctx).Where("question_id = ? and content = ?", questionID, content).Find(&optionChoiceHistory)
 	if res.Error != nil {
@@ -915,7 +915,7 @@ func (r *repository) GetMatchingOptionHistoriesByQuestionID(ctx context.Context,
 
 func (r *repository) GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistory, error) {
 	var optionMatchingHistory MatchingOptionHistory
-	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content ).Find(&optionMatchingHistory)
+	res := r.db.WithContext(ctx).Where("question_id = ? AND content = ?", questionID, content).Find(&optionMatchingHistory)
 	if res.Error != nil {
 		return &MatchingOptionHistory{}, res.Error
 	}
@@ -1055,4 +1055,11 @@ func (r *repository) DeleteMatchingAnswerHistory(ctx context.Context, tx *gorm.D
 	return nil
 }
 
-// Uncatagorize function
+func (r *repository) GetLatestQuizHistoryByQuizID(ctx context.Context, id uuid.UUID) (*uuid.UUID, error) {
+	var qh QuizHistory
+	res := r.db.WithContext(ctx).Order("created_at desc").Where("quiz_id = ?", id).First(&qh)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &qh.ID, nil
+}

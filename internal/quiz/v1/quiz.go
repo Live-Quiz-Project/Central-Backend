@@ -317,6 +317,7 @@ type Repository interface {
 	CreateQuizHistory(ctx context.Context, tx *gorm.DB, quizHistory *QuizHistory) (*QuizHistory, error)
 	GetQuizHistories(ctx context.Context) ([]QuizHistory, error)
 	GetQuizHistoryByID(ctx context.Context, id uuid.UUID) (*QuizHistory, error)
+	GetLatestQuizHistoryByQuizID(ctx context.Context, id uuid.UUID) (*uuid.UUID, error)
 	GetQuizHistoriesByQuizID(ctx context.Context, quizID uuid.UUID) ([]QuizHistory, error)
 	GetQuizHistoriesByUserID(ctx context.Context, uid uuid.UUID) ([]QuizHistory, error)
 	GetQuizHistoryByQuizIDAndCreatedDate(ctx context.Context, quizID uuid.UUID, createdDate time.Time) (*QuizHistory, error)
@@ -371,7 +372,7 @@ type Repository interface {
 	GetChoiceOptionHistoryByID(ctx context.Context, id uuid.UUID) (*ChoiceOptionHistory, error)
 	GetOptionChoiceHistories(ctx context.Context) ([]ChoiceOptionHistory, error)
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistory, error)
-	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID,content string) (*ChoiceOptionHistory, error)
+	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistory, error)
 	UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	DeleteChoiceOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -717,4 +718,138 @@ type Service interface {
 
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistoryResponse, error)
 	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistoryResponse, error)
+
+	// ---------- Live + Quiz related service methods ---------- //
+	GetLatestQuizVersionByID(ctx context.Context, id uuid.UUID) (*uuid.UUID, error)
+	GetQuestionsByQuizIDForLQS(ctx context.Context, id uuid.UUID) ([]any, error)
+	GetAnswersByQuizIDForLQS(ctx context.Context, id uuid.UUID) ([]any, error)
 }
+
+type LQSQuestion struct {
+	QuestionHistory
+	Options any `json:"options"`
+}
+
+type LQSQuestionPool struct {
+	QuestionPoolHistory
+	SubQuestions []LQSQuestion `json:"subquestions"`
+}
+
+type LQSChoiceOption struct {
+	ID      uuid.UUID `json:"id"`
+	Content string    `json:"content"`
+	Color   string    `json:"color"`
+	Order   int       `json:"order"`
+}
+type LQSTextOption struct {
+	ID            uuid.UUID `json:"id"`
+	Content       string    `json:"content"`
+	CaseSensitive bool      `json:"case_sensitive"`
+	Order         int       `json:"order"`
+}
+type LQSMatchingOption struct {
+	Prompts []LQSMatchingOptionPrompt `json:"prompts"`
+	Options []LQSMatchingOptionOption `json:"options"`
+}
+type LQSMatchingOptionPrompt struct {
+	ID      uuid.UUID `json:"id"`
+	Content string    `json:"content"`
+	Order   int       `json:"order"`
+}
+type LQSMatchingOptionOption struct {
+	ID        uuid.UUID `json:"id"`
+	Content   string    `json:"content"`
+	Color     string    `json:"color"`
+	Eliminate bool      `json:"eliminate"`
+	Order     int       `json:"order"`
+}
+type LQSAnswers struct {
+	Answers any `json:"answers"`
+	Order   int `json:"order"`
+}
+type LQSChoiceAnswer struct {
+	LQSChoiceOption
+	Mark    int  `json:"mark"`
+	Correct bool `json:"is_correct"`
+}
+type LQSTextAnswer struct {
+	LQSTextOption
+	Mark int `json:"mark"`
+}
+type LQSMatchingAnswer struct {
+	PromptID uuid.UUID `json:"prompt_id"`
+	OptionID uuid.UUID `json:"option_id"`
+	Mark     int       `json:"mark"`
+}
+
+type ByQHOrder []LQSQuestion
+
+func (q ByQHOrder) Len() int           { return len(q) }
+func (q ByQHOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByQHOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByQQPOrder []any
+
+func (q ByQQPOrder) Len() int      { return len(q) }
+func (q ByQQPOrder) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
+func (q ByQQPOrder) Less(i, j int) bool {
+	var qi int
+	switch q[i].(type) {
+	case LQSQuestion:
+		qi = q[i].(LQSQuestion).Order
+	case LQSQuestionPool:
+		qi = q[i].(LQSQuestionPool).Order
+	}
+
+	var qj int
+	switch q[j].(type) {
+	case LQSQuestion:
+		qj = q[j].(LQSQuestion).Order
+	case LQSQuestionPool:
+		qj = q[j].(LQSQuestionPool).Order
+	}
+
+	return qi < qj
+}
+
+type ByCOOrder []LQSChoiceOption
+
+func (q ByCOOrder) Len() int           { return len(q) }
+func (q ByCOOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByCOOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByTOOrder []LQSTextOption
+
+func (q ByTOOrder) Len() int           { return len(q) }
+func (q ByTOOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByTOOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByMPOrder []LQSMatchingOptionPrompt
+
+func (q ByMPOrder) Len() int           { return len(q) }
+func (q ByMPOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByMPOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByMOOrder []LQSMatchingOptionOption
+
+func (q ByMOOrder) Len() int           { return len(q) }
+func (q ByMOOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByMOOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByAOrder []LQSAnswers
+
+func (q ByAOrder) Len() int           { return len(q) }
+func (q ByAOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByAOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByCAOrder []LQSChoiceAnswer
+
+func (q ByCAOrder) Len() int           { return len(q) }
+func (q ByCAOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByCAOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
+
+type ByTAOrder []LQSTextAnswer
+
+func (q ByTAOrder) Len() int           { return len(q) }
+func (q ByTAOrder) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByTAOrder) Less(i, j int) bool { return q[i].Order < q[j].Order }
