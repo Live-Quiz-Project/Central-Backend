@@ -47,8 +47,6 @@ spec:
         GIT_SSH = "git@github.com:Live-Quiz-Project/Central-Backend.git"
         APP_NAME = "oqp-backend"
         IMAGE = "ghcr.io/phurits/oqp-backend"
-
-        DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1206992399855915018/dDGW5LsjfSHmaQ3DuSBI_iyCXi416cgg3D_XzncP2wU_fsIR8n8YrhhRkNO_f9VTTb91"
     }
   
   //Start Pipeline
