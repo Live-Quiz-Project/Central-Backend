@@ -3,10 +3,8 @@ package v1
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
-	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -63,8 +61,8 @@ func (r *repository) GetLiveQuizSessions(ctx context.Context) ([]Session, error)
 	return lqses, nil
 }
 
-func (r *repository) GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*LiveQuizSession, error) {
-	var lqs LiveQuizSession
+func (r *repository) GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (*Session, error) {
+	var lqs Session
 	res := r.db.WithContext(ctx).Where("id = ?", id).First(&lqs)
 	if res.Error != nil {
 		return nil, res.Error
@@ -72,8 +70,8 @@ func (r *repository) GetLiveQuizSessionByID(ctx context.Context, id uuid.UUID) (
 	return &lqs, nil
 }
 
-func (r *repository) GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*LiveQuizSession, error) {
-	var lqs LiveQuizSession
+func (r *repository) GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid.UUID) (*Session, error) {
+	var lqs Session
 	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).First(&lqs)
 	if res.Error != nil {
 		return nil, res.Error
@@ -81,8 +79,8 @@ func (r *repository) GetLiveQuizSessionByQuizID(ctx context.Context, quizID uuid
 	return &lqs, nil
 }
 
-func (r *repository) GetLiveQuizSessionByCode(ctx context.Context, code string) (*LiveQuizSession, error) {
-	var lqs LiveQuizSession
+func (r *repository) GetLiveQuizSessionByCode(ctx context.Context, code string) (*Session, error) {
+	var lqs Session
 	val, err := r.cache.Get(ctx, code).Result()
 	if err != nil {
 		return nil, err
@@ -94,7 +92,7 @@ func (r *repository) GetLiveQuizSessionByCode(ctx context.Context, code string) 
 	return &lqs, nil
 }
 
-func (r *repository) UpdateLiveQuizSession(ctx context.Context, lqs *LiveQuizSession, id uuid.UUID) (*LiveQuizSession, error) {
+func (r *repository) UpdateLiveQuizSession(ctx context.Context, lqs *Session, id uuid.UUID) (*Session, error) {
 	res := r.db.WithContext(ctx).Where("id = ?", id).Updates(lqs)
 	if res.Error != nil {
 		return nil, res.Error
@@ -118,13 +116,16 @@ func (r *repository) DeleteLiveQuizSession(ctx context.Context, id uuid.UUID) er
 	return nil
 }
 
-func (r *repository) CreateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error {
-	val, err := json.Marshal(&cache)
+func (r *repository) CreateCache(ctx context.Context, key string, value any) error {
+	val, err := json.Marshal(&value)
 	if err != nil {
 		return err
 	}
+	if val == nil {
+		return nil
+	}
 
-	status := r.cache.Set(ctx, code, val, time.Duration(60*60*5)*time.Second)
+	status := r.cache.Set(ctx, key, val, time.Duration(60*60*5)*time.Second)
 	if status.Err() != nil {
 		return status.Err()
 	}
@@ -132,38 +133,28 @@ func (r *repository) CreateLiveQuizSessionCache(ctx context.Context, code string
 	return nil
 }
 
-func (r *repository) GetLiveQuizSessionCache(ctx context.Context, code string) (*Cache, error) {
-	var lqs Cache
-	val, err := r.cache.Get(ctx, code).Result()
+func (r *repository) GetCache(ctx context.Context, key string) (string, error) {
+	val, err := r.cache.Get(ctx, key).Result()
 	if err != nil {
-		return nil, err
+		if err.Error() == redis.Nil.Error() {
+			return "", nil
+		}
+		return "", err
 	}
 
-	err = json.Unmarshal([]byte(val), &lqs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &lqs, nil
+	return val, nil
 }
 
-func (r *repository) UpdateLiveQuizSessionCache(ctx context.Context, code string, cache *Cache) error {
-	val, err := json.Marshal(&cache)
+func (r *repository) UpdateCache(ctx context.Context, key string, value any) error {
+	val, err := json.Marshal(&value)
 	if err != nil {
 		return err
 	}
-
-	status := r.cache.Set(ctx, code, val, time.Duration(60*60*5)*time.Second)
-	if status.Err() != nil {
-		return status.Err()
+	if val == nil {
+		return nil
 	}
-	log.Println(status)
 
-	return nil
-}
-
-func (r *repository) FlushLiveQuizSessionCache(ctx context.Context, code string) error {
-	status := r.cache.Del(ctx, code)
+	status := r.cache.Set(ctx, key, val, time.Duration(60*60*5)*time.Second)
 	if status.Err() != nil {
 		return status.Err()
 	}
@@ -171,54 +162,48 @@ func (r *repository) FlushLiveQuizSessionCache(ctx context.Context, code string)
 	return nil
 }
 
-func (r *repository) CreateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
-	val, err := json.Marshal(&response)
+func (r *repository) FlushCache(ctx context.Context, key string) error {
+	status := r.cache.Del(ctx, key)
+	if status.Err() != nil {
+		return status.Err()
+	}
+
+	return nil
+}
+
+func (r *repository) DoesCacheExist(ctx context.Context, key string) (bool, error) {
+	val, err := r.cache.Exists(ctx, key).Result()
 	if err != nil {
-		return err
+		if err.Error() == redis.Nil.Error() {
+			return false, nil
+		}
+		return false, err
 	}
 
-	status := r.cache.Set(ctx, code+"RES", val, time.Duration(60*60*5)*time.Second)
-	if status.Err() != nil {
-		return status.Err()
-	}
-
-	return nil
+	return val == 1, nil
 }
 
-func (r *repository) GetLiveQuizSessionResponsesCache(ctx context.Context, code string) (any, error) {
-	var response any
-	val, err := r.cache.Get(ctx, code+"RES").Result()
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal([]byte(val), &response)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
-}
+func (r *repository) ScanCache(ctx context.Context, pattern string) ([]string, error) {
+	var cursor uint64
+	var keys []string
+	var err error
 
-func (r *repository) UpdateLiveQuizSessionResponsesCache(ctx context.Context, code string, response any) error {
-	val, err := json.Marshal(&response)
-	if err != nil {
-		return err
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			var scanResult []string
+			scanResult, cursor, err = r.cache.Scan(ctx, cursor, pattern, 10).Result()
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, scanResult...)
+			if cursor == 0 {
+				return keys, nil
+			}
+		}
 	}
-
-	status := r.cache.Set(ctx, code+"RES", val, time.Duration(60*60*5)*time.Second)
-	if status.Err() != nil {
-		return status.Err()
-	}
-
-	return nil
-}
-
-func (r *repository) FlushLiveQuizSessionResponsesCache(ctx context.Context, code string) error {
-	status := r.cache.Del(ctx, code+"RES")
-	if status.Err() != nil {
-		return status.Err()
-	}
-
-	return nil
 }
 
 // ---------- Participant related repository methods ---------- //
@@ -231,32 +216,27 @@ func (r *repository) CreateParticipant(ctx context.Context, participant *Partici
 	return participant, nil
 }
 
-func (r *repository) GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]ParticipantResponse, error) {
-	var participants []Participant
-	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND status = ?", lqsID, util.Joined).Find(&participants)
+func (r *repository) GetParticipantByID(ctx context.Context, id uuid.UUID) (*Participant, error) {
+	var participant Participant
+	res := r.db.WithContext(ctx).Where("id = ?", id).First(&participant)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 
-	var participantsResponse []ParticipantResponse
-	for _, p := range participants {
-		var user u.User
-		res := r.db.WithContext(ctx).Where("id = ?", p.UserID).First(&user)
-		if res.Error != nil {
-			return nil, res.Error
-		}
-		participantsResponse = append(participantsResponse, ParticipantResponse{
-			Participant: p,
-			Name:        user.DisplayName,
-			Emoji:       user.DisplayEmoji,
-			Color:       user.DisplayColor,
-		})
-	}
-
-	return participantsResponse, nil
+	return &participant, nil
 }
 
-func (r *repository) GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (*Participant, error) {
+func (r *repository) GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error) {
+	p := make([]Participant, 0)
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND status = ?", lqsID, util.Joined).Find(&p)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return p, nil
+}
+
+func (r *repository) GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid *uuid.UUID, lqsID uuid.UUID) (*Participant, error) {
 	var participant Participant
 	res := r.db.WithContext(ctx).Where("user_id = ? AND live_quiz_session_id = ?", uid, lqsID).First(&participant)
 	if res.Error != nil {
@@ -266,9 +246,9 @@ func (r *repository) GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Cont
 	return &participant, nil
 }
 
-func (r *repository) DoesParticipantExists(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID) (bool, error) {
+func (r *repository) DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error) {
 	var count int64
-	res := r.db.WithContext(ctx).Model(&Participant{}).Where("user_id = ? AND live_quiz_session_id = ?", uid, lqsID).Count(&count)
+	res := r.db.WithContext(ctx).Model(&Participant{}).Where("id = ?", id).Count(&count)
 	if res.Error != nil {
 		return false, res.Error
 	}
@@ -276,78 +256,21 @@ func (r *repository) DoesParticipantExists(ctx context.Context, uid uuid.UUID, l
 	return count > 0, nil
 }
 
-func (r *repository) UpdateParticipantStatus(ctx context.Context, uid uuid.UUID, lqsID uuid.UUID, status string) (*Participant, error) {
-	var participant Participant
-	res := r.db.WithContext(ctx).Where("user_id = ? AND live_quiz_session_id = ?", uid, lqsID).First(&participant)
+func (r *repository) UpdateParticipant(ctx context.Context, p *Participant) (*Participant, error) {
+	res := r.db.WithContext(ctx).Where("id = ?", p.ID).Updates(p)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 
-	participant.Status = status
-	res = r.db.WithContext(ctx).Save(&participant)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return &participant, nil
-}
-
-func (r *repository) UnregisterParticipants(ctx context.Context, lqsID uuid.UUID) error {
-	res := r.db.WithContext(ctx).Model(&Participant{}).Where("live_quiz_session_id = ?", lqsID).Update("status", util.Left)
-	if res.Error != nil {
-		return res.Error
-	}
-
-	return nil
+	return p, nil
 }
 
 // ---------- Response related repository methods ---------- //
-// Choice response related methods
-func (r *repository) CreateChoiceResponse(ctx context.Context, cr *ChoiceResponse) (*ChoiceResponse, error) {
-	res := r.db.WithContext(ctx).Create(cr)
+func (r *repository) CreateResponse(ctx context.Context, ansRes *Response) (*Response, error) {
+	res := r.db.WithContext(ctx).Create(ansRes)
 	if res.Error != nil {
-		return &ChoiceResponse{}, res.Error
+		return &Response{}, res.Error
 	}
 
-	return cr, nil
-}
-
-func (r *repository) GetChoiceResponsesByParticipantID(ctx context.Context, participantID uuid.UUID) ([]ChoiceResponse, error) {
-	var responses []ChoiceResponse
-	res := r.db.WithContext(ctx).Where("participant_id = ?", participantID).Find(&responses)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return responses, nil
-}
-
-func (r *repository) GetChoiceResponsesByQuizID(ctx context.Context, quizID uuid.UUID) ([]ChoiceResponse, error) {
-	var responses []ChoiceResponse
-	res := r.db.WithContext(ctx).Where("quiz_id = ?", quizID).Find(&responses)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return responses, nil
-}
-
-func (r *repository) GetChoiceResponsesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceResponse, error) {
-	var responses []ChoiceResponse
-	res := r.db.WithContext(ctx).Where("question_id = ?", questionID).Find(&responses)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return responses, nil
-}
-
-func (r *repository) GetChoiceResponseByParticipantIDAndQuestionID(ctx context.Context, participantID uuid.UUID, questionID uuid.UUID) (*ChoiceResponse, error) {
-	var response ChoiceResponse
-	res := r.db.WithContext(ctx).Where("participant_id = ? AND question_id = ?", participantID, questionID).First(&response)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return &response, nil
+	return ansRes, nil
 }

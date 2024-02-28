@@ -13,20 +13,22 @@ import (
 type Client struct {
 	Conn              *websocket.Conn
 	Message           chan *Message
-	ID                uuid.UUID `json:"uid"`
-	DisplayName       string    `json:"display_name"`
-	DisplayEmoji      string    `json:"display_emoji"`
-	DisplayColor      string    `json:"display_color"`
-	IsHost            bool      `json:"isHost"`
-	LiveQuizSessionID uuid.UUID `json:"lqsId"`
-	Status            string    `json:"status"`
-	Marks             int       `json:"marks"`
+	ID                uuid.UUID  `json:"id"`
+	UserID            *uuid.UUID `json:"uid"`
+	DisplayName       string     `json:"display_name"`
+	DisplayEmoji      string     `json:"display_emoji"`
+	DisplayColor      string     `json:"display_color"`
+	IsHost            bool       `json:"isHost"`
+	LiveQuizSessionID uuid.UUID  `json:"lqsId"`
+	Status            string     `json:"status"`
+	Marks             int        `json:"marks"`
 }
 
 type Message struct {
-	Content           Content   `json:"content"`
-	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id"`
-	UserID            uuid.UUID `json:"uid"`
+	Content           Content    `json:"content"`
+	LiveQuizSessionID uuid.UUID  `json:"live_quiz_session_id"`
+	ClientID          uuid.UUID  `json:"client_id"`
+	UserID            *uuid.UUID `json:"uid"`
 }
 
 type Content struct {
@@ -51,57 +53,98 @@ func (c *Client) writeMessage() {
 
 func (c *Client) readMessage(h *Handler) {
 	defer func() {
-		// if c.IsHost {
-		// h.hub.Broadcast <- &Message{
-		// 	Content: Content{
-		// 		Type:    util.EndLQS,
-		// 		Payload: "Host has left the session.",
-		// 	},
-		// 	LiveQuizSessionID: c.LiveQuizSessionID,
-		// 	UserID:            c.ID,
-		// }
-		// h.UnregisterParticipants(c)
-		// } else {
+		log.Println("Closing connection")
 		if !c.IsHost {
-			_, err := h.Service.UpdateParticipantStatus(context.Background(), c.ID, c.LiveQuizSessionID, util.Left)
+			p, err := h.Service.GetParticipantByID(context.Background(), c.ID)
 			if err != nil {
 				log.Printf("Error occured at defer readMessage: %v", err)
+				h.hub.Unregister <- c
+				c.Conn.Close()
 			}
+			p.Status = util.Left
+			if _, err = h.Service.UpdateParticipant(context.Background(), p); err != nil {
+				log.Printf("Error occured at defer readMessage: %v", err)
+				h.hub.Unregister <- c
+				c.Conn.Close()
+			}
+			h.hub.Unregister <- c
 		}
 		h.hub.Unregister <- c
-		// }
 		c.Conn.Close()
 	}()
 
 	for {
 		_, m, err := c.Conn.ReadMessage()
-
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("Error occured: %v from isHost:%v", err, c.IsHost)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("Websocket error occured: %v from isHost:%v", err, c.IsHost)
+
+				if _, ok := h.hub.LiveQuizSessions[c.LiveQuizSessionID]; !ok {
+					participants, err := h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
+					if err != nil {
+						log.Printf("Error occured: %v", err)
+						return
+					}
+					pCount := len(participants)
+
+					mod, err := h.Service.GetLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code)
+					if err != nil {
+						log.Printf("Error occured: %v", err)
+						return
+					}
+					mod.ParticipantCount = pCount - 1
+
+					err = h.Service.UpdateLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code, mod)
+					if err != nil {
+						log.Printf("Error occured: %v", err)
+						return
+					}
+				}
+
 				break
 			}
 		}
 
 		var mstr Content
 		if err := json.Unmarshal(m, &mstr); err != nil {
-			log.Printf("Error occured: %v", err)
+			log.Printf("Error occured: %v @86", err)
 			break
 		}
 
+		if _, ok := h.hub.LiveQuizSessions[c.LiveQuizSessionID]; !ok {
+			log.Println("No such session exists")
+			return
+		}
+
 		switch mstr.Type {
-		case util.JoinedLQS, util.LeftLQS:
-			h.SendMessage(c, mstr)
+		case util.JoinLQS, util.LeaveLQS:
+			h.Converse(c, mstr)
+		case util.KickParticipant:
+			h.KickParticipant(c, mstr.Payload)
 		case util.StartLQS:
-			h.StartLiveQuizSession(c.LiveQuizSessionID)
-		case util.DistQuestion, util.NextQuestion:
-			h.DistributeQuestion(c.LiveQuizSessionID)
+			h.StartLiveQuizSession(c)
+		case util.NextQuestion:
+			h.NextQuestion(c)
+		case util.DistQuestion:
+			h.DistributeQuestion(c)
+		case util.DistMedia:
+			h.DistributeMedia(c)
 		case util.DistOptions:
-			h.DistributeOptions(c.LiveQuizSessionID)
+			h.DistributeOptions(c)
 		case util.RevealAnswer:
-			h.RevealAnswer(c.LiveQuizSessionID)
+			h.RevealAnswer(c)
+		case util.Conclude:
+			h.Conclude(c)
+		case util.ToggleLock:
+			h.ToggleLiveQuizSessionLock(c)
+		case util.GetParticipants:
+			h.GetParticipants(c)
+		case util.SubmitAnswer:
+			h.SubmitAnswer(c, mstr.Payload)
+		case util.UnsubmitAnswer:
+			h.UnsubmitAnswer(c)
 		default:
-			h.SendMessage(c, mstr)
+			h.BroadcastMessage(c, mstr)
 		}
 	}
 }

@@ -1,13 +1,23 @@
 package util
 
 const (
-	JoinedLQS    = "JOINED_LQS"
-	LeftLQS      = "LEFT_LQS"
-	StartLQS     = "START_LQS"
-	NextQuestion = "NEXT_QUESTION"
-	EndLQS       = "END_LQS"
-	DistQuestion = "DISTRIBUTE_QUESTION"
-	DistOptions  = "DISTRIBUTE_OPTIONS"
-	RevealAnswer = "REVEAL_ANSWER"
-	Countdown    = "COUNTDOWN"
+	JoinLQS         = "JOIN_LQS"
+	LeaveLQS        = "LEAVE_LQS"
+	KickParticipant = "KICK_PARTICIPANT"
+	StartLQS        = "START_LQS"
+	EndLQS          = "END_LQS"
+	NextQuestion    = "NEXT_QUESTION"
+	DistQuestion    = "DISTRIBUTE_QUESTION"
+	DistMedia       = "DISTRIBUTE_MEDIA"
+	DistOptions     = "DISTRIBUTE_OPTIONS"
+	RevealAnswer    = "REVEAL_ANSWER"
+	Conclude        = "CONCLUDE"
+	Countdown       = "COUNTDOWN"
+
+	ToggleLock      = "TOGGLE_LOCK"
+	Intterrupt      = "INTERRUPT"
+	GetParticipants = "GET_PARTICIPANTS"
+	SubmitAnswer    = "SUBMIT_ANSWER"
+	UnsubmitAnswer  = "UNSUBMIT_ANSWER"
+	GetLeaderboard  = "GET_LEADERBOARD"
 )

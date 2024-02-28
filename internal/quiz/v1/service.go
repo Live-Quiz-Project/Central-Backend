@@ -2,8 +2,10 @@ package v1
 
 import (
 	"context"
+	"sort"
 	"time"
 
+	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -2205,4 +2207,265 @@ func (s *service) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Cont
 			DeletedAt:        am.DeletedAt,
 		},
 	}, nil
+}
+
+// ---------- Live + Quiz related service methods ---------- //
+func (s *service) GetLatestQuizVersionByID(ctx context.Context, id uuid.UUID) (*uuid.UUID, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	qid, err := s.Repository.GetLatestQuizHistoryByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return qid, nil
+}
+
+func (s *service) getOptionsByQuestionIDForLQS(c context.Context, t string, qid uuid.UUID) (any, error) {
+	switch t {
+	case util.Choice, util.TrueFalse:
+		ocs, err := s.Repository.GetChoiceOptionHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		options := make([]LQSChoiceOption, 0)
+		for _, oc := range ocs {
+			options = append(options, LQSChoiceOption{
+				ID:      oc.ID,
+				Content: oc.Content,
+				Color:   oc.Color,
+				Order:   oc.Order,
+			})
+		}
+		sort.Sort(ByCOOrder(options))
+		return options, nil
+	case util.FillBlank, util.Paragraph:
+		ots, err := s.Repository.GetTextOptionHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		options := make([]LQSTextOption, 0)
+		for _, ot := range ots {
+			options = append(options, LQSTextOption{
+				ID:            ot.ID,
+				Content:       ot.Content,
+				CaseSensitive: ot.CaseSensitive,
+				Order:         ot.Order,
+			})
+		}
+		sort.Sort(ByTOOrder(options))
+	case util.Matching:
+		oms, err := s.Repository.GetMatchingOptionHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		omp := make([]LQSMatchingOptionPrompt, 0)
+		omo := make([]LQSMatchingOptionOption, 0)
+		for _, om := range oms {
+			if om.Type == "MATCHING_PROMPT" {
+				omp = append(omp, LQSMatchingOptionPrompt{
+					ID:      om.ID,
+					Content: om.Content,
+					Order:   om.Order,
+				})
+			}
+			if om.Type == "MATCHING_OPTION" {
+				omo = append(omo, LQSMatchingOptionOption{
+					ID:        om.ID,
+					Content:   om.Content,
+					Color:     om.Color,
+					Eliminate: om.Eliminate,
+					Order:     om.Order,
+				})
+			}
+		}
+		sort.Sort(ByMPOrder(omp))
+		sort.Sort(ByMOOrder(omo))
+		return LQSMatchingOption{
+			Prompts: omp,
+			Options: omo,
+		}, nil
+	}
+	return nil, nil
+}
+
+func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid uuid.UUID) (any, error) {
+	switch t {
+	case util.Choice, util.TrueFalse:
+		ocs, err := s.Repository.GetChoiceOptionHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		answers := make([]LQSChoiceAnswer, 0)
+		for _, oc := range ocs {
+			answers = append(answers, LQSChoiceAnswer{
+				LQSChoiceOption: LQSChoiceOption{
+					ID:      oc.ID,
+					Content: oc.Content,
+					Color:   oc.Color,
+					Order:   oc.Order,
+				},
+				Mark:    oc.Mark,
+				Correct: oc.Correct,
+			})
+		}
+		sort.Sort(ByCAOrder(answers))
+		return answers, nil
+	case util.FillBlank, util.Paragraph:
+		ots, err := s.Repository.GetTextOptionHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		answers := make([]LQSTextAnswer, 0)
+		for _, ot := range ots {
+			answers = append(answers, LQSTextAnswer{
+				LQSTextOption: LQSTextOption{
+					ID:            ot.ID,
+					Content:       ot.Content,
+					CaseSensitive: ot.CaseSensitive,
+					Order:         ot.Order,
+				},
+				Mark: ot.Mark,
+			})
+		}
+		sort.Sort(ByTAOrder(answers))
+		return answers, nil
+	case util.Matching:
+		oms, err := s.Repository.GetMatchingAnswerHistoriesByQuestionID(c, qid)
+		if err != nil {
+			return nil, err
+		}
+		answers := make([]LQSMatchingAnswer, 0)
+		for _, om := range oms {
+			answers = append(answers, LQSMatchingAnswer{
+				PromptID: om.PromptID,
+				OptionID: om.OptionID,
+				Mark:     om.Mark,
+			})
+		}
+		return answers, nil
+	}
+	return nil, nil
+}
+
+func (s *service) GetQuestionsByQuizIDForLQS(ctx context.Context, id uuid.UUID) ([]any, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	qh, err := s.Repository.GetQuestionHistoriesByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	qph, err := s.Repository.GetQuestionPoolHistoriesByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var qs []any
+	for _, q := range qh {
+		if q.PoolOrder == -1 {
+			options, err := s.getOptionsByQuestionIDForLQS(c, q.Type, q.ID)
+			if err != nil {
+				return nil, err
+			}
+			qs = append(qs, LQSQuestion{
+				QuestionHistory: q,
+				Options:         options,
+			})
+		}
+	}
+
+	for _, qp := range qph {
+		var subQ []LQSQuestion
+		for _, q := range qh {
+			if q.PoolOrder == qp.Order {
+				options, err := s.getOptionsByQuestionIDForLQS(c, q.Type, q.ID)
+				if err != nil {
+					return nil, err
+				}
+				subQ = append(subQ, LQSQuestion{
+					QuestionHistory: q,
+					Options:         options,
+				})
+			}
+		}
+		sort.Sort(ByQHOrder(subQ))
+		qs = append(qs, LQSQuestionPool{
+			QuestionPoolHistory: qp,
+			SubQuestions:        subQ,
+		})
+	}
+
+	sort.Sort(ByQQPOrder(qs))
+
+	return qs, nil
+}
+
+func (s *service) GetAnswersByQuizIDForLQS(ctx context.Context, id uuid.UUID) ([]any, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	qh, err := s.Repository.GetQuestionHistoriesByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	qph, err := s.Repository.GetQuestionPoolHistoriesByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var ans []LQSAnswers
+	for _, q := range qh {
+		if q.PoolOrder == -1 {
+			answers, err := s.getAnswersByQuestionIDForLQS(c, q.Type, q.ID)
+			if err != nil {
+				return nil, err
+			}
+			ans = append(ans, LQSAnswers{
+				Answers: answers,
+				Order:   q.Order,
+			})
+		}
+	}
+
+	for _, qp := range qph {
+		var a []LQSAnswers
+		for _, q := range qh {
+			if q.PoolOrder == qp.Order {
+				answers, err := s.getAnswersByQuestionIDForLQS(c, q.Type, q.ID)
+				if err != nil {
+					return nil, err
+				}
+				a = append(a, LQSAnswers{
+					Answers: answers,
+					Order:   q.Order,
+				})
+			}
+		}
+		sort.Sort(ByAOrder(a))
+		ans = append(ans, LQSAnswers{
+			Answers: a,
+			Order:   qp.Order,
+		})
+	}
+	sort.Sort(ByAOrder(ans))
+
+	var res []any
+	for _, a := range ans {
+		var subA []any
+		val, ok := a.Answers.([]LQSAnswers)
+		if ok {
+			for _, aa := range val {
+				subA = append(subA, aa.Answers)
+			}
+			res = append(res, subA)
+		} else {
+			res = append(res, a.Answers)
+		}
+	}
+
+	return res, nil
 }
