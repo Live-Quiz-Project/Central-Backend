@@ -88,6 +88,7 @@ type AnswerViewParticipantResponse struct {
 	Unanswered     int                          `json:"unanswered"`
 	TotalQuestions int                          `json:"total_questions"`
 	TotalMarks     int                          `json:"total_marks"`
+	TotalTimeUsed  int													`json:"total_time_used"`
 	Questions      []AnswerViewQuestionResponse `json:"questions"`
 }
 
