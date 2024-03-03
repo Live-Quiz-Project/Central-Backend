@@ -69,13 +69,14 @@ type CreateLiveAnswerRequest struct {
 }
 
 type AnswerViewQuizResponse struct {
-	ID           uuid.UUID                       `json:"id"`
-	CreatorID    uuid.UUID                       `json:"creator_id"`
-	Title        string                          `json:"title"`
-	Description  string                          `json:"description"`
-	CoverImage   string                          `json:"cover_image"`
-	CreatedAt    time.Time                       `json:"created_at"`
-	Participants []AnswerViewParticipantResponse `json:"participants"`
+	ID                uuid.UUID                       `json:"id"`
+	CreatorID         uuid.UUID                       `json:"creator_id"`
+	Title             string                          `json:"title"`
+	Description       string                          `json:"description"`
+	CoverImage        string                          `json:"cover_image"`
+	CreatedAt         time.Time                       `json:"created_at"`
+	TotalParticipants int                             `json:"total_participants"`
+	Participants      []AnswerViewParticipantResponse `json:"participants"`
 }
 
 type AnswerViewParticipantResponse struct {
@@ -202,4 +203,5 @@ type Service interface {
 
 	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
 	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error)
+	CountTotalParticipants(ctx context.Context, liveQuizSessionID uuid.UUID) (int, error)
 }

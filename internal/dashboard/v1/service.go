@@ -120,3 +120,26 @@ func (s *service) GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, l
 	return res, nil
 }
 
+func (s *service) CountTotalParticipants(ctx context.Context, liveQuizSessionID uuid.UUID) (int, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	participant, err := s.Repository.GetOrderParticipantsByLiveQuizSessionID(c, liveQuizSessionID)
+	if err != nil {
+		return 0, err
+	}
+
+	var res []ParticipantResponse
+	for _, pRes := range participant {
+		res = append(res, ParticipantResponse{
+			ID: pRes.ID,
+			UserID: pRes.UserID,
+			Name: pRes.Name,
+			Marks: pRes.Marks,
+		})
+	}
+
+	totalParticipant := len(res)
+
+	return totalParticipant, err
+}
