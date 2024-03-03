@@ -382,7 +382,8 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-
+		var totalMarks int
+		var totalTimeUsed int
 		var correctAns int
 		var incorrectAns int
 		var unanswered int
@@ -409,6 +410,9 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					questionMark += optionInfo.Mark
 				}
 
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
+
 				questions = append(questions, AnswerViewQuestionResponse{
 					ID:      a.ID,
 					Type:    q.Type,
@@ -428,6 +432,9 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					}
 					questionMark += optionInfo.Mark
 				}
+
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
 
 				questions = append(questions, AnswerViewQuestionResponse{
 					ID:      a.ID,
@@ -464,6 +471,9 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					questionMark += checkMatchingAnswer.Mark
 				}
 
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
+
 				questions = append(questions, AnswerViewQuestionResponse{
 					ID:      a.ID,
 					Type:    q.Type,
@@ -474,7 +484,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					UseTime: a.UseTime,
 				})
 			}
-
+			
 			// Check Correct Answer
 			if a.Answer == "" {
 				unanswered += 1
@@ -504,7 +514,8 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			Incorrects:     incorrectAns,
 			Unanswered:     unanswered,
 			TotalQuestions: len(questions),
-			TotalMarks:     0,
+			TotalMarks:     totalMarks,
+			TotalTimeUsed:  totalTimeUsed,
 			Questions:      questions,
 		},
 		)
