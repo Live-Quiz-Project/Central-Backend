@@ -69,13 +69,13 @@ type CreateLiveAnswerRequest struct {
 }
 
 type AnswerViewQuizResponse struct {
-	ID                uuid.UUID                       `json:"id"`
-	CreatorID         uuid.UUID                       `json:"creator_id"`
-	Title             string                          `json:"title"`
-	Description       string                          `json:"description"`
-	CoverImage        string                          `json:"cover_image"`
-	CreatedAt         time.Time                       `json:"created_at"`
-	Participants      []AnswerViewParticipantResponse `json:"participants"`
+	ID           uuid.UUID                       `json:"id"`
+	CreatorID    uuid.UUID                       `json:"creator_id"`
+	Title        string                          `json:"title"`
+	Description  string                          `json:"description"`
+	CoverImage   string                          `json:"cover_image"`
+	CreatedAt    time.Time                       `json:"created_at"`
+	Participants []AnswerViewParticipantResponse `json:"participants"`
 }
 
 type AnswerViewParticipantResponse struct {
@@ -88,18 +88,19 @@ type AnswerViewParticipantResponse struct {
 	Unanswered     int                          `json:"unanswered"`
 	TotalQuestions int                          `json:"total_questions"`
 	TotalMarks     int                          `json:"total_marks"`
-	TotalTimeUsed  int													`json:"total_time_used"`
+	TotalTimeUsed  int                          `json:"total_time_used"`
 	Questions      []AnswerViewQuestionResponse `json:"questions"`
 }
 
 type AnswerViewQuestionResponse struct {
-	ID      uuid.UUID `json:"id"`
-	Type    string    `json:"type"`
-	Order   int       `json:"order"`
-	Content string    `json:"content"`
-	Answer  string    `json:"answer"`
-	Mark    int       `json:"mark"`
-	UseTime int       `json:"use_time"`
+	ID        uuid.UUID `json:"id"`
+	Type      string    `json:"type"`
+	Order     int       `json:"order"`
+	Content   string    `json:"content"`
+	Answer    string    `json:"answer"`
+	Mark      int       `json:"mark"`
+	IsCorrect bool      `json:"is_correct"`
+	UseTime   int       `json:"use_time"`
 }
 
 type LiveAnswerRequest struct {
