@@ -361,20 +361,13 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 		return
 	}
 
-	totalParticipant, err := h.Service.CountTotalParticipants(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	res := AnswerViewQuizResponse{
-		ID:                quizH.ID,
-		CreatorID:         quizH.CreatorID,
-		Title:             quizH.Title,
-		Description:       quizH.Description,
-		CoverImage:        quizH.CoverImage,
-		TotalParticipants: totalParticipant,
-		CreatedAt:         quizH.CreatedAt,
+		ID:          quizH.ID,
+		CreatorID:   quizH.CreatorID,
+		Title:       quizH.Title,
+		Description: quizH.Description,
+		CoverImage:  quizH.CoverImage,
+		CreatedAt:   quizH.CreatedAt,
 	}
 
 	participants, err := h.Service.GetOrderParticipantsByLiveQuizSessionID(c.Request.Context(), id)
@@ -547,6 +540,12 @@ func (h *Handler) GetDashboardHistoryByUserID(c *gin.Context) {
 			return
 		}
 
+		totalParticipant, err := h.Service.CountTotalParticipants(c.Request.Context(), eachSession.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
 		quizInfo, err := h.quizService.GetQuizHistoryByID(c.Request.Context(), eachSession.QuizID, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -554,15 +553,16 @@ func (h *Handler) GetDashboardHistoryByUserID(c *gin.Context) {
 		}
 
 		sessionHistory = append(sessionHistory, SessionHistory{
-			ID:          eachSession.ID,
-			CreatorName: userInfo.Name,
-			Title:       quizInfo.Title,
-			Description: quizInfo.Description,
-			CoverImage:  quizInfo.CoverImage,
-			Visibility:  quizInfo.Visibility,
-			CreatedAt:   eachSession.CreatedAt,
-			UpdatedAt:   quizInfo.UpdatedAt,
-			DeletedAt:   quizInfo.DeletedAt,
+			ID:                eachSession.ID,
+			CreatorName:       userInfo.Name,
+			Title:             quizInfo.Title,
+			Description:       quizInfo.Description,
+			CoverImage:        quizInfo.CoverImage,
+			Visibility:        quizInfo.Visibility,
+			TotalParticipants: totalParticipant,
+			CreatedAt:         eachSession.CreatedAt,
+			UpdatedAt:         quizInfo.UpdatedAt,
+			DeletedAt:         quizInfo.DeletedAt,
 		})
 	}
 
