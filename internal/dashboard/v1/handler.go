@@ -410,7 +410,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 					questionMark += optionInfo.Mark
-					if optionInfo.ID != uuid.Nil {
+					if optionInfo.Correct {
 						checkIsCorrectAnswer += 1
 					}
 				}
