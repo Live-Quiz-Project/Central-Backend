@@ -388,8 +388,10 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 		var incorrectAns int
 		var unanswered int
 		var questions []AnswerViewQuestionResponse
+		var isCorrect bool
 
 		for _, a := range answers {
+			var checkIsCorrectAnswer = 0
 			ansList := strings.Split(a.Answer, util.ANSWER_SPLIT)
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
@@ -408,19 +410,29 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 					questionMark += optionInfo.Mark
+					if optionInfo.Correct {
+						checkIsCorrectAnswer += 1
+					}
+				}
+
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
 				}
 
 				totalMarks += questionMark
 				totalTimeUsed += a.UseTime
 
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
 			if a.Type == util.FillBlank || a.Type == util.Paragraph {
@@ -431,19 +443,29 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 					questionMark += optionInfo.Mark
+					if optionInfo.ID != uuid.Nil {
+						checkIsCorrectAnswer += 1
+					}
+				}
+
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
 				}
 
 				totalMarks += questionMark
 				totalTimeUsed += a.UseTime
 
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
 			if a.Type == util.Matching {
@@ -469,22 +491,33 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					}
 
 					questionMark += checkMatchingAnswer.Mark
+
+					if checkMatchingAnswer.ID != uuid.Nil {
+						checkIsCorrectAnswer += 1
+					}
+				}
+
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
 				}
 
 				totalMarks += questionMark
 				totalTimeUsed += a.UseTime
 
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
-			
+
 			// Check Correct Answer
 			if a.Answer == "" {
 				unanswered += 1
