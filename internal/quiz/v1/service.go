@@ -2249,12 +2249,12 @@ func (s *service) getOptionsByQuestionIDForLQS(c context.Context, t string, qid 
 		for _, ot := range ots {
 			options = append(options, LQSTextOption{
 				ID:            ot.ID,
-				Content:       ot.Content,
 				CaseSensitive: ot.CaseSensitive,
 				Order:         ot.Order,
 			})
 		}
 		sort.Sort(ByTOOrder(options))
+		return options, nil
 	case util.Matching:
 		oms, err := s.Repository.GetMatchingOptionHistoriesByQuestionID(c, qid)
 		if err != nil {
@@ -2322,11 +2322,11 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 			answers = append(answers, LQSTextAnswer{
 				LQSTextOption: LQSTextOption{
 					ID:            ot.ID,
-					Content:       ot.Content,
 					CaseSensitive: ot.CaseSensitive,
 					Order:         ot.Order,
 				},
-				Mark: ot.Mark,
+				Content: ot.Content,
+				Mark:    ot.Mark,
 			})
 		}
 		sort.Sort(ByTAOrder(answers))
@@ -2394,6 +2394,7 @@ func (s *service) GetQuestionsByQuizIDForLQS(ctx context.Context, id uuid.UUID) 
 		sort.Sort(ByQHOrder(subQ))
 		qs = append(qs, LQSQuestionPool{
 			QuestionPoolHistory: qp,
+			Type:                util.Pool,
 			SubQuestions:        subQ,
 		})
 	}

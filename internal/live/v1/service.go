@@ -3,8 +3,9 @@ package v1
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
@@ -423,7 +424,6 @@ func (s *service) GetResponse(ctx context.Context, code string, qid string, pid 
 	if err != nil {
 		return nil, err
 	}
-	log.Println(res)
 
 	return res, nil
 }
@@ -470,7 +470,6 @@ func (s *service) CountResponses(ctx context.Context, code string, qid string) (
 	if err != nil {
 		return 0, err
 	}
-	log.Println("Count: ", count)
 
 	return len(count), nil
 }
@@ -485,6 +484,803 @@ func (s *service) SaveResponse(ctx context.Context, response *Response) (*Respon
 	}
 
 	return response, nil
+}
+
+func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, answers []any, answerCounts map[string]int) (any, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	var res any
+
+	switch qType {
+	case util.Choice, util.TrueFalse:
+		cAns := make([]ChoiceAnswer, 0)
+		for _, a := range answers {
+			v, ok := a.(map[string]any)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			id, ok := v["id"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			content, ok := v["content"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			color, ok := v["color"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			m, ok := v["mark"].(float64)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			mark := int(m)
+			isCorrect, ok := v["is_correct"].(bool)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			count := answerCounts[id]
+
+			cAns = append(cAns, ChoiceAnswer{
+				ID:      id,
+				Content: content,
+				Color:   color,
+				Mark:    mark,
+				Correct: isCorrect,
+				Count:   count,
+			})
+			res = cAns
+		}
+	case util.FillBlank, util.Paragraph:
+		tAns := make([]TextAnswer, 0)
+		for _, a := range answers {
+			v, ok := a.(map[string]any)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			id, ok := v["id"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			content, ok := v["content"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			caseSensitive, ok := v["case_sensitive"].(bool)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			m, ok := v["mark"].(float64)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			mark := int(m)
+
+			tAns = append(tAns, TextAnswer{
+				ID:            id,
+				Content:       content,
+				CaseSensitive: caseSensitive,
+				Mark:          mark,
+			})
+			res = tAns
+		}
+	case util.Matching:
+		mAns := make([]MatchingAnswer, 0)
+		for _, a := range answers {
+			v, ok := a.(map[string]any)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			prompt, ok := v["prompt_id"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			option, ok := v["option_id"].(string)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			m, ok := v["mark"].(float64)
+			if !ok {
+				return nil, errors.New("invalid type assertion")
+			}
+			mark := int(m)
+
+			mAns = append(mAns, MatchingAnswer{
+				PromptID: prompt,
+				OptionID: option,
+				Mark:     mark,
+			})
+			res = mAns
+		}
+	}
+
+	return res, nil
+}
+
+func (s *service) CalculateChoice(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (ChoiceAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]ChoiceAnswer, 0)
+
+	for _, o := range options {
+		oID, ok := o.(map[string]any)["id"].(string)
+		if !ok {
+			return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		for _, a := range answers {
+			aID, ok := a.(map[string]any)["id"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aContent, ok := a.(map[string]any)["content"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aColor, ok := a.(map[string]any)["color"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aIsCorrect, ok := a.(map[string]any)["is_correct"].(bool)
+			if !ok {
+				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			if oID == aID {
+				marks += mark
+				if status == util.Answering {
+					mark += 1000
+					res = append(res, ChoiceAnswer{
+						ID:      aID,
+						Content: aContent,
+						Color:   aColor,
+					})
+				}
+				if status == util.RevealingAnswer {
+					res = append(res, ChoiceAnswer{
+						ID:      aID,
+						Content: aContent,
+						Color:   aColor,
+						Mark:    mark,
+						Correct: aIsCorrect,
+					})
+				}
+			}
+		}
+	}
+
+	var mRes *int
+	if status == util.Answering {
+		mRes = nil
+	}
+	if status == util.RevealingAnswer {
+		mRes = &marks
+	}
+
+	return ChoiceAnswerResponse{
+		Answers: res,
+		Marks:   mRes,
+		Time:    int(time),
+	}, nil
+}
+
+func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	answerCounts := make(map[string]int)
+	for _, a := range answers {
+		answerCounts[a.(map[string]any)["id"].(string)] = 0
+	}
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]ChoiceAnswer, 0)
+	stringifyOptions := make([]string, len(options))
+
+	for i, o := range options {
+		oID, ok := o.(map[string]any)["id"].(string)
+		answerCounts[oID] += 1
+		if !ok {
+			return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+		}
+		stringifyOptions[i] = string(oID)
+		for _, a := range answers {
+			aID, ok := a.(map[string]any)["id"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+			}
+			aContent, ok := a.(map[string]any)["content"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+			}
+			aColor, ok := a.(map[string]any)["color"].(string)
+			if !ok {
+				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+			}
+			aIsCorrect, ok := a.(map[string]any)["is_correct"].(bool)
+			if !ok {
+				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			if oID == aID {
+				marks += mark
+				res = append(res, ChoiceAnswer{
+					ID:      aID,
+					Content: aContent,
+					Color:   aColor,
+					Mark:    mark,
+					Correct: aIsCorrect,
+				})
+			}
+		}
+	}
+
+	p, err := s.GetParticipantByID(context.Background(), response.ParticipantID)
+	if err != nil {
+		return ChoiceAnswerResponse{}, nil, err
+	}
+	p.Marks += marks
+	_, err = s.UpdateParticipant(context.Background(), p)
+	if err != nil {
+		return ChoiceAnswerResponse{}, nil, err
+	}
+
+	stringifyAnswer := strings.Join(stringifyOptions, util.AnswerSplitter)
+	if _, err := s.SaveResponse(context.Background(), &Response{
+		ID:                response.ID,
+		LiveQuizSessionID: response.LiveQuizSessionID,
+		QuestionID:        response.QuestionID,
+		ParticipantID:     response.ParticipantID,
+		Type:              response.Type,
+		TimeTaken:         int(time),
+		Answer:            stringifyAnswer,
+	}); err != nil {
+		return ChoiceAnswerResponse{}, nil, err
+	}
+
+	return ChoiceAnswerResponse{
+		Answers: res,
+		Marks:   &marks,
+		Time:    int(time),
+	}, answerCounts, nil
+}
+
+func (s *service) CalculateFillBlank(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (TextAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]TextAnswer, 0)
+
+	for _, o := range options {
+		oID, ok := o.(map[string]any)["id"].(string)
+		if !ok {
+			return TextAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		oContent, ok := o.(map[string]any)["content"].(string)
+		if !ok {
+			return TextAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		for _, a := range answers {
+			aID, ok := a.(map[string]any)["id"].(string)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aContent, ok := a.(map[string]any)["content"].(string)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aCaseSensitive, ok := a.(map[string]any)["case_sensitive"].(bool)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			isCorrect := (aCaseSensitive && aContent == oContent) || (!aCaseSensitive && strings.EqualFold(aContent, oContent))
+			if oID == aID {
+				m := 0
+				if isCorrect {
+					marks += mark
+					m = mark
+				}
+				if status == util.Answering {
+					res = append(res, TextAnswer{
+						ID:            aID,
+						CaseSensitive: aCaseSensitive,
+						Content:       oContent,
+					})
+				}
+				if status == util.RevealingAnswer {
+					res = append(res, TextAnswer{
+						ID:            aID,
+						CaseSensitive: aCaseSensitive,
+						Content:       oContent,
+						Answer:        aContent,
+						Correct:       isCorrect,
+						Mark:          m,
+					})
+				}
+			}
+		}
+	}
+
+	var mRes *int
+	if status == util.Answering {
+		mRes = nil
+	}
+	if status == util.RevealingAnswer {
+		mRes = &marks
+	}
+
+	return TextAnswerResponse{
+		Answers: res,
+		Marks:   mRes,
+		Time:    int(time),
+	}, nil
+}
+
+func (s *service) CalculateAndSaveFillBlankResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (TextAnswerResponse, error) {
+	_, cancel := context.WithTimeout(context.Background(), s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]TextAnswer, 0)
+	stringifyOptions := make([]string, len(options))
+
+	for i, o := range options {
+		oID, ok := o.(map[string]any)["id"].(string)
+		if !ok {
+			return TextAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		oContent, ok := o.(map[string]any)["content"].(string)
+		if !ok {
+			return TextAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		stringifyOptions[i] = string(oContent)
+		for _, a := range answers {
+			aID, ok := a.(map[string]any)["id"].(string)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aContent, ok := a.(map[string]any)["content"].(string)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aCaseSensitive, ok := a.(map[string]any)["case_sensitive"].(bool)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return TextAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			isCorrect := (aCaseSensitive && aContent == oContent) || (!aCaseSensitive && strings.EqualFold(aContent, oContent))
+			if oID == aID {
+				m := 0
+				if isCorrect {
+					marks += mark
+					m = mark
+				}
+				res = append(res, TextAnswer{
+					ID:            aID,
+					CaseSensitive: aCaseSensitive,
+					Content:       oContent,
+					Answer:        aContent,
+					Correct:       isCorrect,
+					Mark:          m,
+				})
+			}
+		}
+	}
+
+	p, err := s.GetParticipantByID(context.Background(), response.ParticipantID)
+	if err != nil {
+		return TextAnswerResponse{}, err
+	}
+	p.Marks += marks
+	_, err = s.UpdateParticipant(context.Background(), p)
+	if err != nil {
+		return TextAnswerResponse{}, err
+	}
+
+	stringifyAnswer := strings.Join(stringifyOptions, util.AnswerSplitter)
+	if _, err := s.SaveResponse(context.Background(), &Response{
+		ID:                response.ID,
+		LiveQuizSessionID: response.LiveQuizSessionID,
+		QuestionID:        response.QuestionID,
+		ParticipantID:     response.ParticipantID,
+		Type:              response.Type,
+		TimeTaken:         int(time),
+		Answer:            stringifyAnswer,
+	}); err != nil {
+		return TextAnswerResponse{}, err
+	}
+
+	return TextAnswerResponse{
+		Answers: res,
+		Marks:   &marks,
+		Time:    int(time),
+	}, nil
+}
+
+func (s *service) CalculateParagraph(ctx context.Context, status string, content string, answers []any, time float64, timeLimit float64, timeFactor float64) (any, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]TextAnswer, 0)
+
+	var r any
+	r = content
+	l := len(answers)
+	if l > 0 {
+		answer, ok := answers[0].(map[string]any)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aID, ok := answer["id"].(string)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aContent, ok := answer["content"].(string)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aCaseSensitive, ok := answer["case_sensitive"].(bool)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aM, ok := (answer["mark"].(float64))
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aMark := int(aM)
+
+		var timeBonus float64
+		if aMark > 0 {
+			timeBonus = timeLimit - factoredTime
+		}
+		mark := (int(aM + timeBonus))
+
+		isCorrect := (aCaseSensitive && aContent == content) || (!aCaseSensitive && strings.EqualFold(aContent, content))
+		if isCorrect {
+			marks += mark
+		}
+		if status == util.RevealingAnswer {
+			res = append(res, TextAnswer{
+				ID:            aID,
+				CaseSensitive: aCaseSensitive,
+				Content:       content,
+				Answer:        aContent,
+				Correct:       isCorrect,
+				Mark:          mark,
+			})
+			r = TextAnswerResponse{
+				Answers: res,
+				Marks:   &marks,
+				Time:    int(time),
+			}
+		}
+	}
+
+	var finalRes any
+	if status == util.Answering {
+		finalRes = ParagraphAnswerResponse{
+			Answer: content,
+			Marks:  nil,
+			Time:   int(time),
+		}
+	}
+	if status == util.RevealingAnswer {
+		finalRes = r
+	}
+
+	return finalRes, nil
+}
+
+func (s *service) CalculateAndSaveParagraphResponse(ctx context.Context, content string, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (any, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]TextAnswer, 0)
+
+	var r any
+	r = content
+	l := len(answers)
+	if l > 0 {
+		answer, ok := answers[0].(map[string]any)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aID, ok := answer["id"].(string)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aContent, ok := answer["content"].(string)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aCaseSensitive, ok := answer["case_sensitive"].(bool)
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aM, ok := (answer["mark"].(float64))
+		if !ok {
+			return nil, errors.New("invalid type assertion")
+		}
+		aMark := int(aM)
+
+		var timeBonus float64
+		if aMark > 0 {
+			timeBonus = timeLimit - factoredTime
+		}
+		mark := (int(aM + timeBonus))
+
+		isCorrect := (aCaseSensitive && aContent == content) || (!aCaseSensitive && strings.EqualFold(aContent, content))
+		if isCorrect {
+			marks += mark
+		}
+		res = append(res, TextAnswer{
+			ID:            aID,
+			CaseSensitive: aCaseSensitive,
+			Content:       content,
+			Answer:        aContent,
+			Correct:       isCorrect,
+			Mark:          mark,
+		})
+
+		r = TextAnswerResponse{
+			Answers: res,
+			Marks:   &marks,
+			Time:    int(time),
+		}
+
+		p, err := s.GetParticipantByID(context.Background(), response.ParticipantID)
+		if err != nil {
+			return TextAnswerResponse{}, err
+		}
+		p.Marks += marks
+		_, err = s.UpdateParticipant(context.Background(), p)
+		if err != nil {
+			return TextAnswerResponse{}, err
+		}
+	}
+
+	if _, err := s.SaveResponse(context.Background(), &Response{
+		ID:                response.ID,
+		LiveQuizSessionID: response.LiveQuizSessionID,
+		QuestionID:        response.QuestionID,
+		ParticipantID:     response.ParticipantID,
+		Type:              response.Type,
+		TimeTaken:         int(time),
+		Answer:            content,
+	}); err != nil {
+		return TextAnswerResponse{}, err
+	}
+
+	return r, nil
+}
+
+func (s *service) CalculateMatching(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (MatchingAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]MatchingAnswer, 0)
+
+	for _, o := range options {
+		oPrompt, ok := o.(map[string]any)["prompt"].(string)
+		if !ok {
+			return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		oOption, ok := o.(map[string]any)["option"].(string)
+		if !ok {
+			return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		for _, a := range answers {
+			aPrompt, ok := a.(map[string]any)["prompt_id"].(string)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aOption, ok := a.(map[string]any)["option_id"].(string)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			isCorrect := oPrompt == aPrompt && oOption == aOption
+			if oPrompt == aPrompt {
+				m := 0
+				if isCorrect {
+					marks += mark
+					m = mark
+				}
+				if status == util.Answering {
+					res = append(res, MatchingAnswer{
+						PromptID: aPrompt,
+						OptionID: oOption,
+					})
+				}
+				if status == util.RevealingAnswer {
+					res = append(res, MatchingAnswer{
+						PromptID: aPrompt,
+						OptionID: oOption,
+						Correct:  isCorrect,
+						Mark:     m,
+					})
+				}
+			}
+		}
+	}
+
+	var mRes *int
+	if status == util.Answering {
+		mRes = nil
+	}
+	if status == util.RevealingAnswer {
+		mRes = &marks
+	}
+
+	return MatchingAnswerResponse{
+		Answers: res,
+		Marks:   mRes,
+		Time:    int(time),
+	}, nil
+}
+
+func (s *service) CalculateAndSaveMatchingResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (MatchingAnswerResponse, error) {
+	_, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	factoredTime := 0.0
+	factoredTime = time * (timeFactor / 10)
+	marks := 0
+	res := make([]MatchingAnswer, 0)
+	stringifyOptions := make([]string, len(options))
+
+	for i, o := range options {
+		oPrompt, ok := o.(map[string]any)["prompt"].(string)
+		if !ok {
+			return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		oOption, ok := o.(map[string]any)["option"].(string)
+		if !ok {
+			return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+		}
+		stringifyOptions[i] = string(oPrompt + ":" + oOption)
+		for _, a := range answers {
+			aPrompt, ok := a.(map[string]any)["prompt_id"].(string)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aOption, ok := a.(map[string]any)["option_id"].(string)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aM, ok := a.(map[string]any)["mark"].(float64)
+			if !ok {
+				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
+			}
+			aMark := int(aM)
+
+			var timeBonus float64
+			if aMark > 0 {
+				timeBonus = timeLimit - factoredTime
+			}
+			mark := (int(aM + timeBonus))
+
+			isCorrect := oPrompt == aPrompt && oOption == aOption
+			if oPrompt == aPrompt {
+				m := 0
+				if isCorrect {
+					marks += mark
+					m = mark
+				}
+				res = append(res, MatchingAnswer{
+					PromptID: aPrompt,
+					OptionID: oOption,
+					Correct:  isCorrect,
+					Mark:     m,
+				})
+			}
+		}
+	}
+
+	p, err := s.GetParticipantByID(context.Background(), response.ParticipantID)
+	if err != nil {
+		return MatchingAnswerResponse{}, err
+	}
+	p.Marks += marks
+	_, err = s.UpdateParticipant(context.Background(), p)
+	if err != nil {
+		return MatchingAnswerResponse{}, err
+	}
+
+	stringifyAnswer := strings.Join(stringifyOptions, util.AnswerSplitter)
+	if _, err := s.SaveResponse(context.Background(), &Response{
+		ID:                response.ID,
+		LiveQuizSessionID: response.LiveQuizSessionID,
+		QuestionID:        response.QuestionID,
+		ParticipantID:     response.ParticipantID,
+		Type:              response.Type,
+		TimeTaken:         int(time),
+		Answer:            stringifyAnswer,
+	}); err != nil {
+		return MatchingAnswerResponse{}, err
+	}
+
+	return MatchingAnswerResponse{
+		Answers: res,
+		Marks:   &marks,
+		Time:    int(time),
+	}, nil
 }
 
 // ---------- Leaderboard related service methods ---------- //

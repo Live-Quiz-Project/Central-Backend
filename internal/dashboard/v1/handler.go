@@ -248,7 +248,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				answerParticipants = nil
 
 				for _, answerData := range answerResponse {
-					splitAnswer := strings.Split(answerData.Answer, util.ANSWER_SPLIT)
+					splitAnswer := strings.Split(answerData.Answer, util.AnswerSplitter)
 
 					option, err := h.quizService.GetMatchingOptionHistoryByID(c.Request.Context(), omr.OptionID)
 					if err != nil {
@@ -389,7 +389,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 		var questions []AnswerViewQuestionResponse
 
 		for _, a := range answers {
-			ansList := strings.Split(a.Answer ,util.ANSWER_SPLIT)
+			ansList := strings.Split(a.Answer, util.AnswerSplitter)
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
 
@@ -442,7 +442,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			if a.Type == util.Matching {
 
 				for _, ans := range ansList {
-					pair := strings.Split(ans,":")
+					pair := strings.Split(ans, ":")
 					promptInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, pair[0])
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -455,7 +455,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 
-					checkMatchingAnswer, err := h.quizService.GetMatchingAnswerHistoryByPromptIDAndOptionID(c.Request.Context(),promptInfo.ID, optionInfo.ID)
+					checkMatchingAnswer, err := h.quizService.GetMatchingAnswerHistoryByPromptIDAndOptionID(c.Request.Context(), promptInfo.ID, optionInfo.ID)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
@@ -496,16 +496,16 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 		}
 
 		res.Participants = append(res.Participants, AnswerViewParticipantResponse{
-			ID:         p.ID,
-			UserID:     p.UserID,
-			Name:       p.Name,
-			Marks:      p.Marks,
-			Corrects:   correctAns,
-			Incorrects: incorrectAns,
-			Unanswered: unanswered,
+			ID:             p.ID,
+			UserID:         p.UserID,
+			Name:           p.Name,
+			Marks:          p.Marks,
+			Corrects:       correctAns,
+			Incorrects:     incorrectAns,
+			Unanswered:     unanswered,
 			TotalQuestions: len(questions),
-			TotalMarks: 0,
-			Questions: questions,
+			TotalMarks:     0,
+			Questions:      questions,
 		},
 		)
 	}
