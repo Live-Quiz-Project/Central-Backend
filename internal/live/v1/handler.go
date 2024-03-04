@@ -874,6 +874,12 @@ func (h *Handler) RevealAnswer(c *Client) {
 	}
 
 	ansCounts := make(map[string]int)
+	if qType == util.Choice || qType == util.TrueFalse {
+		for _, a := range qAns {
+			ansCounts[a.(map[string]any)["id"].(string)] = 0
+		}
+	}
+
 	var rpl []AnswerPayload
 	switch qType {
 	case util.Choice, util.TrueFalse:
@@ -906,7 +912,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 
 			var cAnsRes ChoiceAnswerResponse
 
-			cAnsRes, ansCounts, err = h.Service.CalculateAndSaveChoiceResponse(context.Background(), co, qAns, time, qTimeLimit, qTimeFactor, &Response{
+			cAnsRes, ansCounts, err = h.Service.CalculateAndSaveChoiceResponse(context.Background(), co, qAns, ansCounts, time, qTimeLimit, qTimeFactor, &Response{
 				ID:                uuid.New(),
 				LiveQuizSessionID: c.LiveQuizSessionID,
 				QuestionID:        questionID,

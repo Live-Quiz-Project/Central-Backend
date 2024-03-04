@@ -1401,7 +1401,32 @@ func (s *service) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Conte
 			DeletedAt:      oc.DeletedAt,
 		},
 	}, nil
+}
 
+func (s *service) GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(ctx context.Context, questionID uuid.UUID, optionID uuid.UUID) (*ChoiceOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	oc, err := s.Repository.GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(c, questionID, optionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ChoiceOptionHistoryResponse{
+		ChoiceOptionHistory: ChoiceOptionHistory{
+			ID:             oc.ID,
+			ChoiceOptionID: oc.ChoiceOptionID,
+			QuestionID:     oc.QuestionID,
+			Order:          oc.Order,
+			Content:        oc.Content,
+			Mark:           oc.Mark,
+			Color:          oc.Color,
+			Correct:        oc.Correct,
+			CreatedAt:      oc.CreatedAt,
+			UpdatedAt:      oc.UpdatedAt,
+			DeletedAt:      oc.DeletedAt,
+		},
+	}, nil
 }
 
 // Text related service methods
