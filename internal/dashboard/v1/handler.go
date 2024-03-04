@@ -248,7 +248,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				answerParticipants = nil
 
 				for _, answerData := range answerResponse {
-					splitAnswer := strings.Split(answerData.Answer, util.ANSWER_SPLIT)
+					splitAnswer := strings.Split(answerData.Answer, util.AnswerSplitter)
 
 					option, err := h.quizService.GetMatchingOptionHistoryByID(c.Request.Context(), omr.OptionID)
 					if err != nil {
@@ -392,7 +392,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 
 		for _, a := range answers {
 			var checkIsCorrectAnswer = 0
-			ansList := strings.Split(a.Answer, util.ANSWER_SPLIT)
+			ansList := strings.Split(a.Answer, util.AnswerSplitter)
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
 

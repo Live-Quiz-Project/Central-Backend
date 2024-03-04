@@ -8,5 +8,5 @@ const (
 	FillBlank = "FILL_BLANK"
 	Matching  = "MATCHING"
 
-	ANSWER_SPLIT = "<!#XyZ@?>"
+	AnswerSplitter = "<!#XyZ@?>"
 )

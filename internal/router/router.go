@@ -22,8 +22,6 @@ var r *gin.Engine
 
 func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.Handler, dashboardHandler *d.Handler) {
 	r = gin.Default()
-	allowOriginsEnv := os.Getenv("ALLOW_ORIGINS")
-	allowOrigins := strings.Split(allowOriginsEnv, ",")
 
 	r.Use(cors.New(cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
@@ -31,7 +29,8 @@ func Initialize(userHandler *u.Handler, quizHandler *q.Handler, liveHandler *l.H
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
-			// return origin == "http://localhost:5173" || origin == "http://localhost:5174" || origin == "http://localhost:3000" || origin == "http://127.0.0.1:5173"
+			allowOriginsEnv := os.Getenv("ALLOW_ORIGINS")
+			allowOrigins := strings.Split(allowOriginsEnv, ",")
 			for _, allowedOrigin := range allowOrigins {
 				if allowedOrigin == origin {
 					return true

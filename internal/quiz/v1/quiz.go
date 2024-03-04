@@ -732,6 +732,7 @@ type LQSQuestion struct {
 
 type LQSQuestionPool struct {
 	QuestionPoolHistory
+	Type         string        `json:"type"`
 	SubQuestions []LQSQuestion `json:"subquestions"`
 }
 
@@ -743,7 +744,6 @@ type LQSChoiceOption struct {
 }
 type LQSTextOption struct {
 	ID            uuid.UUID `json:"id"`
-	Content       string    `json:"content"`
 	CaseSensitive bool      `json:"case_sensitive"`
 	Order         int       `json:"order"`
 }
@@ -774,7 +774,8 @@ type LQSChoiceAnswer struct {
 }
 type LQSTextAnswer struct {
 	LQSTextOption
-	Mark int `json:"mark"`
+	Content string `json:"content"`
+	Mark    int    `json:"mark"`
 }
 type LQSMatchingAnswer struct {
 	PromptID uuid.UUID `json:"prompt_id"`

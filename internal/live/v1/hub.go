@@ -72,6 +72,9 @@ func (h *Hub) Run() {
 			if _, ok := h.LiveQuizSessions[m.LiveQuizSessionID]; ok {
 				if _, ok = h.LiveQuizSessions[m.LiveQuizSessionID].Clients[m.ClientID]; ok {
 					h.LiveQuizSessions[m.LiveQuizSessionID].Clients[m.ClientID].Message <- m
+					if m.Content.Type == util.EndLQS {
+						delete(h.LiveQuizSessions[m.LiveQuizSessionID].Clients, m.ClientID)
+					}
 				}
 			}
 		}
