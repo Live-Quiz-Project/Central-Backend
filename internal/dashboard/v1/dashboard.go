@@ -145,6 +145,7 @@ type QuestionViewOptionChoice struct {
 	Content      string                `json:"content"`
 	Mark         int                   `json:"mark"`
 	Correct      bool                  `json:"correct"`
+	Color        string								 `json:"color"`
 	Participants []ParticipantResponse `json:"participants"`
 }
 
@@ -163,6 +164,7 @@ type QuestionViewMatching struct {
 	OptionContent string    `json:"option_content"`
 	PromptID      uuid.UUID `json:"prompt_id"`
 	PromptContent string    `json:"prompt_content"`
+	Color        string								 `json:"color"`
 	Mark          int       `json:"mark"`
 	Participants  []ParticipantResponse
 }
