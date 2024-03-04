@@ -24,18 +24,23 @@ func NewService(repo Repository) Service {
 }
 
 // ---------- Auth related service methods ---------- //
+var ErrNotFound = errors.New("not found")
+
 func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse, string, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	u, err := s.Repository.GetUserByEmail(c, req.Email)
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, "", errors.New("incorrect email or password")
+		}
 		return &LogInResponse{}, "", err
 	}
 
 	err = util.CheckPassword(u.Password, req.Password)
 	if err != nil {
-		return &LogInResponse{}, "", err
+		return &LogInResponse{}, "", errors.New("incorrect email or password")
 	}
 
 	accessToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
