@@ -136,6 +136,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					Order:        ocr.Order,
 					Content:      ocr.Content,
 					Mark:         ocr.Mark,
+					Color:        ocr.Color,
 					Participants: answerParticipants,
 				})
 			}
@@ -240,6 +241,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 			var optionContent string
 			var promptContent string
+			var optionColor string
 
 			var om []any
 			for _, omr := range amRes {
@@ -263,6 +265,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 					optionContent = option.Content
 					promptContent = prompt.Content
+					optionColor = option.Color
 
 					for _, pair := range splitAnswer {
 						ans := strings.Split(pair, ":")
@@ -292,6 +295,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					OptionContent: optionContent,
 					PromptID:      omr.PromptID,
 					PromptContent: promptContent,
+					Color:				 optionColor,
 					Mark:          omr.Mark,
 					Participants:  answerParticipants,
 				})
