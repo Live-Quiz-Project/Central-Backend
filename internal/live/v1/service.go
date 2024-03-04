@@ -680,14 +680,10 @@ func (s *service) CalculateChoice(ctx context.Context, status string, options []
 	}, nil
 }
 
-func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error) {
+func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, answerCounts map[string]int, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error) {
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	answerCounts := make(map[string]int)
-	for _, a := range answers {
-		answerCounts[a.(map[string]any)["id"].(string)] = 0
-	}
 	factoredTime := 0.0
 	factoredTime = time * (timeFactor / 10)
 	marks := 0
@@ -696,10 +692,10 @@ func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []
 
 	for i, o := range options {
 		oID, ok := o.(map[string]any)["id"].(string)
-		answerCounts[oID] += 1
 		if !ok {
 			return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
 		}
+		answerCounts[oID] += 1
 		stringifyOptions[i] = string(oID)
 		for _, a := range answers {
 			aID, ok := a.(map[string]any)["id"].(string)

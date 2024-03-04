@@ -113,7 +113,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				answerParticipants = nil
 
 				for _, answerData := range answerResponse {
-					if ocr.Content == answerData.Answer {
+					if ocr.ID.String() == answerData.Answer {
 						participant, err := h.Service.GetParticipantByID(c.Request.Context(), answerData.ParticipantID)
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -396,7 +396,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
 
-			q, err := h.quizService.GetQuestionHistoryByID(c.Request.Context(), a.QuestionID)
+			q, err := h.quizService.GetQuestionHistoryByID(c, a.QuestionID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -404,7 +404,12 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 
 			if a.Type == util.Choice || a.Type == util.TrueFalse {
 				for _, ans := range ansList {
-					optionInfo, err := h.quizService.GetChoiceOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, ans)
+					ans, err := uuid.Parse(ans)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+						return
+					}
+					optionInfo, err := h.quizService.GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(c, a.QuestionID, ans)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
