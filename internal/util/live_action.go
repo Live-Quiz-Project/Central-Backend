@@ -17,6 +17,7 @@ const (
 	ToggleLock      = "TOGGLE_LOCK"
 	Intterrupt      = "INTERRUPT"
 	GetParticipants = "GET_PARTICIPANTS"
+	UpdateMarks     = "UPDATE_MARKS"
 	SubmitAnswer    = "SUBMIT_ANSWER"
 	UnsubmitAnswer  = "UNSUBMIT_ANSWER"
 	GetLeaderboard  = "GET_LEADERBOARD"

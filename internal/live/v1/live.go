@@ -105,7 +105,7 @@ type Response struct {
 	QuestionID        uuid.UUID  `json:"question_id" gorm:"column:question_id;type:uuid;not null"`
 	Type              string     `json:"type" gorm:"column:type;type:text;not null"`
 	Answer            any        `json:"answer" gorm:"column:answer;type:text;not null"`
-	TimeTaken         int        `json:"time_taken" gorm:"column:use_time;type:int;not null"`
+	TimeTaken         int        `json:"time" gorm:"column:use_time;type:int;not null"`
 	CreatedAt         time.Time  `json:"created_at" gorm:"column:created_at;type:timestamptz;not null"`
 	UpdatedAt         time.Time  `json:"updated_at" gorm:"column:updated_at;type:timestamptz;not null"`
 	DeletedAt         *time.Time `json:"deleted_at" gorm:"column:deleted_at;type:timestamptz"`
@@ -178,28 +178,31 @@ type UpdateLiveQuizSessionRequest struct {
 
 type JoinedMessage struct {
 	Code    string    `json:"code"`
-	ID      uuid.UUID `json:"participant_id"`
-	Name    string    `json:"participant_name"`
-	Emoji   string    `json:"participant_emoji"`
-	Color   string    `json:"participant_color"`
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Emoji   string    `json:"emoji"`
+	Color   string    `json:"color"`
 	IsHost  bool      `json:"is_host"`
 	Answers any       `json:"answers"`
+	Marks   int       `json:"marks"`
+	Q       any       `json:"q"`
+	A       any       `json:"a"`
 }
 
 type CheckLiveQuizSessionAvailabilityResponse struct {
 	ID              uuid.UUID `json:"id"`
 	QuizID          uuid.UUID `json:"quiz_id"`
+	QuizTitle       string    `json:"quiz_title"`
 	Code            string    `json:"code"`
 	QuestionCount   int       `json:"question_count"`
 	CurrentQuestion int       `json:"current_question"`
 	Status          string    `json:"status"`
 }
+
 type CountDownPayload struct {
-	LiveQuizSessionID uuid.UUID `json:"live_quiz_session_id"`
-	TimeLeft          float64   `json:"time_left"`
-	QuestionCount     int       `json:"question_count"`
-	CurrentQuestion   int       `json:"current_question"`
-	Status            string    `json:"status"`
+	TimeLeft        float64 `json:"time_left"`
+	CurrentQuestion int     `json:"current_question"`
+	Status          string  `json:"status"`
 }
 
 type ByMarks []Participant
@@ -213,22 +216,53 @@ func (a ByMarks) Less(i, j int) bool {
 	return a[i].Marks > a[j].Marks
 }
 
-type HostAnswerResponse struct {
-	Answers      []any          `json:"answers"`
-	AnswerCounts map[string]int `json:"answer_counts"`
-	Leaderboard  []Participant  `json:"leaderboard"`
-}
 type ChoiceAnswer struct {
 	ID      string `json:"id"`
 	Content string `json:"content"`
 	Color   string `json:"color"`
-	Mark    *int   `json:"mark"`
-	Correct *bool  `json:"correct"`
+	Mark    int    `json:"mark"`
+	Correct bool   `json:"correct"`
+	Count   int    `json:"count"`
 }
 type ChoiceAnswerResponse struct {
-	Answers   []ChoiceAnswer `json:"answers"`
-	Marks     int            `json:"marks"`
-	TimeTaken int            `json:"time_taken"`
+	Answers []ChoiceAnswer `json:"answers"`
+	Marks   *int           `json:"marks"`
+	Time    int            `json:"time"`
+}
+type TextAnswer struct {
+	ID            string `json:"id"`
+	CaseSensitive bool   `json:"caseSensitive"`
+	Content       string `json:"content"`
+	Answer        string `json:"answer"`
+	Correct       bool   `json:"correct"`
+	Mark          int    `json:"mark"`
+}
+type TextAnswerResponse struct {
+	Answers []TextAnswer `json:"answers"`
+	Marks   *int         `json:"marks"`
+	Time    int          `json:"time"`
+}
+type ParagraphAnswerResponse struct {
+	Answer string `json:"answer"`
+	Marks  *int   `json:"marks"`
+	Time   int    `json:"time"`
+}
+type MatchingAnswer struct {
+	PromptID string `json:"prompt"`
+	OptionID string `json:"option"`
+	Correct  bool   `json:"correct"`
+	Mark     int    `json:"mark"`
+}
+type MatchingAnswerResponse struct {
+	Answers []MatchingAnswer `json:"answers"`
+	Marks   *int             `json:"marks"`
+	Time    int              `json:"time"`
+}
+
+type AnswerPayload struct {
+	Answers       any       `json:"answers"`
+	ParticipantID uuid.UUID `json:"participant_id"`
+	TotalMarks    int       `json:"marks"`
 }
 
 type Service interface {
@@ -267,6 +301,17 @@ type Service interface {
 	DoesResponseExist(ctx context.Context, code string, qid string, pid string) (bool, error)
 	CountResponses(ctx context.Context, code string, qid string) (int, error)
 	SaveResponse(ctx context.Context, response *Response) (*Response, error)
+
+	// ---------- Calculation related service methods ---------- //
+	GetAnswersResponseForHost(ctx context.Context, qType string, answers []any, answerCounts map[string]int) (any, error)
+	CalculateChoice(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (ChoiceAnswerResponse, error)
+	CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error)
+	CalculateFillBlank(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (TextAnswerResponse, error)
+	CalculateAndSaveFillBlankResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (TextAnswerResponse, error)
+	CalculateParagraph(ctx context.Context, status string, content string, answers []any, time float64, timeLimit float64, timeFactor float64) (any, error)
+	CalculateAndSaveParagraphResponse(ctx context.Context, content string, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (any, error)
+	CalculateMatching(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (MatchingAnswerResponse, error)
+	CalculateAndSaveMatchingResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (MatchingAnswerResponse, error)
 
 	// ---------- Leaderboard related service methods ---------- //
 	GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)

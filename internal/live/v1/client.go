@@ -21,7 +21,6 @@ type Client struct {
 	IsHost            bool       `json:"isHost"`
 	LiveQuizSessionID uuid.UUID  `json:"lqsId"`
 	Status            string     `json:"status"`
-	Marks             int        `json:"marks"`
 }
 
 type Message struct {

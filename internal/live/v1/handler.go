@@ -2,9 +2,9 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -33,9 +33,15 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(req *http.Request) bool {
-		// origin := req.Header.Get("Origin")
-		// return origin == "http://localhost:5173" || origin == "http://localhost:5174" || origin == "http://localhost:3000"
-		return true
+		origin := req.Header.Get("Origin")
+		allowOriginsEnv := os.Getenv("ALLOW_ORIGINS")
+		allowOrigins := strings.Split(allowOriginsEnv, ",")
+		for _, allowedOrigin := range allowOrigins {
+			if allowedOrigin == origin {
+				return true
+			}
+		}
+		return false
 	},
 }
 
@@ -177,6 +183,16 @@ func (h *Handler) EndLiveQuizSession(c *gin.Context) {
 		return
 	}
 
+	h.hub.Broadcast <- &Message{
+		Content: Content{
+			Type:    util.EndLQS,
+			Payload: nil,
+		},
+		LiveQuizSessionID: uuid.Nil,
+		ClientID:          uuid.Nil,
+		UserID:            nil,
+	}
+
 	userID, err := uuid.Parse(uid.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
@@ -203,7 +219,15 @@ func (h *Handler) EndLiveQuizSession(c *gin.Context) {
 	}
 
 	for _, cl := range h.hub.LiveQuizSessions[lqsID].Clients {
-		h.hub.Unregister <- cl
+		h.hub.Inject <- &Message{
+			Content: Content{
+				Type:    util.EndLQS,
+				Payload: nil,
+			},
+			LiveQuizSessionID: lqsID,
+			ClientID:          cl.ID,
+			UserID:            cl.UserID,
+		}
 	}
 
 	err = h.Service.FlushAllLiveQuizSessionRelatedCache(c, h.hub.LiveQuizSessions[lqsID].Code)
@@ -220,8 +244,7 @@ func (h *Handler) EndLiveQuizSession(c *gin.Context) {
 func (h *Handler) CheckLiveQuizSessionAvailability(c *gin.Context) {
 	code := c.Param("code")
 
-	lqsCache := &Cache{}
-	lqsCache, err := h.Service.GetLiveQuizSessionCache(c, code)
+	mod, err := h.Service.GetLiveQuizSessionCache(c, code)
 	if err != nil && err.Error() != "redis: nil" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No such session exists"})
 		return
@@ -238,7 +261,7 @@ func (h *Handler) CheckLiveQuizSessionAvailability(c *gin.Context) {
 		}
 	}
 
-	if count > 2 || lqsCache.Locked {
+	if count > 60 || mod.Locked {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Session is full or locked"})
 		return
 	}
@@ -249,9 +272,10 @@ func (h *Handler) CheckLiveQuizSessionAvailability(c *gin.Context) {
 				ID:              s.ID,
 				QuizID:          s.QuizID,
 				Code:            s.Code,
-				QuestionCount:   lqsCache.QuestionCount,
-				CurrentQuestion: lqsCache.CurrentQuestion,
-				Status:          lqsCache.Status,
+				QuizTitle:       mod.QuizTitle,
+				QuestionCount:   mod.QuestionCount,
+				CurrentQuestion: mod.CurrentQuestion,
+				Status:          mod.Status,
 			})
 			return
 		}
@@ -330,13 +354,13 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 
 	var pCount int
 	if !isHost {
-		exists, eErr := h.DoesParticipantExist(c, p.ID)
+		exists, eErr := h.Service.DoesParticipantExist(c, p.ID)
 		if eErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": eErr.Error()})
 			return
 		}
 		if exists {
-			p, err := h.GetParticipantByID(c, p.ID)
+			p, err := h.Service.GetParticipantByID(c, p.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -345,12 +369,12 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 			p.Emoji = emoji
 			p.Color = color
 			p.Status = util.Joined
-			if _, err = h.UpdateParticipant(c, p); err != nil {
+			if _, err = h.Service.UpdateParticipant(c, p); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		} else {
-			_, pErr := h.CreateParticipant(c, p)
+			_, pErr := h.Service.CreateParticipant(c, p)
 			if pErr != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": pErr.Error()})
 				return
@@ -386,26 +410,23 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 		IsHost:            isHost,
 		LiveQuizSessionID: lqsID,
 		Status:            util.Joined,
-		Marks:             0,
 	}
 	h.hub.Register <- cl
 
 	var answers any
 	if !isHost && mod.CurrentQuestion > 0 && (mod.Status == util.Answering || mod.Status == util.RevealingAnswer) {
-		ansRes := make([]ChoiceAnswer, 0)
-
 		res, err := h.Service.GetResponse(c, code, mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["id"].(string), p.ID.String())
 		if err != nil {
 			log.Printf("Error occured here @399: %v", err)
 			return
 		}
 		if res != nil {
-			opt, ok := res.(map[string]any)["options"].([]any)
+			time, ok := res.(map[string]any)["time"].(float64)
 			if !ok {
-				log.Printf("Error occured @456: Type assertion failed")
+				log.Printf("Error occured @708: %v", err)
 				return
 			}
-			ans, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
+			qAns, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
 			if !ok {
 				log.Printf("Error occured @792: Type assertion failed")
 				return
@@ -415,52 +436,79 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				log.Printf("Error occured @708: %v", err)
 				return
 			}
+			qTimeLimit, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["time_limit"].(float64)
+			if !ok {
+				log.Printf("Error occured @708: %v", err)
+				return
+			}
+			qHaveTimeFactor, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["have_time_factor"].(bool)
+			if !ok {
+				log.Printf("Error occured @708: %v", err)
+				return
+			}
+			qTimeFactor, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["time_factor"].(float64)
+			if !ok {
+				log.Printf("Error occured @708: %v", err)
+				return
+			}
+			if qHaveTimeFactor {
+				qTimeFactor = 0
+			}
 
-			marks := 0
 			switch qType {
 			case util.Choice, util.TrueFalse:
-				for _, a := range ans {
-					mark := int(a.(map[string]any)["mark"].(float64))
-					isCorrect := a.(map[string]any)["is_correct"].(bool)
-					for _, o := range opt {
-						if o.(map[string]any)["id"].(string) == a.(map[string]any)["id"].(string) {
-							if mod.Status == util.Answering {
-								ansRes = append(ansRes, ChoiceAnswer{
-									ID:      a.(map[string]any)["id"].(string),
-									Content: a.(map[string]any)["content"].(string),
-									Color:   a.(map[string]any)["color"].(string),
-									Mark:    nil,
-									Correct: nil,
-								})
-							}
-							if mod.Status == util.RevealingAnswer {
-								ansRes = append(ansRes, ChoiceAnswer{
-									ID:      a.(map[string]any)["id"].(string),
-									Content: a.(map[string]any)["content"].(string),
-									Color:   a.(map[string]any)["color"].(string),
-									Mark:    &mark,
-									Correct: &isCorrect,
-								})
-							}
-							marks += mark
-						}
-					}
+				opt, ok := res.(map[string]any)["options"].([]any)
+				if !ok {
+					log.Printf("Error occured @456: Type assertion failed")
+					return
 				}
-				if mod.Status == util.Answering {
-					answers = ansRes
+
+				answers, err = h.Service.CalculateChoice(c, mod.Status, opt, qAns, time, qTimeLimit, qTimeFactor)
+				if err != nil {
+					log.Printf("Error occured @456: %v", err)
+					return
 				}
-				if mod.Status == util.RevealingAnswer {
-					answers = ChoiceAnswerResponse{
-						Answers:   ansRes,
-						Marks:     marks,
-						TimeTaken: int(res.(map[string]any)["time"].(float64)),
-					}
+			case util.FillBlank:
+				opt, ok := res.(map[string]any)["options"].([]any)
+				if !ok {
+					log.Printf("Error occured @456: Type assertion failed")
+					return
+				}
+
+				answers, err = h.Service.CalculateFillBlank(c, mod.Status, opt, qAns, time, qTimeLimit, qTimeFactor)
+				if err != nil {
+					log.Printf("Error occured @456: %v", err)
+					return
+				}
+			case util.Paragraph:
+				opt, ok := res.(map[string]any)["options"].(string)
+				if !ok {
+					log.Printf("Error occured @456: Type assertion failed")
+					return
+				}
+
+				answers, err = h.Service.CalculateParagraph(c, mod.Status, opt, qAns, time, qTimeLimit, qTimeFactor)
+				if err != nil {
+					log.Printf("Error occured @456: %v", err)
+					return
+				}
+			case util.Matching:
+				opt, ok := res.(map[string]any)["options"].([]any)
+				if !ok {
+					log.Printf("Error occured @456: Type assertion failed")
+					return
+				}
+
+				answers, err = h.Service.CalculateMatching(c, mod.Status, opt, qAns, time, qTimeLimit, qTimeFactor)
+				if err != nil {
+					log.Printf("Error occured @456: %v", err)
+					return
 				}
 			}
 		}
 	}
 	if isHost && mod.CurrentQuestion > 0 && mod.Status == util.RevealingAnswer {
-		a, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
+		qAns, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
 		if !ok {
 			log.Printf("Error occured @792: Type assertion failed")
 			return
@@ -471,26 +519,10 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 			return
 		}
 
-		var ans []any
-		switch qType {
-		case util.Choice, util.TrueFalse:
-			for _, a := range a {
-				if a.(map[string]any)["is_correct"].(bool) {
-					ans = append(ans, a)
-				}
-			}
-		}
-
-		l, err := h.Service.GetLeaderboard(c, lqsID)
+		answers, err = h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, mod.AnswerCounts)
 		if err != nil {
-			log.Printf("Error occured: %v", err)
+			log.Printf("Error occured @699: %v", err)
 			return
-		}
-
-		answers = HostAnswerResponse{
-			Answers:      ans,
-			AnswerCounts: mod.AnswerCounts,
-			Leaderboard:  l,
 		}
 	}
 
@@ -504,8 +536,11 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				Name:    cl.DisplayName,
 				Emoji:   cl.DisplayEmoji,
 				Color:   cl.DisplayColor,
+				Marks:   p.Marks,
 				IsHost:  cl.IsHost,
 				Answers: answers,
+				Q:       mod.Questions,
+				A:       mod.Answers,
 			},
 		},
 		LiveQuizSessionID: lqsID,
@@ -607,16 +642,37 @@ func (h *Handler) InterruptCountdown(c *gin.Context) {
 }
 
 func (h *Handler) GetParticipants(c *Client) {
-	participants, err := h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
+	var err error
+	var p []Participant
+
+	mod, err := h.Service.GetLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code)
 	if err != nil {
 		log.Printf("Error occured: %v", err)
 		return
 	}
 
-	h.hub.Converse <- &Message{
+	if mod.Status == util.Idle {
+		p, err = h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
+		if err != nil {
+			log.Printf("Error occured: %v", err)
+			return
+		}
+	} else {
+		p, err = h.Service.GetLeaderboard(context.Background(), c.LiveQuizSessionID)
+		if err != nil {
+			log.Printf("Error occured: %v", err)
+			return
+		}
+	}
+
+	if !c.IsHost && (((mod.Status == util.Questioning || mod.Status == util.Answering) && !mod.Config.LeaderboardConfig.DuringQuestions) || (mod.Status == util.RevealingAnswer && !mod.Config.LeaderboardConfig.AfterQuestions)) {
+		p = []Participant{}
+	}
+
+	h.hub.Inject <- &Message{
 		Content: Content{
 			Type:    util.GetParticipants,
-			Payload: participants,
+			Payload: p,
 		},
 		LiveQuizSessionID: c.LiveQuizSessionID,
 		ClientID:          c.ID,
@@ -630,7 +686,7 @@ func (h *Handler) StartLiveQuizSession(c *Client) {
 		log.Printf("Error occured: %v", err)
 		return
 	}
-	mod.CurrentQuestion += 1
+	mod.CurrentQuestion = 1
 	mod.Status = util.Starting
 	err = h.Service.UpdateLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code, mod)
 	if err != nil {
@@ -803,6 +859,14 @@ func (h *Handler) RevealAnswer(c *Client) {
 		log.Printf("Error occured @718: %v", err)
 		return
 	}
+	if qHaveTimeFactor {
+		qTimeFactor = 0
+	}
+	qTimeLimit, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["time_limit"].(float64)
+	if !ok {
+		log.Printf("Error occured @723: %v", err)
+		return
+	}
 	qAns, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
 	if !ok {
 		log.Printf("Error occured @792: Type assertion failed")
@@ -810,17 +874,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 	}
 
 	ansCounts := make(map[string]int)
-	correctAns := make([]any, 0)
-	switch qType {
-	case util.Choice, util.TrueFalse:
-		for _, a := range qAns {
-			ansCounts[a.(map[string]any)["id"].(string)] = 0
-			if a.(map[string]any)["is_correct"].(bool) {
-				correctAns = append(correctAns, a)
-			}
-		}
-	}
-
+	var rpl []AnswerPayload
 	switch qType {
 	case util.Choice, util.TrueFalse:
 		for _, r := range res {
@@ -834,13 +888,11 @@ func (h *Handler) RevealAnswer(c *Client) {
 				log.Printf("Error occured @734: Type assertion failed")
 				return
 			}
-
 			questionID, err := uuid.Parse(qid)
 			if err != nil {
 				log.Printf("Error occured @741: %v", err)
 				return
 			}
-
 			pid, ok := r.(map[string]any)["pid"].(string)
 			if !ok {
 				log.Printf("Error occured @747: %v", err)
@@ -852,82 +904,206 @@ func (h *Handler) RevealAnswer(c *Client) {
 				return
 			}
 
-			stringifyCO := make([]string, len(co))
-			for i, o := range co {
-				val, err := json.Marshal(o)
-				if err != nil {
-					log.Printf("Error occured @760: %v", err)
-					return
-				}
-				stringifyCO[i] = string(val)
-			}
-			stringifyAnswer := strings.Join(stringifyCO, util.ANSWER_SPLIT)
+			var cAnsRes ChoiceAnswerResponse
 
-			if _, err = h.Service.SaveResponse(context.Background(), &Response{
+			cAnsRes, ansCounts, err = h.Service.CalculateAndSaveChoiceResponse(context.Background(), co, qAns, time, qTimeLimit, qTimeFactor, &Response{
 				ID:                uuid.New(),
 				LiveQuizSessionID: c.LiveQuizSessionID,
 				QuestionID:        questionID,
 				ParticipantID:     participantID,
 				Type:              qType,
-				TimeTaken:         int(time),
-				Answer:            stringifyAnswer,
-			}); err != nil {
-				log.Printf("Error occured @776: %v", err)
-				return
-			}
-
-			p, err := h.Service.GetParticipantByID(context.Background(), participantID)
+			})
 			if err != nil {
-				log.Printf("Error occured @782: %v", err)
+				log.Printf("Error occured @792: %v", err)
 				return
 			}
 
-			if qHaveTimeFactor {
-				time *= (qTimeFactor / 1000)
+			rpl = append(rpl, AnswerPayload{
+				Answers:       cAnsRes,
+				ParticipantID: participantID,
+			})
+		}
+	case util.FillBlank:
+		for _, r := range res {
+			to, ok := r.(map[string]any)["options"].([]any)
+			if !ok {
+				log.Printf("Error occured @729: Type assertion failed")
+				return
+			}
+			time, ok := r.(map[string]any)["time"].(float64)
+			if !ok {
+				log.Printf("Error occured @734: Type assertion failed")
+				return
+			}
+			questionID, err := uuid.Parse(qid)
+			if err != nil {
+				log.Printf("Error occured @741: %v", err)
+				return
+			}
+			pid, ok := r.(map[string]any)["pid"].(string)
+			if !ok {
+				log.Printf("Error occured @747: %v", err)
+				return
+			}
+			participantID, err := uuid.Parse(pid)
+			if err != nil {
+				log.Printf("Error occured @752: %v", err)
+				return
 			}
 
-			answers := make([]ChoiceAnswer, 0)
+			fbAnsRes, err := h.Service.CalculateAndSaveFillBlankResponse(context.Background(), to, qAns, time, qTimeLimit, qTimeFactor, &Response{
+				ID:                uuid.New(),
+				LiveQuizSessionID: c.LiveQuizSessionID,
+				QuestionID:        questionID,
+				ParticipantID:     participantID,
+				Type:              qType,
+			})
+			if err != nil {
+				log.Printf("Error occured @792: %v", err)
+				return
+			}
 
-			for _, a := range qAns {
-				mark := int(a.(map[string]any)["mark"].(float64))
-				isCorrect := a.(map[string]any)["is_correct"].(bool)
-				for _, o := range co {
-					if o.(map[string]any)["id"].(string) == a.(map[string]any)["id"].(string) {
-						ansCounts[a.(map[string]any)["id"].(string)] += 1
-						answers = append(answers, ChoiceAnswer{
-							ID:      a.(map[string]any)["id"].(string),
-							Content: a.(map[string]any)["content"].(string),
-							Color:   a.(map[string]any)["color"].(string),
-							Mark:    &mark,
-							Correct: &isCorrect,
-						})
-						tf := 0
-						if mark > 0 {
-							tf = int(time)
-						}
-						p.Marks += (int(a.(map[string]any)["mark"].(float64)) + tf)
-					}
+			rpl = append(rpl, AnswerPayload{
+				Answers:       fbAnsRes,
+				ParticipantID: participantID,
+			})
+		}
+	case util.Paragraph:
+		for _, r := range res {
+			answer, ok := r.(map[string]any)["options"].(string)
+			if !ok {
+				log.Printf("Error occured @729: Type assertion failed")
+				return
+			}
+			time, ok := r.(map[string]any)["time"].(float64)
+			if !ok {
+				log.Printf("Error occured @734: Type assertion failed")
+				return
+			}
+			questionID, err := uuid.Parse(qid)
+			if err != nil {
+				log.Printf("Error occured @741: %v", err)
+				return
+			}
+			pid, ok := r.(map[string]any)["pid"].(string)
+			if !ok {
+				log.Printf("Error occured @747: %v", err)
+				return
+			}
+			participantID, err := uuid.Parse(pid)
+			if err != nil {
+				log.Printf("Error occured @752: %v", err)
+				return
+			}
+
+			pAnsRes, err := h.Service.CalculateAndSaveParagraphResponse(context.Background(), answer, qAns, time, qTimeLimit, qTimeFactor, &Response{
+				ID:                uuid.New(),
+				LiveQuizSessionID: c.LiveQuizSessionID,
+				QuestionID:        questionID,
+				ParticipantID:     participantID,
+				Type:              qType,
+			})
+			if err != nil {
+				log.Printf("Error occured @792: %v", err)
+				return
+			}
+
+			rpl = append(rpl, AnswerPayload{
+				Answers:       pAnsRes,
+				ParticipantID: participantID,
+			})
+		}
+	case util.Matching:
+		for _, r := range res {
+			mo, ok := r.(map[string]any)["options"].([]any)
+			if !ok {
+				log.Printf("Error occured @729: Type assertion failed")
+				return
+			}
+			time, ok := r.(map[string]any)["time"].(float64)
+			if !ok {
+				log.Printf("Error occured @734: Type assertion failed")
+				return
+			}
+			questionID, err := uuid.Parse(qid)
+			if err != nil {
+				log.Printf("Error occured @741: %v", err)
+				return
+			}
+			pid, ok := r.(map[string]any)["pid"].(string)
+			if !ok {
+				log.Printf("Error occured @747: %v", err)
+				return
+			}
+			participantID, err := uuid.Parse(pid)
+			if err != nil {
+				log.Printf("Error occured @752: %v", err)
+				return
+			}
+
+			mAnsRes, err := h.Service.CalculateAndSaveMatchingResponse(context.Background(), mo, qAns, time, qTimeLimit, qTimeFactor, &Response{
+				ID:                uuid.New(),
+				LiveQuizSessionID: c.LiveQuizSessionID,
+				QuestionID:        questionID,
+				ParticipantID:     participantID,
+				Type:              qType,
+			})
+			if err != nil {
+				log.Printf("Error occured @792: %v", err)
+				return
+			}
+
+			rpl = append(rpl, AnswerPayload{
+				Answers:       mAnsRes,
+				ParticipantID: participantID,
+			})
+		}
+	case util.Pool:
+	}
+
+	ps, err := h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
+	if err != nil {
+		log.Printf("Error occured @818: %v", err)
+		return
+	}
+
+	for _, p := range ps {
+		injected := false
+		for _, r := range rpl {
+			if p.ID == r.ParticipantID {
+				h.hub.Inject <- &Message{
+					Content: Content{
+						Type:    util.RevealAnswer,
+						Payload: r.Answers,
+					},
+					LiveQuizSessionID: c.LiveQuizSessionID,
+					ClientID:          p.ID,
+					UserID:            c.UserID,
 				}
+				injected = true
+				break
 			}
-
-			if _, err = h.Service.UpdateParticipant(context.Background(), p); err != nil {
-				log.Printf("Error occured @802: %v", err)
-				return
-			}
-
+		}
+		if !injected {
 			h.hub.Inject <- &Message{
 				Content: Content{
-					Type: util.RevealAnswer,
-					Payload: ChoiceAnswerResponse{
-						Answers:   answers,
-						Marks:     p.Marks,
-						TimeTaken: int(time),
-					},
+					Type:    util.RevealAnswer,
+					Payload: nil,
 				},
 				LiveQuizSessionID: c.LiveQuizSessionID,
-				ClientID:          participantID,
+				ClientID:          p.ID,
 				UserID:            c.UserID,
 			}
+		}
+
+		h.hub.Inject <- &Message{
+			Content: Content{
+				Type:    util.UpdateMarks,
+				Payload: p.Marks,
+			},
+			LiveQuizSessionID: c.LiveQuizSessionID,
+			ClientID:          p.ID,
+			UserID:            c.UserID,
 		}
 	}
 
@@ -940,12 +1116,6 @@ func (h *Handler) RevealAnswer(c *Client) {
 		return
 	}
 
-	l, err := h.Service.GetLeaderboard(context.Background(), c.LiveQuizSessionID)
-	if err != nil {
-		log.Printf("Error occured @821: %v", err)
-		return
-	}
-
 	var hostPID uuid.UUID
 	for _, cl := range h.hub.LiveQuizSessions[c.LiveQuizSessionID].Clients {
 		if cl.IsHost {
@@ -953,14 +1123,16 @@ func (h *Handler) RevealAnswer(c *Client) {
 		}
 	}
 
+	correctAns, err := h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, ansCounts)
+	if err != nil {
+		log.Printf("Error occured @699: %v", err)
+		return
+	}
+
 	h.hub.Inject <- &Message{
 		Content: Content{
-			Type: util.RevealAnswer,
-			Payload: HostAnswerResponse{
-				Answers:      correctAns,
-				AnswerCounts: ansCounts,
-				Leaderboard:  l,
-			},
+			Type:    util.RevealAnswer,
+			Payload: correctAns,
 		},
 		LiveQuizSessionID: c.LiveQuizSessionID,
 		ClientID:          hostPID,
@@ -1090,11 +1262,35 @@ func (h *Handler) UnsubmitAnswer(c *Client) {
 
 func (h *Handler) UpdateModerator(c *gin.Context) {
 	code := c.Param("code")
-	isHost := c.Query("is_host") == "true"
 
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid code"})
 		return
+	}
+
+	uid, ok := c.Get("uid")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+	}
+
+	var userID *uuid.UUID
+	if uid.(string) == "NOT_HOST" {
+		userID = nil
+	} else {
+		parsedUID, err := uuid.Parse(uid.(string))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+		userID = &parsedUID
+	}
+
+	isHost := false
+	for _, s := range h.hub.LiveQuizSessions {
+		if s.Code == code && userID != nil && s.HostID == *userID {
+			isHost = true
+			break
+		}
 	}
 
 	mod, err := h.Service.GetLiveQuizSessionCache(c, code)
@@ -1108,24 +1304,6 @@ func (h *Handler) UpdateModerator(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, mod)
-}
-
-func (h *Handler) GetLeaderboard(c *Client) {
-	leaderboard, err := h.Service.GetLeaderboard(context.Background(), c.LiveQuizSessionID)
-	if err != nil {
-		log.Printf("Error occured: %v", err)
-		return
-	}
-
-	h.hub.Converse <- &Message{
-		Content: Content{
-			Type:    util.GetLeaderboard,
-			Payload: leaderboard,
-		},
-		LiveQuizSessionID: c.LiveQuizSessionID,
-		ClientID:          c.ID,
-		UserID:            c.UserID,
-	}
 }
 
 func (h *Handler) BroadcastMessage(c *Client, ct Content) {
@@ -1153,7 +1331,7 @@ func (h *Handler) Converse(c *Client, ct Content) {
 }
 
 func (h *Handler) Countdown(seconds int, lqsID uuid.UUID, cd chan<- struct{}) {
-	for i := float64(seconds) * 2; i > 0; i -= 1 {
+	for i := float64(seconds) * 10; i > 0; i -= 1 {
 		if _, ok := h.hub.LiveQuizSessions[lqsID]; ok {
 			mod, err := h.Service.GetLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[lqsID].Code)
 			if err != nil {
@@ -1173,12 +1351,10 @@ func (h *Handler) Countdown(seconds int, lqsID uuid.UUID, cd chan<- struct{}) {
 			h.hub.Broadcast <- &Message{
 				Content: Content{
 					Type: util.Countdown,
-					Payload: &CountDownPayload{
-						LiveQuizSessionID: lqsID,
-						TimeLeft:          float64(i / 2),
-						QuestionCount:     mod.QuestionCount,
-						CurrentQuestion:   mod.CurrentQuestion,
-						Status:            mod.Status,
+					Payload: CountDownPayload{
+						TimeLeft:        float64(i / 10),
+						CurrentQuestion: mod.CurrentQuestion,
+						Status:          mod.Status,
 					},
 				},
 				LiveQuizSessionID: lqsID,
@@ -1186,7 +1362,7 @@ func (h *Handler) Countdown(seconds int, lqsID uuid.UUID, cd chan<- struct{}) {
 				UserID:            &h.hub.LiveQuizSessions[lqsID].HostID,
 			}
 			if i > 0 {
-				time.Sleep(time.Second / 2)
+				time.Sleep(time.Second / 10)
 			}
 		}
 	}
