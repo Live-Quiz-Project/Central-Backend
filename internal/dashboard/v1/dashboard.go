@@ -88,17 +88,19 @@ type AnswerViewParticipantResponse struct {
 	Unanswered     int                          `json:"unanswered"`
 	TotalQuestions int                          `json:"total_questions"`
 	TotalMarks     int                          `json:"total_marks"`
+	TotalTimeUsed  int                          `json:"total_time_used"`
 	Questions      []AnswerViewQuestionResponse `json:"questions"`
 }
 
 type AnswerViewQuestionResponse struct {
-	ID      uuid.UUID `json:"id"`
-	Type    string    `json:"type"`
-	Order   int       `json:"order"`
-	Content string    `json:"content"`
-	Answer  string    `json:"answer"`
-	Mark    int       `json:"mark"`
-	UseTime int       `json:"use_time"`
+	ID        uuid.UUID `json:"id"`
+	Type      string    `json:"type"`
+	Order     int       `json:"order"`
+	Content   string    `json:"content"`
+	Answer    string    `json:"answer"`
+	Mark      int       `json:"mark"`
+	IsCorrect bool      `json:"is_correct"`
+	UseTime   int       `json:"use_time"`
 }
 
 type LiveAnswerRequest struct {
@@ -171,15 +173,16 @@ type QuestionViewParticipant struct {
 }
 
 type SessionHistory struct {
-	ID          uuid.UUID      `json:"id"`
-	CreatorName string         `json:"creator_name"`
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	CoverImage  string         `json:"cover_image"`
-	Visibility  string         `json:"visibility"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `json:"deleted_at"`
+	ID                uuid.UUID      `json:"id"`
+	CreatorName       string         `json:"creator_name"`
+	Title             string         `json:"title"`
+	Description       string         `json:"description"`
+	CoverImage        string         `json:"cover_image"`
+	Visibility        string         `json:"visibility"`
+	TotalParticipants int            `json:"total_participants"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `json:"deleted_at"`
 }
 
 // -------------------- REPOSITORY START --------------------
@@ -202,4 +205,5 @@ type Service interface {
 
 	GetParticipantByID(ctx context.Context, liveQuizSessionID uuid.UUID) (*Participant, error)
 	GetOrderParticipantsByLiveQuizSessionID(ctx context.Context, liveQuizSessionID uuid.UUID) ([]ParticipantResponse, error)
+	CountTotalParticipants(ctx context.Context, liveQuizSessionID uuid.UUID) (int, error)
 }

@@ -248,6 +248,8 @@ CREATE TABLE IF NOT EXISTS participant (
   status TEXT NOT NULL,
   name TEXT,
   marks INT,
+  emoji TEXT,
+  color TEXT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted_at TIMESTAMPTZ

@@ -382,13 +382,16 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-
+		var totalMarks int
+		var totalTimeUsed int
 		var correctAns int
 		var incorrectAns int
 		var unanswered int
 		var questions []AnswerViewQuestionResponse
+		var isCorrect bool
 
 		for _, a := range answers {
+			var checkIsCorrectAnswer = 0
 			ansList := strings.Split(a.Answer, util.AnswerSplitter)
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
@@ -407,16 +410,29 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 					questionMark += optionInfo.Mark
+					if optionInfo.Correct {
+						checkIsCorrectAnswer += 1
+					}
 				}
 
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
+				}
+
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
+
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
 			if a.Type == util.FillBlank || a.Type == util.Paragraph {
@@ -427,16 +443,29 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						return
 					}
 					questionMark += optionInfo.Mark
+					if optionInfo.ID != uuid.Nil {
+						checkIsCorrectAnswer += 1
+					}
 				}
 
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
+				}
+
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
+
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
 			if a.Type == util.Matching {
@@ -462,16 +491,30 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					}
 
 					questionMark += checkMatchingAnswer.Mark
+
+					if checkMatchingAnswer.ID != uuid.Nil {
+						checkIsCorrectAnswer += 1
+					}
 				}
 
+				if checkIsCorrectAnswer == len(ansList) {
+					isCorrect = true
+				} else {
+					isCorrect = false
+				}
+
+				totalMarks += questionMark
+				totalTimeUsed += a.UseTime
+
 				questions = append(questions, AnswerViewQuestionResponse{
-					ID:      a.ID,
-					Type:    q.Type,
-					Order:   q.Order,
-					Content: q.Content,
-					Answer:  answerString,
-					Mark:    questionMark,
-					UseTime: a.UseTime,
+					ID:        a.ID,
+					Type:      q.Type,
+					Order:     q.Order,
+					Content:   q.Content,
+					Answer:    answerString,
+					Mark:      questionMark,
+					IsCorrect: isCorrect,
+					UseTime:   a.UseTime,
 				})
 			}
 
@@ -504,7 +547,8 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			Incorrects:     incorrectAns,
 			Unanswered:     unanswered,
 			TotalQuestions: len(questions),
-			TotalMarks:     0,
+			TotalMarks:     totalMarks,
+			TotalTimeUsed:  totalTimeUsed,
 			Questions:      questions,
 		},
 		)
@@ -540,6 +584,12 @@ func (h *Handler) GetDashboardHistoryByUserID(c *gin.Context) {
 			return
 		}
 
+		totalParticipant, err := h.Service.CountTotalParticipants(c.Request.Context(), eachSession.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
 		quizInfo, err := h.quizService.GetQuizHistoryByID(c.Request.Context(), eachSession.QuizID, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -547,15 +597,16 @@ func (h *Handler) GetDashboardHistoryByUserID(c *gin.Context) {
 		}
 
 		sessionHistory = append(sessionHistory, SessionHistory{
-			ID:          eachSession.ID,
-			CreatorName: userInfo.Name,
-			Title:       quizInfo.Title,
-			Description: quizInfo.Description,
-			CoverImage:  quizInfo.CoverImage,
-			Visibility:  quizInfo.Visibility,
-			CreatedAt:   eachSession.CreatedAt,
-			UpdatedAt:   quizInfo.UpdatedAt,
-			DeletedAt:   quizInfo.DeletedAt,
+			ID:                eachSession.ID,
+			CreatorName:       userInfo.Name,
+			Title:             quizInfo.Title,
+			Description:       quizInfo.Description,
+			CoverImage:        quizInfo.CoverImage,
+			Visibility:        quizInfo.Visibility,
+			TotalParticipants: totalParticipant,
+			CreatedAt:         eachSession.CreatedAt,
+			UpdatedAt:         quizInfo.UpdatedAt,
+			DeletedAt:         quizInfo.DeletedAt,
 		})
 	}
 
