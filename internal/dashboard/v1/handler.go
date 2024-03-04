@@ -113,7 +113,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 				answerParticipants = nil
 
 				for _, answerData := range answerResponse {
-					if ocr.Content == answerData.Answer {
+					if ocr.ID.String() == answerData.Answer {
 						participant, err := h.Service.GetParticipantByID(c.Request.Context(), answerData.ParticipantID)
 						if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -136,6 +136,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					Order:        ocr.Order,
 					Content:      ocr.Content,
 					Mark:         ocr.Mark,
+					Color:        ocr.Color,
 					Participants: answerParticipants,
 				})
 			}
@@ -240,6 +241,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 			var optionContent string
 			var promptContent string
+			var optionColor string
 
 			var om []any
 			for _, omr := range amRes {
@@ -263,6 +265,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 					optionContent = option.Content
 					promptContent = prompt.Content
+					optionColor = option.Color
 
 					for _, pair := range splitAnswer {
 						ans := strings.Split(pair, ":")
@@ -292,6 +295,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					OptionContent: optionContent,
 					PromptID:      omr.PromptID,
 					PromptContent: promptContent,
+					Color:				 optionColor,
 					Mark:          omr.Mark,
 					Participants:  answerParticipants,
 				})
@@ -396,24 +400,33 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			answerString := strings.Join(ansList, ", ")
 			questionMark := 0
 
-			q, err := h.quizService.GetQuestionHistoryByID(c.Request.Context(), a.QuestionID)
+			q, err := h.quizService.GetQuestionHistoryByID(c, a.QuestionID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			if a.Type == util.Choice || a.Type == util.TrueFalse {
+				var convertIDToStringAnswer []string
 				for _, ans := range ansList {
-					optionInfo, err := h.quizService.GetChoiceOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, ans)
+					ans, err := uuid.Parse(ans)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+						return
+					}
+					optionInfo, err := h.quizService.GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(c, a.QuestionID, ans)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
 					}
+					convertIDToStringAnswer = append(convertIDToStringAnswer, optionInfo.Content)
 					questionMark += optionInfo.Mark
+
 					if optionInfo.Correct {
 						checkIsCorrectAnswer += 1
 					}
 				}
+				stringContentAnswer := strings.Join(convertIDToStringAnswer, ", ")
 
 				if checkIsCorrectAnswer == len(ansList) {
 					isCorrect = true
@@ -429,7 +442,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					Type:      q.Type,
 					Order:     q.Order,
 					Content:   q.Content,
-					Answer:    answerString,
+					Answer:    stringContentAnswer,
 					Mark:      questionMark,
 					IsCorrect: isCorrect,
 					UseTime:   a.UseTime,

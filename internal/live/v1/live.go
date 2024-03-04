@@ -305,7 +305,7 @@ type Service interface {
 	// ---------- Calculation related service methods ---------- //
 	GetAnswersResponseForHost(ctx context.Context, qType string, answers []any, answerCounts map[string]int) (any, error)
 	CalculateChoice(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (ChoiceAnswerResponse, error)
-	CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error)
+	CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, answerCounts map[string]int, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error)
 	CalculateFillBlank(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (TextAnswerResponse, error)
 	CalculateAndSaveFillBlankResponse(ctx context.Context, options []any, answers []any, time float64, timeLimit float64, timeFactor float64, response *Response) (TextAnswerResponse, error)
 	CalculateParagraph(ctx context.Context, status string, content string, answers []any, time float64, timeLimit float64, timeFactor float64) (any, error)

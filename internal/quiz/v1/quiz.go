@@ -373,6 +373,7 @@ type Repository interface {
 	GetOptionChoiceHistories(ctx context.Context) ([]ChoiceOptionHistory, error)
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistory, error)
 	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistory, error)
+	GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(ctx context.Context, questionID uuid.UUID, optionID uuid.UUID) (*ChoiceOptionHistory, error)
 	UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error)
 	DeleteChoiceOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -681,6 +682,7 @@ type Service interface {
 
 	GetChoiceOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]ChoiceOptionHistoryResponse, error)
 	GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*ChoiceOptionHistoryResponse, error)
+	GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(ctx context.Context, questionID uuid.UUID, optionID uuid.UUID) (*ChoiceOptionHistoryResponse, error)
 
 	// Text related service methods
 	CreateTextOption(ctx context.Context, tx *gorm.DB, req *TextOptionRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, uid uuid.UUID) (*CreateTextOptionResponse, error)

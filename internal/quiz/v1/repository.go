@@ -631,6 +631,16 @@ func (r *repository) GetChoiceOptionHistoryByQuestionIDAndContent(ctx context.Co
 	return &optionChoiceHistory, nil
 }
 
+func (r *repository) GetChoiceOptionHistoryByQuestionIDAndChoiceOptionID(ctx context.Context, questionID uuid.UUID, optionID uuid.UUID) (*ChoiceOptionHistory, error) {
+	var optionChoiceHistory ChoiceOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? and id = ?", questionID, optionID).Find(&optionChoiceHistory)
+	if res.Error != nil {
+		return &ChoiceOptionHistory{}, res.Error
+	}
+
+	return &optionChoiceHistory, nil
+}
+
 func (r *repository) UpdateChoiceOptionHistory(ctx context.Context, tx *gorm.DB, optionChoiceHistory *ChoiceOptionHistory) (*ChoiceOptionHistory, error) {
 	res := tx.WithContext(ctx).Save(optionChoiceHistory)
 	if res.Error != nil {
