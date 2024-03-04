@@ -403,6 +403,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			}
 
 			if a.Type == util.Choice || a.Type == util.TrueFalse {
+				var convertIDToStringAnswer []string
 				for _, ans := range ansList {
 					ans, err := uuid.Parse(ans)
 					if err != nil {
@@ -414,11 +415,14 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
 					}
+					convertIDToStringAnswer = append(convertIDToStringAnswer, optionInfo.Content)
 					questionMark += optionInfo.Mark
+
 					if optionInfo.Correct {
 						checkIsCorrectAnswer += 1
 					}
 				}
+				stringContentAnswer := strings.Join(convertIDToStringAnswer, ", ")
 
 				if checkIsCorrectAnswer == len(ansList) {
 					isCorrect = true
@@ -434,7 +438,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					Type:      q.Type,
 					Order:     q.Order,
 					Content:   q.Content,
-					Answer:    answerString,
+					Answer:    stringContentAnswer,
 					Mark:      questionMark,
 					IsCorrect: isCorrect,
 					UseTime:   a.UseTime,
