@@ -57,6 +57,7 @@ func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse,
 		ID:    u.ID,
 		Name:  u.Name,
 		Image: u.Image,
+		Email: u.Email,
 		Token: accessToken,
 	}, refreshToken, nil
 }
