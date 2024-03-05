@@ -30,22 +30,22 @@ type LiveQuizSession struct {
 }
 
 type Cache struct {
-	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id"`
-	QuizID            uuid.UUID      `json:"quiz_id"`
-	HostID            uuid.UUID      `json:"host_id"`
-	QuizTitle         string         `json:"quiz_title"`
-	QuestionCount     int            `json:"question_count"`
-	CurrentQuestion   int            `json:"current_question"`
-	Questions         []any          `json:"questions"`
-	Answers           []any          `json:"answers"`
-	AnswerCounts      map[string]int `json:"answer_counts"`
-	Status            string         `json:"status"`
-	Config            Configurations `json:"config"`
-	Locked            bool           `json:"locked"`
-	Interrupted       bool           `json:"interrupted"`
-	Orders            []int          `json:"orders"`
-	ResponseCount     int            `json:"response_count"`
-	ParticipantCount  int            `json:"participant_count"`
+	LiveQuizSessionID uuid.UUID                 `json:"live_quiz_session_id"`
+	QuizID            uuid.UUID                 `json:"quiz_id"`
+	HostID            uuid.UUID                 `json:"host_id"`
+	QuizTitle         string                    `json:"quiz_title"`
+	QuestionCount     int                       `json:"question_count"`
+	CurrentQuestion   int                       `json:"current_question"`
+	Questions         []any                     `json:"questions"`
+	Answers           []any                     `json:"answers"`
+	AnswerCounts      map[string]map[string]int `json:"answer_counts"`
+	Status            string                    `json:"status"`
+	Config            Configurations            `json:"config"`
+	Locked            bool                      `json:"locked"`
+	Interrupted       bool                      `json:"interrupted"`
+	Orders            []int                     `json:"orders"`
+	ResponseCount     int                       `json:"response_count"`
+	ParticipantCount  int                       `json:"participant_count"`
 }
 
 type SessionResponse struct {
@@ -185,8 +185,6 @@ type JoinedMessage struct {
 	IsHost  bool      `json:"is_host"`
 	Answers any       `json:"answers"`
 	Marks   int       `json:"marks"`
-	Q       any       `json:"q"`
-	A       any       `json:"a"`
 }
 
 type CheckLiveQuizSessionAvailabilityResponse struct {
@@ -259,6 +257,17 @@ type MatchingAnswerResponse struct {
 	Time    int              `json:"time"`
 }
 
+type PoolAnswer struct {
+	ID      string `json:"qid"`
+	Type    string `json:"type"`
+	Content any    `json:"content"`
+}
+type PoolAnswerResponse struct {
+	Answers map[string]PoolAnswer `json:"answers"`
+	Marks   *int                  `json:"marks"`
+	Time    int                   `json:"time"`
+}
+
 type AnswerPayload struct {
 	Answers       any       `json:"answers"`
 	ParticipantID uuid.UUID `json:"participant_id"`
@@ -303,7 +312,7 @@ type Service interface {
 	SaveResponse(ctx context.Context, response *Response) (*Response, error)
 
 	// ---------- Calculation related service methods ---------- //
-	GetAnswersResponseForHost(ctx context.Context, qType string, answers []any, answerCounts map[string]int) (any, error)
+	GetAnswersResponseForHost(ctx context.Context, qid string, qType string, answers []any, answerCounts map[string]map[string]int) (any, error)
 	CalculateChoice(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (ChoiceAnswerResponse, error)
 	CalculateAndSaveChoiceResponse(ctx context.Context, options []any, answers []any, answerCounts map[string]int, time float64, timeLimit float64, timeFactor float64, response *Response) (ChoiceAnswerResponse, map[string]int, error)
 	CalculateFillBlank(ctx context.Context, status string, options []any, answers []any, time float64, timeLimit float64, timeFactor float64) (TextAnswerResponse, error)
