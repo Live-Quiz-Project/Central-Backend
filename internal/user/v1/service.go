@@ -24,18 +24,23 @@ func NewService(repo Repository) Service {
 }
 
 // ---------- Auth related service methods ---------- //
+var ErrNotFound = errors.New("not found")
+
 func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse, string, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	u, err := s.Repository.GetUserByEmail(c, req.Email)
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, "", errors.New("incorrect email or password")
+		}
 		return &LogInResponse{}, "", err
 	}
 
 	err = util.CheckPassword(u.Password, req.Password)
 	if err != nil {
-		return &LogInResponse{}, "", err
+		return &LogInResponse{}, "", errors.New("incorrect email or password")
 	}
 
 	accessToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
@@ -82,7 +87,7 @@ func (s *service) CreateUser(ctx context.Context, req *CreateUserRequest) (*Crea
 		Name:          req.Name,
 		Email:         req.Email,
 		Password:      hashedPassword,
-		Image:         "https://media.discordapp.net/attachments/988486551275200573/1213524637242359868/2048px-Windows_10_Default_Profile_Picture.png?ex=65f5c9e3&is=65e354e3&hm=e30c409e382245668455fb2ee7734b60ea61cbd2681de0c7e595643d85904a12&=&format=webp&quality=lossless&width=1170&height=1170",
+		Image:         "",
 		DisplayName:   formattedName,
 		DisplayEmoji:  util.SmileyFace,
 		DisplayColor:  util.Gray,
