@@ -2333,6 +2333,7 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 				},
 				Mark:    oc.Mark,
 				Correct: oc.Correct,
+				Type:    t,
 			})
 		}
 		sort.Sort(ByCAOrder(answers))
@@ -2352,6 +2353,7 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 				},
 				Content: ot.Content,
 				Mark:    ot.Mark,
+				Type:    t,
 			})
 		}
 		sort.Sort(ByTAOrder(answers))
@@ -2367,6 +2369,7 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 				PromptID: om.PromptID,
 				OptionID: om.OptionID,
 				Mark:     om.Mark,
+				Type:     t,
 			})
 		}
 		return answers, nil

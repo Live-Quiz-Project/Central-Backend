@@ -490,12 +490,12 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	var res any
+	var res []any
 
 	switch qType {
 	case util.Choice, util.TrueFalse:
-		cAns := make([]ChoiceAnswer, 0)
-		for _, a := range answers {
+		cAns := make([]ChoiceAnswer, len(answers))
+		for i, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -523,19 +523,19 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 			count := answerCounts[id]
 
-			cAns = append(cAns, ChoiceAnswer{
+			cAns[i] = ChoiceAnswer{
 				ID:      id,
 				Content: content,
 				Color:   color,
 				Mark:    mark,
 				Correct: isCorrect,
 				Count:   count,
-			})
-			res = cAns
+			}
 		}
+		res = append(res, cAns)
 	case util.FillBlank, util.Paragraph:
-		tAns := make([]TextAnswer, 0)
-		for _, a := range answers {
+		tAns := make([]TextAnswer, len(answers))
+		for i, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -558,17 +558,17 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 			mark := int(m)
 
-			tAns = append(tAns, TextAnswer{
+			tAns[i] = TextAnswer{
 				ID:            id,
 				Content:       content,
 				CaseSensitive: caseSensitive,
 				Mark:          mark,
-			})
-			res = tAns
+			}
 		}
+		res = append(res, tAns)
 	case util.Matching:
-		mAns := make([]MatchingAnswer, 0)
-		for _, a := range answers {
+		mAns := make([]MatchingAnswer, len(answers))
+		for i, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -587,12 +587,134 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 			mark := int(m)
 
-			mAns = append(mAns, MatchingAnswer{
+			mAns[i] = MatchingAnswer{
 				PromptID: prompt,
 				OptionID: option,
 				Mark:     mark,
-			})
-			res = mAns
+			}
+		}
+		res = append(res, mAns)
+	case util.Pool:
+		var pAns []any
+		for _, an := range answers {
+			ans, ok := an.([]any)
+			if !ok {
+				return nil, errors.New("invalid type assertion1")
+			}
+
+			sqType := util.Paragraph
+			for _, answ := range ans {
+				sqType, ok = answ.(map[string]any)["type"].(string)
+				if !ok {
+					return nil, errors.New("invalid type assertion2")
+				}
+			}
+
+			switch sqType {
+			case util.Choice, util.TrueFalse:
+				cAns := make([]ChoiceAnswer, len(ans))
+				for i, a := range ans {
+					v, ok := a.(map[string]any)
+					if !ok {
+						return nil, errors.New("invalid type assertion3")
+					}
+					id, ok := v["id"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion4")
+					}
+					content, ok := v["content"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion5")
+					}
+					color, ok := v["color"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion6")
+					}
+					m, ok := v["mark"].(float64)
+					if !ok {
+						return nil, errors.New("invalid type assertion7")
+					}
+					mark := int(m)
+					isCorrect, ok := v["is_correct"].(bool)
+					if !ok {
+						return nil, errors.New("invalid type assertion8")
+					}
+					count := answerCounts[id]
+
+					cAns[i] = ChoiceAnswer{
+						ID:      id,
+						Content: content,
+						Color:   color,
+						Mark:    mark,
+						Correct: isCorrect,
+						Count:   count,
+					}
+				}
+				pAns = append(pAns, cAns)
+			case util.FillBlank, util.Paragraph:
+				tAns := make([]TextAnswer, len(ans))
+				for i, a := range ans {
+					v, ok := a.(map[string]any)
+					if !ok {
+						return nil, errors.New("invalid type assertion9")
+					}
+					id, ok := v["id"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion10")
+					}
+					content, ok := v["content"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion11")
+					}
+					caseSensitive, ok := v["case_sensitive"].(bool)
+					if !ok {
+						return nil, errors.New("invalid type assertion12")
+					}
+					m, ok := v["mark"].(float64)
+					if !ok {
+						return nil, errors.New("invalid type assertion13")
+					}
+					mark := int(m)
+
+					tAns[i] = TextAnswer{
+						ID:            id,
+						Content:       content,
+						CaseSensitive: caseSensitive,
+						Mark:          mark,
+					}
+				}
+				pAns = append(pAns, tAns)
+			case util.Matching:
+				mAns := make([]MatchingAnswer, len(ans))
+				for i, a := range ans {
+					v, ok := a.(map[string]any)
+					if !ok {
+						return nil, errors.New("invalid type assertion14")
+					}
+					prompt, ok := v["prompt_id"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion15")
+					}
+					option, ok := v["option_id"].(string)
+					if !ok {
+						return nil, errors.New("invalid type assertion16")
+					}
+					m, ok := v["mark"].(float64)
+					if !ok {
+						return nil, errors.New("invalid type assertion17")
+					}
+					mark := int(m)
+
+					mAns[i] = MatchingAnswer{
+						PromptID: prompt,
+						OptionID: option,
+						Mark:     mark,
+					}
+				}
+				pAns = append(pAns, mAns)
+			}
+
+			res = pAns
 		}
 	}
 

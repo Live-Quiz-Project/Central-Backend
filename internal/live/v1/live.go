@@ -30,22 +30,22 @@ type LiveQuizSession struct {
 }
 
 type Cache struct {
-	LiveQuizSessionID uuid.UUID      `json:"live_quiz_session_id"`
-	QuizID            uuid.UUID      `json:"quiz_id"`
-	HostID            uuid.UUID      `json:"host_id"`
-	QuizTitle         string         `json:"quiz_title"`
-	QuestionCount     int            `json:"question_count"`
-	CurrentQuestion   int            `json:"current_question"`
-	Questions         []any          `json:"questions"`
-	Answers           []any          `json:"answers"`
-	AnswerCounts      map[string]int `json:"answer_counts"`
-	Status            string         `json:"status"`
-	Config            Configurations `json:"config"`
-	Locked            bool           `json:"locked"`
-	Interrupted       bool           `json:"interrupted"`
-	Orders            []int          `json:"orders"`
-	ResponseCount     int            `json:"response_count"`
-	ParticipantCount  int            `json:"participant_count"`
+	LiveQuizSessionID uuid.UUID                 `json:"live_quiz_session_id"`
+	QuizID            uuid.UUID                 `json:"quiz_id"`
+	HostID            uuid.UUID                 `json:"host_id"`
+	QuizTitle         string                    `json:"quiz_title"`
+	QuestionCount     int                       `json:"question_count"`
+	CurrentQuestion   int                       `json:"current_question"`
+	Questions         []any                     `json:"questions"`
+	Answers           []any                     `json:"answers"`
+	AnswerCounts      map[string]map[string]int `json:"answer_counts"`
+	Status            string                    `json:"status"`
+	Config            Configurations            `json:"config"`
+	Locked            bool                      `json:"locked"`
+	Interrupted       bool                      `json:"interrupted"`
+	Orders            []int                     `json:"orders"`
+	ResponseCount     int                       `json:"response_count"`
+	ParticipantCount  int                       `json:"participant_count"`
 }
 
 type SessionResponse struct {
@@ -257,6 +257,17 @@ type MatchingAnswerResponse struct {
 	Answers []MatchingAnswer `json:"answers"`
 	Marks   *int             `json:"marks"`
 	Time    int              `json:"time"`
+}
+
+type PoolAnswer struct {
+	ID      string `json:"qid"`
+	Type    string `json:"type"`
+	Content any    `json:"content"`
+}
+type PoolAnswerResponse struct {
+	Answers map[string]PoolAnswer `json:"answers"`
+	Marks   *int                  `json:"marks"`
+	Time    int                   `json:"time"`
 }
 
 type AnswerPayload struct {
