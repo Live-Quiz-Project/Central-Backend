@@ -136,6 +136,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					Order:        ocr.Order,
 					Content:      ocr.Content,
 					Mark:         ocr.Mark,
+					Color:        ocr.Color,
 					Participants: answerParticipants,
 				})
 			}
@@ -240,6 +241,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 			var optionContent string
 			var promptContent string
+			var optionColor string
 
 			var om []any
 			for _, omr := range amRes {
@@ -263,6 +265,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 
 					optionContent = option.Content
 					promptContent = prompt.Content
+					optionColor = option.Color
 
 					for _, pair := range splitAnswer {
 						ans := strings.Split(pair, ":")
@@ -292,6 +295,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					OptionContent: optionContent,
 					PromptID:      omr.PromptID,
 					PromptContent: promptContent,
+					Color:				 optionColor,
 					Mark:          omr.Mark,
 					Participants:  answerParticipants,
 				})
@@ -403,6 +407,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 			}
 
 			if a.Type == util.Choice || a.Type == util.TrueFalse {
+				var convertIDToStringAnswer []string
 				for _, ans := range ansList {
 					ans, err := uuid.Parse(ans)
 					if err != nil {
@@ -414,11 +419,14 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
 					}
+					convertIDToStringAnswer = append(convertIDToStringAnswer, optionInfo.Content)
 					questionMark += optionInfo.Mark
+
 					if optionInfo.Correct {
 						checkIsCorrectAnswer += 1
 					}
 				}
+				stringContentAnswer := strings.Join(convertIDToStringAnswer, ", ")
 
 				if checkIsCorrectAnswer == len(ansList) {
 					isCorrect = true
@@ -434,7 +442,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					Type:      q.Type,
 					Order:     q.Order,
 					Content:   q.Content,
-					Answer:    answerString,
+					Answer:    stringContentAnswer,
 					Mark:      questionMark,
 					IsCorrect: isCorrect,
 					UseTime:   a.UseTime,

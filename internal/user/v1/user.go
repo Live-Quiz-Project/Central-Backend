@@ -69,6 +69,7 @@ type LogInResponse struct {
 	ID    uuid.UUID `json:"id"`
 	Name  string    `json:"name"`
 	Image string    `json:"image"`
+	Email string    `json:"email"`
 	Token string    `json:"token"`
 }
 type DecodeTokenRequest struct {
