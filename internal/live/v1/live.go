@@ -264,7 +264,7 @@ type PoolAnswer struct {
 }
 type PoolAnswerResponse struct {
 	Answers map[string]PoolAnswer `json:"answers"`
-	Marks   *int                  `json:"marks"`
+	Marks   int                   `json:"marks"`
 	Time    int                   `json:"time"`
 }
 

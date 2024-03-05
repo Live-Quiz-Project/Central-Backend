@@ -66,7 +66,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := util.GenerateToken(claims.UserID, claims.Name, claims.DisplayName, claims.DisplayColor, claims.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(claims.UserID, claims.Name, claims.DisplayName, claims.DisplayColor, claims.DisplayEmoji, time.Now().Add(2*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
