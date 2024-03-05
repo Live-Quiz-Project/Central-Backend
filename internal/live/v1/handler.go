@@ -2,9 +2,11 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -126,7 +128,7 @@ func (h *Handler) CreateLiveQuizSession(c *gin.Context) {
 			CurrentQuestion:   0,
 			Questions:         questions,
 			Answers:           answers,
-			AnswerCounts:      make(map[string]int),
+			AnswerCounts:      make(map[string]map[string]int),
 			Status:            util.Idle,
 			Config:            req.Config,
 			Locked:            false,
@@ -504,10 +506,170 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 					log.Printf("Error occured @456: %v", err)
 					return
 				}
+			case util.Pool:
+				opt, ok := res.(map[string]any)["options"].(map[string]any)
+				if !ok {
+					log.Printf("Error occured @1: Type assertion failed")
+					return
+				}
+
+				ansRes := make(map[string]PoolAnswer, 0)
+				var marksRes *int
+				var timeRes int
+
+				for i, o := range opt {
+					I, err := strconv.Atoi(i)
+					if err != nil {
+						log.Printf("Error occured @3: %v", err)
+						return
+					}
+					sqID, ok := o.(map[string]any)["qid"].(string)
+					if !ok {
+						log.Printf("Error occured @10101: Type assertion failed")
+						return
+					}
+					sqType, ok := o.(map[string]any)["type"].(string)
+					if !ok {
+						log.Printf("Error occured @2: Type assertion failed")
+						return
+					}
+
+					switch sqType {
+					case util.Choice, util.TrueFalse:
+						opt, ok := o.(map[string]any)["content"].([]any)
+						if !ok {
+							log.Printf("Error occured @3: Type assertion failed")
+							return
+						}
+						a := qAns[I].([]any)
+
+						r, err := h.Service.CalculateChoice(c, mod.Status, opt, a, time, qTimeLimit, qTimeFactor)
+						if err != nil {
+							log.Printf("Error occured @4: %v", err)
+							return
+						}
+
+						ansRes[i] = PoolAnswer{
+							ID:      sqID,
+							Type:    sqType,
+							Content: r.Answers,
+						}
+						marksRes = r.Marks
+						timeRes = r.Time
+					case util.FillBlank:
+						opt, ok := o.(map[string]any)["content"].([]any)
+						if !ok {
+							log.Printf("Error occured @5: Type assertion failed")
+							return
+						}
+						a := qAns[I].([]any)
+
+						r, err := h.Service.CalculateFillBlank(c, mod.Status, opt, a, time, qTimeLimit, qTimeFactor)
+						if err != nil {
+							log.Printf("Error occured @6: %v", err)
+							return
+						}
+
+						ansRes[i] = PoolAnswer{
+							ID:      sqID,
+							Type:    sqType,
+							Content: r.Answers,
+						}
+						marksRes = r.Marks
+						timeRes = r.Time
+					case util.Paragraph:
+						opt, ok := o.(map[string]any)["content"]
+						if !ok {
+							log.Printf("Error occured @7: Type assertion failed")
+							return
+						}
+						a := qAns[I].([]any)
+
+						content := ""
+						switch opt := opt.(type) {
+						case string:
+							content = opt
+						case nil:
+						}
+
+						r, err := h.Service.CalculateParagraph(c, mod.Status, content, a, time, qTimeLimit, qTimeFactor)
+						if err != nil {
+							log.Printf("Error occured @8: %v", err)
+							return
+						}
+
+						switch r := r.(type) {
+						case string:
+							ansRes[i] = PoolAnswer{
+								ID:      sqID,
+								Type:    sqType,
+								Content: r,
+							}
+							marksRes = nil
+							timeRes = 0
+						case ParagraphAnswerResponse:
+							ansRes[i] = PoolAnswer{
+								ID:      sqID,
+								Type:    sqType,
+								Content: r.Answer,
+							}
+							marksRes = r.Marks
+							timeRes = r.Time
+						case TextAnswerResponse:
+							ansRes[i] = PoolAnswer{
+								ID:      sqID,
+								Type:    sqType,
+								Content: r.Answers,
+							}
+							marksRes = r.Marks
+							timeRes = r.Time
+						default:
+						}
+					case util.Matching:
+						opt, ok := o.(map[string]any)["content"].([]any)
+						if !ok {
+							log.Printf("Error occured @9: Type assertion failed")
+							return
+						}
+						a := qAns[I].([]any)
+
+						r, err := h.Service.CalculateMatching(c, mod.Status, opt, a, time, qTimeLimit, qTimeFactor)
+						if err != nil {
+							log.Printf("Error occured @10: %v", err)
+							return
+						}
+
+						ansRes[i] = PoolAnswer{
+							ID:      sqID,
+							Type:    sqType,
+							Content: r.Answers,
+						}
+						marksRes = r.Marks
+						timeRes = r.Time
+					}
+				}
+
+				answers = PoolAnswerResponse{
+					Answers: ansRes,
+					Marks:   marksRes,
+					Time:    timeRes,
+				}
+
+				val, err := json.MarshalIndent(answers, "", "  ")
+				if err != nil {
+					log.Printf("Error occured @11: %v", err)
+					return
+				}
+				log.Printf("Value: %v", string(val))
 			}
 		}
 	}
 	if isHost && mod.CurrentQuestion > 0 && mod.Status == util.RevealingAnswer {
+		qid, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["id"].(string)
+		if !ok {
+			log.Printf("Error occured @708: %v", err)
+			return
+		}
 		qAns, ok := mod.Answers[mod.Orders[mod.CurrentQuestion-1]-1].([]any)
 		if !ok {
 			log.Printf("Error occured @792: Type assertion failed")
@@ -519,7 +681,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 			return
 		}
 
-		answers, err = h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, mod.AnswerCounts)
+		answers, err = h.Service.GetAnswersResponseForHost(context.Background(), qid, qType, qAns, mod.AnswerCounts)
 		if err != nil {
 			log.Printf("Error occured @699: %v", err)
 			return
@@ -539,8 +701,6 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				Marks:   p.Marks,
 				IsHost:  cl.IsHost,
 				Answers: answers,
-				Q:       mod.Questions,
-				A:       mod.Answers,
 			},
 		},
 		LiveQuizSessionID: lqsID,
@@ -1065,6 +1225,206 @@ func (h *Handler) RevealAnswer(c *Client) {
 			})
 		}
 	case util.Pool:
+		for _, r := range res {
+			time, ok := r.(map[string]any)["time"].(float64)
+			if !ok {
+				log.Printf("Error occured @734: Type assertion failed")
+				return
+			}
+			pid, ok := r.(map[string]any)["pid"].(string)
+			if !ok {
+				log.Printf("Error occured @747: %v", err)
+				return
+			}
+			participantID, err := uuid.Parse(pid)
+			if err != nil {
+				log.Printf("Error occured @752: %v", err)
+				return
+			}
+
+			options, ok := r.(map[string]any)["options"].(map[string]any)
+			if !ok {
+				log.Printf("Error occured @1093: Type assertion failed")
+				return
+			}
+
+			ansRes := make(map[string]PoolAnswer, 0)
+			var marksRes *int
+			var timeRes int
+
+			for i, o := range options {
+				I, err := strconv.Atoi(i)
+				if err != nil {
+					log.Printf("Error occured @3: %v", err)
+					return
+				}
+				sqType, ok := o.(map[string]any)["type"].(string)
+				if !ok {
+					log.Printf("Error occured @1109: Type assertion failed")
+					return
+				}
+				sqID, ok := o.(map[string]any)["qid"].(string)
+				if !ok {
+					log.Printf("Error occured @1114: Type assertion failed")
+					return
+				}
+				subqID, err := uuid.Parse(sqID)
+				if err != nil {
+					log.Printf("Error occured @1114: %v", err)
+					return
+				}
+
+				ac := make(map[string]int)
+				ans, ok := qAns[I].([]any)
+				if !ok {
+					log.Printf("Error occured @1114: Type assertion failed")
+					return
+				}
+				if sqType == util.Choice || sqType == util.TrueFalse {
+					for _, a := range ans {
+						ac[a.(map[string]any)["id"].(string)] = 0
+					}
+				}
+
+				switch sqType {
+				case util.Choice, util.TrueFalse:
+					sqContent, ok := o.(map[string]any)["content"].([]any)
+					if !ok {
+						log.Printf("Error occured @1114: Type assertion failed")
+						return
+					}
+
+					var cAnsRes ChoiceAnswerResponse
+
+					cAnsRes, ac, err = h.Service.CalculateAndSaveChoiceResponse(context.Background(), sqContent, ans, ac, time, qTimeLimit, qTimeFactor, &Response{
+						ID:                uuid.New(),
+						LiveQuizSessionID: c.LiveQuizSessionID,
+						QuestionID:        subqID,
+						ParticipantID:     participantID,
+						Type:              sqType,
+					})
+					if err != nil {
+						log.Printf("Error occured @792: %v", err)
+						return
+					}
+
+					ansRes[i] = PoolAnswer{
+						ID:      sqID,
+						Type:    sqType,
+						Content: cAnsRes.Answers,
+					}
+					marksRes = cAnsRes.Marks
+					timeRes = cAnsRes.Time
+					mod.AnswerCounts[sqID] = ac
+				case util.FillBlank:
+					sqContent, ok := o.(map[string]any)["content"].([]any)
+					if !ok {
+						log.Printf("Error occured @1114: Type assertion failed")
+						return
+					}
+
+					fbAnsRes, err := h.Service.CalculateAndSaveFillBlankResponse(context.Background(), sqContent, ans, time, qTimeLimit, qTimeFactor, &Response{
+						ID:                uuid.New(),
+						LiveQuizSessionID: c.LiveQuizSessionID,
+						QuestionID:        subqID,
+						ParticipantID:     participantID,
+						Type:              sqType,
+					})
+					if err != nil {
+						log.Printf("Error occured @792: %v", err)
+						return
+					}
+
+					ansRes[i] = PoolAnswer{
+						ID:      sqID,
+						Type:    sqType,
+						Content: fbAnsRes.Answers,
+					}
+					marksRes = fbAnsRes.Marks
+					timeRes = fbAnsRes.Time
+				case util.Paragraph:
+					sqContent, ok := o.(map[string]any)["content"]
+					if !ok {
+						log.Printf("Error occured @1114: Type assertion failed")
+						return
+					}
+
+					content := ""
+					switch sqContent := sqContent.(type) {
+					case string:
+						content = sqContent
+					case nil:
+					}
+
+					pAnsRes, err := h.Service.CalculateAndSaveParagraphResponse(context.Background(), content, ans, time, qTimeLimit, qTimeFactor, &Response{
+						ID:                uuid.New(),
+						LiveQuizSessionID: c.LiveQuizSessionID,
+						QuestionID:        subqID,
+						ParticipantID:     participantID,
+						Type:              sqType,
+					})
+					if err != nil {
+						log.Printf("Error occured @792: %v", err)
+						return
+					}
+
+					switch pAnsRes := pAnsRes.(type) {
+					case string:
+						ansRes[i] = PoolAnswer{
+							ID:      sqID,
+							Type:    sqType,
+							Content: pAnsRes,
+						}
+						marksRes = nil
+						timeRes = 0
+					case TextAnswerResponse:
+						ansRes[i] = PoolAnswer{
+							ID:      sqID,
+							Type:    sqType,
+							Content: pAnsRes.Answers,
+						}
+						marksRes = pAnsRes.Marks
+						timeRes = pAnsRes.Time
+					default:
+					}
+				case util.Matching:
+					sqContent, ok := o.(map[string]any)["content"].([]any)
+					if !ok {
+						log.Printf("Error occured @1114: Type assertion failed")
+						return
+					}
+
+					mAnsRes, err := h.Service.CalculateAndSaveMatchingResponse(context.Background(), sqContent, ans, time, qTimeLimit, qTimeFactor, &Response{
+						ID:                uuid.New(),
+						LiveQuizSessionID: c.LiveQuizSessionID,
+						QuestionID:        subqID,
+						ParticipantID:     participantID,
+						Type:              sqType,
+					})
+					if err != nil {
+						log.Printf("Error occured @792: %v", err)
+						return
+					}
+
+					ansRes[i] = PoolAnswer{
+						ID:      sqID,
+						Type:    sqType,
+						Content: mAnsRes.Answers,
+					}
+					marksRes = mAnsRes.Marks
+					timeRes = mAnsRes.Time
+				}
+			}
+
+			rpl = append(rpl, AnswerPayload{
+				Answers: PoolAnswerResponse{
+					Answers: ansRes,
+					Marks:   marksRes,
+					Time:    timeRes,
+				},
+				ParticipantID: participantID,
+			})
+		}
 	}
 
 	ps, err := h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
@@ -1114,7 +1474,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 	}
 
 	mod.Status = util.RevealingAnswer
-	mod.AnswerCounts = ansCounts
+	mod.AnswerCounts[qid] = ansCounts
 
 	err = h.Service.UpdateLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code, mod)
 	if err != nil {
@@ -1129,7 +1489,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 		}
 	}
 
-	correctAns, err := h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, ansCounts)
+	correctAns, err := h.Service.GetAnswersResponseForHost(context.Background(), qid, qType, qAns, mod.AnswerCounts)
 	if err != nil {
 		log.Printf("Error occured @699: %v", err)
 		return

@@ -43,7 +43,7 @@ func (s *service) LogIn(ctx context.Context, req *LogInRequest) (*LogInResponse,
 		return &LogInResponse{}, "", errors.New("incorrect email or password")
 	}
 
-	accessToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(u.ID, u.Name, u.DisplayName, u.DisplayColor, u.DisplayEmoji, time.Now().Add(2*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
@@ -318,7 +318,7 @@ func (s *service) GoogleSignIn(ctx context.Context, idToken string) (*LogInRespo
 		}
 	}
 
-	accessToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(15*time.Minute), os.Getenv("ACCESS_TOKEN_SECRET"))
+	accessToken, err := util.GenerateToken(user.ID, user.Name, user.DisplayName, user.DisplayColor, user.DisplayEmoji, time.Now().Add(2*time.Hour), os.Getenv("ACCESS_TOKEN_SECRET"))
 	if err != nil {
 		return &LogInResponse{}, "", err
 	}
