@@ -486,16 +486,16 @@ func (s *service) SaveResponse(ctx context.Context, response *Response) (*Respon
 	return response, nil
 }
 
-func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, answers []any, answerCounts map[string]int) (any, error) {
+func (s *service) GetAnswersResponseForHost(ctx context.Context, qid string, qType string, answers []any, answerCounts map[string]map[string]int) (any, error) {
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	var res []any
+	var res any
 
 	switch qType {
 	case util.Choice, util.TrueFalse:
-		cAns := make([]ChoiceAnswer, len(answers))
-		for i, a := range answers {
+		cAns := make([]ChoiceAnswer, 0)
+		for _, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -521,21 +521,21 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			if !ok {
 				return nil, errors.New("invalid type assertion")
 			}
-			count := answerCounts[id]
+			count := answerCounts[qid][id]
 
-			cAns[i] = ChoiceAnswer{
+			cAns = append(cAns, ChoiceAnswer{
 				ID:      id,
 				Content: content,
 				Color:   color,
 				Mark:    mark,
 				Correct: isCorrect,
 				Count:   count,
-			}
+			})
+			res = cAns
 		}
-		res = append(res, cAns)
 	case util.FillBlank, util.Paragraph:
-		tAns := make([]TextAnswer, len(answers))
-		for i, a := range answers {
+		tAns := make([]TextAnswer, 0)
+		for _, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -558,17 +558,17 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 			mark := int(m)
 
-			tAns[i] = TextAnswer{
+			tAns = append(tAns, TextAnswer{
 				ID:            id,
 				Content:       content,
 				CaseSensitive: caseSensitive,
 				Mark:          mark,
-			}
+			})
+			res = tAns
 		}
-		res = append(res, tAns)
 	case util.Matching:
-		mAns := make([]MatchingAnswer, len(answers))
-		for i, a := range answers {
+		mAns := make([]MatchingAnswer, 0)
+		for _, a := range answers {
 			v, ok := a.(map[string]any)
 			if !ok {
 				return nil, errors.New("invalid type assertion")
@@ -587,13 +587,13 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 			mark := int(m)
 
-			mAns[i] = MatchingAnswer{
+			mAns = append(mAns, MatchingAnswer{
 				PromptID: prompt,
 				OptionID: option,
 				Mark:     mark,
-			}
+			})
+			res = mAns
 		}
-		res = append(res, mAns)
 	case util.Pool:
 		var pAns []any
 		for _, an := range answers {
@@ -603,7 +603,12 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 			}
 
 			sqType := util.Paragraph
+			var sqID string
 			for _, answ := range ans {
+				sqID, ok = answ.(map[string]any)["qid"].(string)
+				if !ok {
+					return nil, errors.New("invalid type assertion2")
+				}
 				sqType, ok = answ.(map[string]any)["type"].(string)
 				if !ok {
 					return nil, errors.New("invalid type assertion2")
@@ -639,7 +644,7 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 					if !ok {
 						return nil, errors.New("invalid type assertion8")
 					}
-					count := answerCounts[id]
+					count := answerCounts[sqID][id]
 
 					cAns[i] = ChoiceAnswer{
 						ID:      id,
@@ -650,7 +655,10 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 						Count:   count,
 					}
 				}
-				pAns = append(pAns, cAns)
+				pAns = append(pAns, PoolAnswer{
+					Type:    sqType,
+					Content: cAns,
+				})
 			case util.FillBlank, util.Paragraph:
 				tAns := make([]TextAnswer, len(ans))
 				for i, a := range ans {
@@ -683,7 +691,10 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 						Mark:          mark,
 					}
 				}
-				pAns = append(pAns, tAns)
+				pAns = append(pAns, PoolAnswer{
+					Type:    sqType,
+					Content: tAns,
+				})
 			case util.Matching:
 				mAns := make([]MatchingAnswer, len(ans))
 				for i, a := range ans {
@@ -711,7 +722,10 @@ func (s *service) GetAnswersResponseForHost(ctx context.Context, qType string, a
 						Mark:     mark,
 					}
 				}
-				pAns = append(pAns, mAns)
+				pAns = append(pAns, PoolAnswer{
+					Type:    sqType,
+					Content: mAns,
+				})
 			}
 
 			res = pAns

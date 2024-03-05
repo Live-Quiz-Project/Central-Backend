@@ -681,7 +681,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 			return
 		}
 
-		answers, err = h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, mod.AnswerCounts[qid])
+		answers, err = h.Service.GetAnswersResponseForHost(context.Background(), qid, qType, qAns, mod.AnswerCounts)
 		if err != nil {
 			log.Printf("Error occured @699: %v", err)
 			return
@@ -701,8 +701,6 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				Marks:   p.Marks,
 				IsHost:  cl.IsHost,
 				Answers: answers,
-				Q:       mod.Questions,
-				A:       mod.Answers,
 			},
 		},
 		LiveQuizSessionID: lqsID,
@@ -848,7 +846,7 @@ func (h *Handler) StartLiveQuizSession(c *Client) {
 		log.Printf("Error occured: %v", err)
 		return
 	}
-	mod.CurrentQuestion = 2
+	mod.CurrentQuestion = 1
 	mod.Status = util.Starting
 	err = h.Service.UpdateLiveQuizSessionCache(context.Background(), h.hub.LiveQuizSessions[c.LiveQuizSessionID].Code, mod)
 	if err != nil {
@@ -1491,7 +1489,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 		}
 	}
 
-	correctAns, err := h.Service.GetAnswersResponseForHost(context.Background(), qType, qAns, ansCounts)
+	correctAns, err := h.Service.GetAnswersResponseForHost(context.Background(), qid, qType, qAns, mod.AnswerCounts)
 	if err != nil {
 		log.Printf("Error occured @699: %v", err)
 		return

@@ -2331,9 +2331,10 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 					Color:   oc.Color,
 					Order:   oc.Order,
 				},
-				Mark:    oc.Mark,
-				Correct: oc.Correct,
-				Type:    t,
+				Mark:       oc.Mark,
+				Correct:    oc.Correct,
+				Type:       t,
+				QuestionID: qid,
 			})
 		}
 		sort.Sort(ByCAOrder(answers))
@@ -2351,9 +2352,10 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 					CaseSensitive: ot.CaseSensitive,
 					Order:         ot.Order,
 				},
-				Content: ot.Content,
-				Mark:    ot.Mark,
-				Type:    t,
+				Content:    ot.Content,
+				Mark:       ot.Mark,
+				Type:       t,
+				QuestionID: qid,
 			})
 		}
 		sort.Sort(ByTAOrder(answers))
@@ -2366,10 +2368,11 @@ func (s *service) getAnswersByQuestionIDForLQS(c context.Context, t string, qid 
 		answers := make([]LQSMatchingAnswer, 0)
 		for _, om := range oms {
 			answers = append(answers, LQSMatchingAnswer{
-				PromptID: om.PromptID,
-				OptionID: om.OptionID,
-				Mark:     om.Mark,
-				Type:     t,
+				PromptID:   om.PromptID,
+				OptionID:   om.OptionID,
+				Mark:       om.Mark,
+				Type:       t,
+				QuestionID: qid,
 			})
 		}
 		return answers, nil

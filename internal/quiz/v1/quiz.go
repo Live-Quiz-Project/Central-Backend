@@ -771,21 +771,24 @@ type LQSAnswers struct {
 }
 type LQSChoiceAnswer struct {
 	LQSChoiceOption
-	Mark    int    `json:"mark"`
-	Correct bool   `json:"is_correct"`
-	Type    string `json:"type"`
+	Mark       int       `json:"mark"`
+	Correct    bool      `json:"is_correct"`
+	Type       string    `json:"type"`
+	QuestionID uuid.UUID `json:"qid"`
 }
 type LQSTextAnswer struct {
 	LQSTextOption
-	Content string `json:"content"`
-	Mark    int    `json:"mark"`
-	Type    string `json:"type"`
+	Content    string    `json:"content"`
+	Mark       int       `json:"mark"`
+	Type       string    `json:"type"`
+	QuestionID uuid.UUID `json:"qid"`
 }
 type LQSMatchingAnswer struct {
-	PromptID uuid.UUID `json:"prompt_id"`
-	OptionID uuid.UUID `json:"option_id"`
-	Mark     int       `json:"mark"`
-	Type     string    `json:"type"`
+	PromptID   uuid.UUID `json:"prompt_id"`
+	OptionID   uuid.UUID `json:"option_id"`
+	Mark       int       `json:"mark"`
+	Type       string    `json:"type"`
+	QuestionID uuid.UUID `json:"qid"`
 }
 
 type ByQHOrder []LQSQuestion
