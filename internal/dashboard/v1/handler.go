@@ -295,7 +295,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					OptionContent: optionContent,
 					PromptID:      omr.PromptID,
 					PromptContent: promptContent,
-					Color:				 optionColor,
+					Color:         optionColor,
 					Mark:          omr.Mark,
 					Participants:  answerParticipants,
 				})
@@ -482,7 +482,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 				})
 			}
 			if a.Type == util.Matching {
-
+				var al []string
 				for _, ans := range ansList {
 					pair := strings.Split(ans, ":")
 					promptInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, pair[0])
@@ -504,6 +504,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					}
 
 					questionMark += checkMatchingAnswer.Mark
+					al = append(al, promptInfo.Content+":"+optionInfo.Content)
 
 					if checkMatchingAnswer.ID != uuid.Nil {
 						checkIsCorrectAnswer += 1
@@ -518,6 +519,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 
 				totalMarks += questionMark
 				totalTimeUsed += a.UseTime
+				answerString = strings.Join(al, ", ")
 
 				questions = append(questions, AnswerViewQuestionResponse{
 					ID:        a.ID,
