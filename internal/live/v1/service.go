@@ -1259,8 +1259,10 @@ func (s *service) CalculateMatching(ctx context.Context, status string, options 
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]MatchingAnswer, 0)
 
@@ -1286,13 +1288,12 @@ func (s *service) CalculateMatching(ctx context.Context, status string, options 
 			if !ok {
 				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			isCorrect := oPrompt == aPrompt && oOption == aOption
 			if oPrompt == aPrompt {
@@ -1338,8 +1339,10 @@ func (s *service) CalculateAndSaveMatchingResponse(ctx context.Context, options 
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]MatchingAnswer, 0)
 	stringifyOptions := make([]string, len(options))
@@ -1367,13 +1370,12 @@ func (s *service) CalculateAndSaveMatchingResponse(ctx context.Context, options 
 			if !ok {
 				return MatchingAnswerResponse{}, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			isCorrect := oPrompt == aPrompt && oOption == aOption
 			if oPrompt == aPrompt {

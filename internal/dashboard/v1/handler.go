@@ -270,7 +270,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					for _, pair := range splitAnswer {
 						ans := strings.Split(pair, ":")
 
-						if ans[0] == prompt.Content && ans[1] == option.Content {
+						if ans[0] == prompt.ID.String() && ans[1] == option.ID.String() {
 							participant, err := h.Service.GetParticipantByID(c.Request.Context(), answerData.ParticipantID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -295,7 +295,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					OptionContent: optionContent,
 					PromptID:      omr.PromptID,
 					PromptContent: promptContent,
-					Color:				 optionColor,
+					Color:         optionColor,
 					Mark:          omr.Mark,
 					Participants:  answerParticipants,
 				})
@@ -482,16 +482,28 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 				})
 			}
 			if a.Type == util.Matching {
-
+				var al []string
 				for _, ans := range ansList {
 					pair := strings.Split(ans, ":")
-					promptInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, pair[0])
+
+					promptID, err := uuid.Parse(pair[0])
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+						return
+					}
+					optionID, err := uuid.Parse(pair[1])
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+						return
+					}
+
+					promptInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndID(c.Request.Context(), a.QuestionID, promptID)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
 					}
 
-					optionInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndContent(c.Request.Context(), a.QuestionID, pair[1])
+					optionInfo, err := h.quizService.GetMatchingOptionHistoryByQuestionIDAndID(c.Request.Context(), a.QuestionID, optionID)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
@@ -504,6 +516,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 					}
 
 					questionMark += checkMatchingAnswer.Mark
+					al = append(al, promptInfo.Content+":"+optionInfo.Content)
 
 					if checkMatchingAnswer.ID != uuid.Nil {
 						checkIsCorrectAnswer += 1
@@ -518,6 +531,7 @@ func (h *Handler) GetDashboardAnswerViewByID(c *gin.Context) {
 
 				totalMarks += questionMark
 				totalTimeUsed += a.UseTime
+				answerString = strings.Join(al, ", ")
 
 				questions = append(questions, AnswerViewQuestionResponse{
 					ID:        a.ID,
