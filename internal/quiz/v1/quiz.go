@@ -407,6 +407,7 @@ type Repository interface {
 	GetOptionMatchingHistories(ctx context.Context) ([]MatchingOptionHistory, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistory, error)
 	GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistory, error)
+	GetMatchingOptionHistoryByQuestionIDAndID(ctx context.Context, questionID uuid.UUID, id uuid.UUID) (*MatchingOptionHistory, error)
 	UpdateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error)
 	DeleteMatchingOptionHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 
@@ -709,6 +710,7 @@ type Service interface {
 	GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistoryResponse, error)
 	GetMatchingOptionHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingOptionHistoryResponse, error)
 	GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Context, questionID uuid.UUID, content string) (*MatchingOptionHistoryResponse, error)
+	GetMatchingOptionHistoryByQuestionIDAndID(ctx context.Context, questionID uuid.UUID, id uuid.UUID) (*MatchingOptionHistoryResponse, error)
 
 	// ----- Matching Answer ------
 	CreateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *MatchingAnswerRequest, questionID uuid.UUID, questionHistoryID uuid.UUID, matchingOptionPromptHistoryID uuid.UUID, matchingOptionOptionHistoryID uuid.UUID, uid uuid.UUID) (*CreateMatchingAnswerResponse, error)

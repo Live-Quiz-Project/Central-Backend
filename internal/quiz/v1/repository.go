@@ -932,6 +932,15 @@ func (r *repository) GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.
 	return &optionMatchingHistory, nil
 }
 
+func (r *repository) GetMatchingOptionHistoryByQuestionIDAndID(ctx context.Context, questionID uuid.UUID, id uuid.UUID) (*MatchingOptionHistory, error) {
+	var optionMatchingHistory MatchingOptionHistory
+	res := r.db.WithContext(ctx).Where("question_id = ? AND id = ?", questionID, id).Find(&optionMatchingHistory)
+	if res.Error != nil {
+		return &MatchingOptionHistory{}, res.Error
+	}
+	return &optionMatchingHistory, nil
+}
+
 func (r *repository) UpdateMatchingOptionHistory(ctx context.Context, tx *gorm.DB, optionMatchingHistory *MatchingOptionHistory) (*MatchingOptionHistory, error) {
 	res := tx.WithContext(ctx).Save(optionMatchingHistory)
 	if res.Error != nil {
