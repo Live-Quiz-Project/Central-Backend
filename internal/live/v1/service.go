@@ -1436,3 +1436,29 @@ func (s *service) GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Partic
 
 	return p, nil
 }
+
+func (s *service) GetRank(ctx context.Context, lqsID uuid.UUID, pid uuid.UUID) (int, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	p, err := s.Repository.GetParticipantByLiveQuizSessionIDAndParticipantID(c, lqsID, pid)
+	if err != nil {
+		return 0, err
+	}
+
+	participants, err := s.Repository.GetParticipantsByLiveQuizSessionID(c, lqsID)
+	if err != nil {
+		return 0, err
+	}
+
+	sort.Sort(ByMarks(participants))
+
+	rank := 0
+	for i, participant := range participants {
+		if participant.ID == p.ID {
+			rank = i + 1
+		}
+	}
+
+	return rank, nil
+}

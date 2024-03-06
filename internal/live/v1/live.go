@@ -141,6 +141,7 @@ type Repository interface {
 	GetParticipantByID(ctx context.Context, id uuid.UUID) (*Participant, error)
 	GetParticipantsByLiveQuizSessionID(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
 	GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Context, uid *uuid.UUID, lqsID uuid.UUID) (*Participant, error)
+	GetParticipantByLiveQuizSessionIDAndParticipantID(ctx context.Context, lqsID uuid.UUID, pid uuid.UUID) (*Participant, error)
 	DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error)
 	UpdateParticipant(ctx context.Context, participant *Participant) (*Participant, error)
 
@@ -185,6 +186,7 @@ type JoinedMessage struct {
 	IsHost  bool      `json:"is_host"`
 	Answers any       `json:"answers"`
 	Marks   int       `json:"marks"`
+	Rank    int       `json:"rank"`
 }
 
 type CheckLiveQuizSessionAvailabilityResponse struct {
@@ -324,4 +326,5 @@ type Service interface {
 
 	// ---------- Leaderboard related service methods ---------- //
 	GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
+	GetRank(ctx context.Context, lqsID uuid.UUID, pid uuid.UUID) (int, error)
 }

@@ -246,6 +246,16 @@ func (r *repository) GetParticipantByUserIDAndLiveQuizSessionID(ctx context.Cont
 	return &participant, nil
 }
 
+func (r *repository) GetParticipantByLiveQuizSessionIDAndParticipantID(ctx context.Context, lqsID uuid.UUID, pid uuid.UUID) (*Participant, error) {
+	var participant Participant
+	res := r.db.WithContext(ctx).Where("live_quiz_session_id = ? AND id = ?", lqsID, pid).First(&participant)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return &participant, nil
+}
+
 func (r *repository) DoesParticipantExist(ctx context.Context, id uuid.UUID) (bool, error) {
 	var count int64
 	res := r.db.WithContext(ctx).Model(&Participant{}).Where("id = ?", id).Count(&count)
