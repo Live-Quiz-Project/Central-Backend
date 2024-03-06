@@ -1951,6 +1951,32 @@ func (s *service) GetMatchingOptionHistoryByQuestionIDAndContent(ctx context.Con
 	}, nil
 }
 
+func (s *service) GetMatchingOptionHistoryByQuestionIDAndID(ctx context.Context, questionID uuid.UUID, id uuid.UUID) (*MatchingOptionHistoryResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionHistoryByQuestionIDAndID(c, questionID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionHistoryResponse{
+		MatchingOptionHistory: MatchingOptionHistory{
+			ID:               om.ID,
+			OptionMatchingID: om.OptionMatchingID,
+			QuestionID:       om.QuestionID,
+			Order:            om.Order,
+			Content:          om.Content,
+			Type:             om.Type,
+			Color:            om.Color,
+			Eliminate:        om.Eliminate,
+			CreatedAt:        om.CreatedAt,
+			UpdatedAt:        om.UpdatedAt,
+			DeletedAt:        om.DeletedAt,
+		},
+	}, nil
+}
+
 func (s *service) GetMatchingOptionHistoryByOptionMatchingID(ctx context.Context, optionMatchingID uuid.UUID) (*MatchingOptionHistoryResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
