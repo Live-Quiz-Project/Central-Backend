@@ -688,6 +688,15 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 		}
 	}
 
+	rank := -1
+	if !isHost {
+		rank, err = h.Service.GetRank(c, lqsID, p.ID)
+		if err != nil {
+			log.Printf("Error occured: %v", err)
+			return
+		}
+	}
+
 	go cl.writeMessage()
 	h.hub.Converse <- &Message{
 		Content: Content{
@@ -701,6 +710,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				Marks:   p.Marks,
 				IsHost:  cl.IsHost,
 				Answers: answers,
+				Rank:    rank,
 			},
 		},
 		LiveQuizSessionID: lqsID,
@@ -1519,7 +1529,31 @@ func (h *Handler) Conclude(c *Client) {
 		return
 	}
 
-	h.hub.Broadcast <- &Message{
+	participants, err := h.Service.GetParticipantsByLiveQuizSessionID(context.Background(), c.LiveQuizSessionID)
+	if err != nil {
+		log.Printf("Error occured: %v", err)
+		return
+	}
+
+	for _, p := range participants {
+		rank, err := h.Service.GetRank(context.Background(), p.LiveQuizSessionID, p.ID)
+		if err != nil {
+			log.Printf("Error occured: %v", err)
+			return
+		}
+
+		h.hub.Inject <- &Message{
+			Content: Content{
+				Type:    util.Conclude,
+				Payload: rank,
+			},
+			LiveQuizSessionID: p.LiveQuizSessionID,
+			ClientID:          p.ID,
+			UserID:            p.UserID,
+		}
+	}
+
+	h.hub.Inject <- &Message{
 		Content: Content{
 			Type:    util.Conclude,
 			Payload: nil,
