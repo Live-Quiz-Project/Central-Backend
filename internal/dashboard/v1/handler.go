@@ -270,7 +270,7 @@ func (h *Handler) GetDashboardQuestionViewByID(c *gin.Context) {
 					for _, pair := range splitAnswer {
 						ans := strings.Split(pair, ":")
 
-						if ans[0] == prompt.Content && ans[1] == option.Content {
+						if ans[0] == prompt.ID.String() && ans[1] == option.ID.String() {
 							participant, err := h.Service.GetParticipantByID(c.Request.Context(), answerData.ParticipantID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
