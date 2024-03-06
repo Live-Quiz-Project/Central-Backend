@@ -453,7 +453,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				log.Printf("Error occured @708: %v", err)
 				return
 			}
-			if qHaveTimeFactor {
+			if !qHaveTimeFactor {
 				qTimeFactor = 0
 			}
 
@@ -514,7 +514,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 				}
 
 				ansRes := make(map[string]PoolAnswer, 0)
-				var marksRes *int
+				var marksRes int
 				var timeRes int
 
 				for i, o := range opt {
@@ -554,7 +554,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 							Type:    sqType,
 							Content: r.Answers,
 						}
-						marksRes = r.Marks
+						marksRes += *r.Marks
 						timeRes = r.Time
 					case util.FillBlank:
 						opt, ok := o.(map[string]any)["content"].([]any)
@@ -575,7 +575,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 							Type:    sqType,
 							Content: r.Answers,
 						}
-						marksRes = r.Marks
+						marksRes += *r.Marks
 						timeRes = r.Time
 					case util.Paragraph:
 						opt, ok := o.(map[string]any)["content"]
@@ -605,7 +605,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 								Type:    sqType,
 								Content: r,
 							}
-							marksRes = nil
+							marksRes += 0
 							timeRes = 0
 						case ParagraphAnswerResponse:
 							ansRes[i] = PoolAnswer{
@@ -613,7 +613,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 								Type:    sqType,
 								Content: r.Answer,
 							}
-							marksRes = r.Marks
+							marksRes += *r.Marks
 							timeRes = r.Time
 						case TextAnswerResponse:
 							ansRes[i] = PoolAnswer{
@@ -621,7 +621,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 								Type:    sqType,
 								Content: r.Answers,
 							}
-							marksRes = r.Marks
+							marksRes += *r.Marks
 							timeRes = r.Time
 						default:
 						}
@@ -644,7 +644,7 @@ func (h *Handler) JoinLiveQuizSession(c *gin.Context) {
 							Type:    sqType,
 							Content: r.Answers,
 						}
-						marksRes = r.Marks
+						marksRes += *r.Marks
 						timeRes = r.Time
 					}
 				}
@@ -1019,7 +1019,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 		log.Printf("Error occured @718: %v", err)
 		return
 	}
-	if qHaveTimeFactor {
+	if !qHaveTimeFactor {
 		qTimeFactor = 0
 	}
 	qTimeLimit, ok := mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["time_limit"].(float64)
@@ -1249,7 +1249,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 			}
 
 			ansRes := make(map[string]PoolAnswer, 0)
-			var marksRes *int
+			var marksRes int
 			var timeRes int
 
 			for i, o := range options {
@@ -1313,7 +1313,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 						Type:    sqType,
 						Content: cAnsRes.Answers,
 					}
-					marksRes = cAnsRes.Marks
+					marksRes += *cAnsRes.Marks
 					timeRes = cAnsRes.Time
 					mod.AnswerCounts[sqID] = ac
 				case util.FillBlank:
@@ -1340,7 +1340,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 						Type:    sqType,
 						Content: fbAnsRes.Answers,
 					}
-					marksRes = fbAnsRes.Marks
+					marksRes += *fbAnsRes.Marks
 					timeRes = fbAnsRes.Time
 				case util.Paragraph:
 					sqContent, ok := o.(map[string]any)["content"]
@@ -1375,7 +1375,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 							Type:    sqType,
 							Content: pAnsRes,
 						}
-						marksRes = nil
+						marksRes += 0
 						timeRes = 0
 					case TextAnswerResponse:
 						ansRes[i] = PoolAnswer{
@@ -1383,7 +1383,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 							Type:    sqType,
 							Content: pAnsRes.Answers,
 						}
-						marksRes = pAnsRes.Marks
+						marksRes += *pAnsRes.Marks
 						timeRes = pAnsRes.Time
 					default:
 					}
@@ -1411,7 +1411,7 @@ func (h *Handler) RevealAnswer(c *Client) {
 						Type:    sqType,
 						Content: mAnsRes.Answers,
 					}
-					marksRes = mAnsRes.Marks
+					marksRes += *mAnsRes.Marks
 					timeRes = mAnsRes.Time
 				}
 			}
@@ -1565,7 +1565,7 @@ func (h *Handler) SubmitAnswer(c *Client, payload any) {
 		return
 	}
 
-	if !mod.Config.ParticipantConfig.Reanswer && count == mod.ParticipantCount {
+	if !mod.Config.ParticipantConfig.Reanswer && count == mod.ParticipantCount && mod.Questions[mod.Orders[mod.CurrentQuestion-1]-1].(map[string]any)["type"].(string) != util.Pool {
 		mod.Interrupted = true
 	}
 	mod.ResponseCount = count

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -739,8 +740,10 @@ func (s *service) CalculateChoice(ctx context.Context, status string, options []
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]ChoiceAnswer, 0)
 
@@ -770,13 +773,12 @@ func (s *service) CalculateChoice(ctx context.Context, status string, options []
 			if !ok {
 				return ChoiceAnswerResponse{}, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			if oID == aID {
 				marks += mark
@@ -820,8 +822,10 @@ func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]ChoiceAnswer, 0)
 	stringifyOptions := make([]string, len(options))
@@ -854,13 +858,12 @@ func (s *service) CalculateAndSaveChoiceResponse(ctx context.Context, options []
 			if !ok {
 				return ChoiceAnswerResponse{}, nil, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			if oID == aID {
 				marks += mark
@@ -909,8 +912,10 @@ func (s *service) CalculateFillBlank(ctx context.Context, status string, options
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]TextAnswer, 0)
 
@@ -940,13 +945,12 @@ func (s *service) CalculateFillBlank(ctx context.Context, status string, options
 			if !ok {
 				return TextAnswerResponse{}, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			isCorrect := (aCaseSensitive && aContent == oContent) || (!aCaseSensitive && strings.EqualFold(aContent, oContent))
 			if oID == aID {
@@ -995,8 +999,10 @@ func (s *service) CalculateAndSaveFillBlankResponse(ctx context.Context, options
 	_, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]TextAnswer, 0)
 	stringifyOptions := make([]string, len(options))
@@ -1028,13 +1034,12 @@ func (s *service) CalculateAndSaveFillBlankResponse(ctx context.Context, options
 			if !ok {
 				return TextAnswerResponse{}, errors.New("invalid type assertion")
 			}
-			aMark := int(aM)
 
-			var timeBonus float64
-			if aMark > 0 {
-				timeBonus = timeLimit - factoredTime
+			tb := 0.0
+			if aM > 0 {
+				tb = timeBonus
 			}
-			mark := (int(aM + timeBonus))
+			mark := int(math.Round(aM + tb))
 
 			isCorrect := (aCaseSensitive && aContent == oContent) || (!aCaseSensitive && strings.EqualFold(aContent, oContent))
 			if oID == aID {
@@ -1089,8 +1094,10 @@ func (s *service) CalculateParagraph(ctx context.Context, status string, content
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]TextAnswer, 0)
 
@@ -1118,13 +1125,12 @@ func (s *service) CalculateParagraph(ctx context.Context, status string, content
 		if !ok {
 			return nil, errors.New("invalid type assertion")
 		}
-		aMark := int(aM)
 
-		var timeBonus float64
-		if aMark > 0 {
-			timeBonus = timeLimit - factoredTime
+		tb := 0.0
+		if aM > 0 {
+			tb = timeBonus
 		}
-		mark := (int(aM + timeBonus))
+		mark := int(math.Round(aM + tb))
 
 		isCorrect := (aCaseSensitive && aContent == content) || (!aCaseSensitive && strings.EqualFold(aContent, content))
 		if isCorrect {
@@ -1166,8 +1172,10 @@ func (s *service) CalculateAndSaveParagraphResponse(ctx context.Context, content
 	_, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	factoredTime := 0.0
-	factoredTime = time * (timeFactor / 10)
+	timeLeft := (timeLimit * 10) - time
+	timeLeft /= 10
+	timeBonus := timeLeft * timeFactor
+
 	marks := 0
 	res := make([]TextAnswer, 0)
 
@@ -1195,13 +1203,12 @@ func (s *service) CalculateAndSaveParagraphResponse(ctx context.Context, content
 		if !ok {
 			return nil, errors.New("invalid type assertion")
 		}
-		aMark := int(aM)
 
-		var timeBonus float64
-		if aMark > 0 {
-			timeBonus = timeLimit - factoredTime
+		tb := 0.0
+		if aM > 0 {
+			tb = timeBonus
 		}
-		mark := (int(aM + timeBonus))
+		mark := int(math.Round(aM + tb))
 
 		isCorrect := (aCaseSensitive && aContent == content) || (!aCaseSensitive && strings.EqualFold(aContent, content))
 		if isCorrect {
