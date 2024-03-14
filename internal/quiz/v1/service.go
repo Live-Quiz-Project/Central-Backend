@@ -18,7 +18,7 @@ type service struct {
 func NewService(repo Repository) Service {
 	return &service{
 		Repository: repo,
-		timeout:    time.Duration(3) * time.Second,
+		timeout:    time.Duration(5) * time.Second,
 	}
 }
 
@@ -589,6 +589,12 @@ func (s *service) UpdateQuestionPool(ctx context.Context, tx *gorm.DB, req *Ques
 	if req.FontSize != 0 {
 		questionPool.FontSize = req.FontSize
 	}
+	if req.MediaType != "" {
+		questionPool.MediaType = req.MediaType
+	}
+	if req.PoolOrder != 0 {
+		questionPool.PoolOrder = req.PoolOrder
+	}
 
 	qph := &QuestionPoolHistory{
 		ID:             uuid.New(),
@@ -942,9 +948,24 @@ func (s *service) UpdateQuestion(ctx context.Context, tx *gorm.DB, req *Question
 	if req.LayoutIdx != 0 {
 		question.LayoutIdx = req.LayoutIdx
 	}
-	// if req.SelectUpTo != 0 {
-	// 	question.SelectUpTo = req.SelectUpTo
-	// }
+	if req.SelectMin != 0 {
+		question.SelectMin = req.SelectMin
+	}
+	if req.SelectMax != 0 {
+		question.SelectMax = req.SelectMax
+	}
+	if req.MediaType != "" {
+		question.MediaType = req.MediaType
+	}
+	if req.PoolOrder != 0 {
+		question.PoolOrder = req.PoolOrder
+	}
+	if req.PoolRequired {
+		question.PoolRequired = req.PoolRequired
+	}
+	if req.UseTemplate {
+		question.UseTemplate = req.UseTemplate
+	}
 
 	qh := &QuestionHistory{
 		ID:             uuid.New(),
@@ -1786,6 +1807,31 @@ func (s *service) GetDeleteMatchingOptionsByQuestionID(ctx context.Context, ques
 	return res, nil
 }
 
+func (s *service) GetMatchingOptionByID(ctx context.Context, id uuid.UUID) (*MatchingOptionResponse, error) {
+	c, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	om, err := s.Repository.GetMatchingOptionByID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MatchingOptionResponse{
+		MatchingOption: MatchingOption{
+			ID:         om.ID,
+			QuestionID: om.QuestionID,
+			Order:      om.Order,
+			Content:    om.Content,
+			Type:       om.Type,
+			Color:      om.Color,
+			Eliminate:  om.Eliminate,
+			CreatedAt:  om.CreatedAt,
+			UpdatedAt:  om.UpdatedAt,
+			DeletedAt:  om.DeletedAt,
+		},
+	}, nil
+}
+
 func (s *service) GetMatchingOptionByQuestionIDAndOrder(ctx context.Context, questionID uuid.UUID, order int) (*MatchingOptionResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -1831,6 +1877,9 @@ func (s *service) UpdateMatchingOption(ctx context.Context, tx *gorm.DB, req *Ma
 	}
 	if !req.Eliminate {
 		optionMatching.Eliminate = req.Eliminate
+	}
+	if req.Color != "" {
+		optionMatching.Color = req.Color
 	}
 
 	omh := &MatchingOptionHistory{

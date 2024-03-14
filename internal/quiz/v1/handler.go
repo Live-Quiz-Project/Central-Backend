@@ -6,6 +6,7 @@ import (
 	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/gin-gonic/gin"
+
 	"github.com/google/uuid"
 )
 
@@ -43,15 +44,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 	}
 
 	// Start Transaction
-	tx, _ := h.Service.BeginTransaction(c.Request.Context())
+	tx, _ := h.Service.BeginTransaction(c)
 
-	res, err := h.Service.CreateQuiz(c.Request.Context(), tx, &req, userID)
+	res, err := h.Service.CreateQuiz(c, tx, &req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(), tx)
+	h.Service.CommitTransaction(c, tx)
 
 	var qpResID *uuid.UUID = nil
 	var qphResID *uuid.UUID = nil
@@ -61,15 +62,15 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 		var qpRes *CreateQuestionPoolResponse
 
 		if q.Type == util.Pool {
-			txPool, _ := h.Service.BeginTransaction(c.Request.Context())
+			txPool, _ := h.Service.BeginTransaction(c)
 
-			qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), txPool, &q, res.ID, res.QuizHistoryID)
+			qpRes, err = h.Service.CreateQuestionPool(c, txPool, &q, res.ID, res.QuizHistoryID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			h.Service.CommitTransaction(c.Request.Context(), txPool)
+			h.Service.CommitTransaction(c, txPool)
 			qpResID = &qpRes.ID
 			qphResID = &qpRes.QuestionPoolHistoryID
 
@@ -97,27 +98,27 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 
 			continue
 		} else {
-			txQuestion, _ := h.Service.BeginTransaction(c.Request.Context())
+			txQuestion, _ := h.Service.BeginTransaction(c)
 			if q.IsInPool {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
+				qRes, err = h.Service.CreateQuestion(c, txQuestion, &q, res.ID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			} else {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), txQuestion, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
+				qRes, err = h.Service.CreateQuestion(c, txQuestion, &q, res.ID, res.QuizHistoryID, nil, nil, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			}
-			h.Service.CommitTransaction(c.Request.Context(), txQuestion)
+			h.Service.CommitTransaction(c, txQuestion)
 
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						txChoice, _ := h.Service.BeginTransaction(c.Request.Context())
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), txChoice, &ChoiceOptionRequest{
+						txChoice, _ := h.Service.BeginTransaction(c)
+						_, err := h.Service.CreateChoiceOption(c, txChoice, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -130,11 +131,11 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 							return
 						}
-						h.Service.CommitTransaction(c.Request.Context(), txChoice)
+						h.Service.CommitTransaction(c, txChoice)
 
 					} else if qRes.Type == util.FillBlank || qRes.Type == util.Paragraph {
-						txText, _ := h.Service.BeginTransaction(c.Request.Context())
-						_, err := h.Service.CreateTextOption(c.Request.Context(), txText, &TextOptionRequest{
+						txText, _ := h.Service.BeginTransaction(c)
+						_, err := h.Service.CreateTextOption(c, txText, &TextOptionRequest{
 							TextOption: TextOption{
 								Order:         int(qst["order"].(float64)),
 								Content:       qst["content"].(string),
@@ -148,12 +149,12 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 							return
 						}
 
-						h.Service.CommitTransaction(c.Request.Context(), txText)
+						h.Service.CommitTransaction(c, txText)
 
 					} else if qRes.Type == util.Matching {
-						txMatching, _ := h.Service.BeginTransaction(c.Request.Context())
+						txMatching, _ := h.Service.BeginTransaction(c)
 						if qst["type"].(string) != "MATCHING_ANSWER" {
-							_, err := h.Service.CreateMatchingOption(c.Request.Context(), txMatching, &MatchingOptionRequest{
+							_, err := h.Service.CreateMatchingOption(c, txMatching, &MatchingOptionRequest{
 								MatchingOption: MatchingOption{
 									Order:     int(qst["order"].(float64)),
 									Content:   qst["content"].(string),
@@ -170,31 +171,31 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 
 						} else {
 
-							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["prompt"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["option"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), prompt.ID)
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, prompt.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), option.ID)
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, option.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), txMatching, &MatchingAnswerRequest{
+							_, err = h.Service.CreateMatchingAnswer(c, txMatching, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
@@ -207,7 +208,7 @@ func (h *Handler) CreateQuiz(c *gin.Context) {
 								return
 							}
 						}
-						h.Service.CommitTransaction(c.Request.Context(), txMatching)
+						h.Service.CommitTransaction(c, txMatching)
 
 					}
 				}
@@ -282,7 +283,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.GetQuizzes(c.Request.Context(), userID)
+	res, err := h.Service.GetQuizzes(c, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -291,7 +292,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 	r := make([]QuizResponse, 0)
 
 	for _, q := range res {
-		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		userInfo, err := h.userService.GetUserByID(c, q.CreatorID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -299,7 +300,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 
 		q.CreatorName = userInfo.Name
 
-		qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), q.ID)
+		qpRes, err := h.Service.GetQuestionPoolsByQuizID(c, q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -330,7 +331,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 			})
 		}
 
-		qRes, err := h.Service.GetQuestionsByQuizID(c.Request.Context(), q.ID)
+		qRes, err := h.Service.GetQuestionsByQuizID(c, q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
@@ -341,7 +342,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 		for _, qr := range qRes {
 
 			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
-				ocRes, err := h.Service.GetChoiceOptionsByQuestionID(c.Request.Context(), qr.ID)
+				ocRes, err := h.Service.GetChoiceOptionsByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
@@ -395,7 +396,7 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 					Options: oc,
 				})
 			} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
-				otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
+				otRes, err := h.Service.GetTextOptionsByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
@@ -447,13 +448,13 @@ func (h *Handler) GetQuizzes(c *gin.Context) {
 					Options: ot,
 				})
 			} else if qr.Type == util.Matching {
-				omRes, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), qr.ID)
+				omRes, err := h.Service.GetMatchingOptionsByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
-				amRes, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), qr.ID)
+				amRes, err := h.Service.GetMatchingAnswersByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -564,13 +565,13 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.GetQuizByID(c.Request.Context(), id, userID)
+	res, err := h.Service.GetQuizByID(c, id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	userInfo, err := h.userService.GetUserByID(c, res.CreatorID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -578,7 +579,7 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 
 	res.CreatorName = userInfo.Name
 
-	qpRes, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), res.ID)
+	qpRes, err := h.Service.GetQuestionPoolsByQuizID(c, res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -609,7 +610,7 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 		})
 	}
 
-	qRes, err := h.Service.GetQuestionsByQuizID(c.Request.Context(), res.ID)
+	qRes, err := h.Service.GetQuestionsByQuizID(c, res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -617,7 +618,7 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 
 	for _, qr := range qRes {
 		if qr.Type == util.Choice || qr.Type == util.TrueFalse {
-			ocRes, err := h.Service.GetChoiceOptionsByQuestionID(c.Request.Context(), qr.ID)
+			ocRes, err := h.Service.GetChoiceOptionsByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -668,7 +669,7 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 				Options: oc,
 			})
 		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
-			otRes, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), qr.ID)
+			otRes, err := h.Service.GetTextOptionsByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -718,13 +719,13 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 				Options: ot,
 			})
 		} else if qr.Type == util.Matching {
-			omRes, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), qr.ID)
+			omRes, err := h.Service.GetMatchingOptionsByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			amRes, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), qr.ID)
+			amRes, err := h.Service.GetMatchingAnswersByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -732,17 +733,18 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 
 			var o []any
 			for _, omr := range omRes {
+				order := omr.Order
+				content := omr.Content
+				color := omr.Color
+
 				o = append(o, MatchingOptionAndAnswerResponse{
 					ID:         omr.ID,
 					QuestionID: omr.QuestionID,
 					Type:       omr.Type,
-					Order:      &omr.Order,
-					Content:    &omr.Content,
-					Color:      &omr.Color,
+					Order:      &order,
+					Content:    &content,
+					Color:      &color,
 					Eliminate:  omr.Eliminate,
-					PromptID:   nil,
-					OptionID:   nil,
-					Mark:       nil,
 					CreatedAt:  omr.CreatedAt,
 					UpdatedAt:  omr.UpdatedAt,
 					DeletedAt:  omr.DeletedAt,
@@ -750,20 +752,31 @@ func (h *Handler) GetQuizByID(c *gin.Context) {
 			}
 
 			for _, amr := range amRes {
+				prompt, err := h.Service.GetMatchingOptionByID(c, amr.PromptID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				option, err := h.Service.GetMatchingOptionByID(c, amr.OptionID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+
+				mark := amr.Mark
+
 				o = append(o, MatchingOptionAndAnswerResponse{
-					ID:         amr.ID,
-					QuestionID: amr.QuestionID,
-					Type:       "MATCHING_ANSWER",
-					Order:      nil,
-					Content:    nil,
-					Color:      nil,
-					Eliminate:  false,
-					PromptID:   &amr.PromptID,
-					OptionID:   &amr.OptionID,
-					Mark:       &amr.Mark,
-					CreatedAt:  amr.CreatedAt,
-					UpdatedAt:  amr.UpdatedAt,
-					DeletedAt:  amr.DeletedAt,
+					ID:          amr.ID,
+					QuestionID:  amr.QuestionID,
+					Type:        "MATCHING_ANSWER",
+					Eliminate:   false,
+					PromptOrder: &prompt.Order,
+					OptionOrder: &option.Order,
+					Mark:        &mark,
+					CreatedAt:   amr.CreatedAt,
+					UpdatedAt:   amr.UpdatedAt,
+					DeletedAt:   amr.DeletedAt,
 				})
 			}
 
@@ -839,13 +852,13 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 		return
 	}
 
-	tx, err := h.Service.BeginTransaction(c.Request.Context())
+	tx, err := h.Service.BeginTransaction(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	res, err := h.Service.UpdateQuiz(c.Request.Context(), tx, &req, userID, quizID)
+	res, err := h.Service.UpdateQuiz(c, tx, &req, userID, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -863,7 +876,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			var qpRes *UpdateQuestionPoolResponse
 
 			if q.Type == util.Pool {
-				qpRes, err = h.Service.UpdateQuestionPool(c.Request.Context(), tx, &q, userID, q.ID, res.QuizHistoryID)
+				qpRes, err = h.Service.UpdateQuestionPool(c, tx, &q, userID, q.ID, res.QuizHistoryID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
@@ -898,13 +911,13 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 
 			} else {
 				if q.IsInPool {
-					qRes, err = h.Service.UpdateQuestion(c.Request.Context(), tx, &q, userID, q.ID, res.QuizHistoryID, qphResID)
+					qRes, err = h.Service.UpdateQuestion(c, tx, &q, userID, q.ID, res.QuizHistoryID, qphResID)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
 					}
 				} else {
-					qRes, err = h.Service.UpdateQuestion(c.Request.Context(), tx, &q, userID, q.ID, res.QuizHistoryID, nil)
+					qRes, err = h.Service.UpdateQuestion(c, tx, &q, userID, q.ID, res.QuizHistoryID, nil)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						return
@@ -940,14 +953,14 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 						}
 
 						if choiceReq.ID != uuid.Nil {
-							_, err := h.Service.UpdateChoiceOption(c.Request.Context(), tx, &choiceReq, userID, id, qRes.QuestionHistoryID)
+							_, err := h.Service.UpdateChoiceOption(c, tx, &choiceReq, userID, id, qRes.QuestionHistoryID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
 						} else {
-							_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &choiceReq, qRes.ID, qRes.QuestionHistoryID, userID)
+							_, err := h.Service.CreateChoiceOption(c, tx, &choiceReq, qRes.ID, qRes.QuestionHistoryID, userID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
@@ -967,14 +980,14 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 						}
 
 						if textReq.ID != uuid.Nil {
-							_, err := h.Service.UpdateTextOption(c.Request.Context(), tx, &textReq, userID, id, qRes.QuestionHistoryID)
+							_, err := h.Service.UpdateTextOption(c, tx, &textReq, userID, id, qRes.QuestionHistoryID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
 						} else {
-							_, err := h.Service.CreateTextOption(c.Request.Context(), tx, &textReq, qRes.ID, qRes.QuestionHistoryID, userID)
+							_, err := h.Service.CreateTextOption(c, tx, &textReq, qRes.ID, qRes.QuestionHistoryID, userID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
@@ -995,47 +1008,46 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 							}
 
 							if matchingOptionReq.ID != uuid.Nil {
-								_, err := h.Service.UpdateMatchingOption(c.Request.Context(), tx, &matchingOptionReq, userID, id, qRes.QuestionHistoryID)
+								_, err := h.Service.UpdateMatchingOption(c, tx, &matchingOptionReq, userID, id, qRes.QuestionHistoryID)
 								if err != nil {
 									c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 									return
 								}
 
 							} else {
-								_, err := h.Service.CreateMatchingOption(c.Request.Context(), tx, &matchingOptionReq, qRes.ID, qRes.QuestionHistoryID, userID)
+								_, err := h.Service.CreateMatchingOption(c, tx, &matchingOptionReq, qRes.ID, qRes.QuestionHistoryID, userID)
 								if err != nil {
 									c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 									return
 								}
 							}
 						} else {
-
-							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["prompt"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["option"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), prompt.ID)
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, prompt.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), option.ID)
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, option.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
 							if id != uuid.Nil {
-								_, err = h.Service.UpdateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
+								_, err = h.Service.UpdateMatchingAnswer(c, tx, &MatchingAnswerRequest{
 									MatchingAnswer: MatchingAnswer{
 										ID:         id,
 										QuestionID: questionID,
@@ -1050,7 +1062,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 									return
 								}
 							} else {
-								_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
+								_, err = h.Service.CreateMatchingAnswer(c, tx, &MatchingAnswerRequest{
 									MatchingAnswer: MatchingAnswer{
 										PromptID: prompt.ID,
 										OptionID: option.ID,
@@ -1102,7 +1114,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			var qpRes *CreateQuestionPoolResponse
 
 			if q.Type == util.Pool {
-				qpRes, err = h.Service.CreateQuestionPool(c.Request.Context(), tx, &q, quizID, res.QuizHistoryID)
+				qpRes, err = h.Service.CreateQuestionPool(c, tx, &q, quizID, res.QuizHistoryID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1113,13 +1125,13 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			}
 
 			if q.IsInPool {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, quizID, res.QuizHistoryID, qpResID, qphResID, userID)
+				qRes, err = h.Service.CreateQuestion(c, tx, &q, quizID, res.QuizHistoryID, qpResID, qphResID, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 			} else {
-				qRes, err = h.Service.CreateQuestion(c.Request.Context(), tx, &q, quizID, res.QuizHistoryID, nil, nil, userID)
+				qRes, err = h.Service.CreateQuestion(c, tx, &q, quizID, res.QuizHistoryID, nil, nil, userID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1129,7 +1141,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 			for _, qt := range qRes.Options {
 				if qst, ok := qt.(map[string]any); ok {
 					if qRes.Type == util.Choice || qRes.Type == util.TrueFalse {
-						_, err := h.Service.CreateChoiceOption(c.Request.Context(), tx, &ChoiceOptionRequest{
+						_, err := h.Service.CreateChoiceOption(c, tx, &ChoiceOptionRequest{
 							ChoiceOption: ChoiceOption{
 								Order:   int(qst["order"].(float64)),
 								Content: qst["content"].(string),
@@ -1143,7 +1155,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 							return
 						}
 					} else if qRes.Type == util.FillBlank || qRes.Type == util.Paragraph {
-						_, err := h.Service.CreateTextOption(c.Request.Context(), tx, &TextOptionRequest{
+						_, err := h.Service.CreateTextOption(c, tx, &TextOptionRequest{
 							TextOption: TextOption{
 								Order:         int(qst["order"].(float64)),
 								Content:       qst["content"].(string),
@@ -1157,7 +1169,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 						}
 					} else if qRes.Type == util.Matching {
 						if qst["type"].(string) != "MATCHING_ANSWER" {
-							_, err := h.Service.CreateMatchingOption(c.Request.Context(), tx, &MatchingOptionRequest{
+							_, err := h.Service.CreateMatchingOption(c, tx, &MatchingOptionRequest{
 								MatchingOption: MatchingOption{
 									Order:     int(qst["order"].(float64)),
 									Content:   qst["content"].(string),
@@ -1174,31 +1186,31 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 
 						} else {
 
-							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["prompt"].(float64)))
+							prompt, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["prompt"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c.Request.Context(), qRes.ID, int(qst["option"].(float64)))
+							option, err := h.Service.GetMatchingOptionByQuestionIDAndOrder(c, qRes.ID, int(qst["option"].(float64)))
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), prompt.ID)
+							promptH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, prompt.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c.Request.Context(), option.ID)
+							optionH, err := h.Service.GetMatchingOptionHistoryByOptionMatchingID(c, option.ID)
 							if err != nil {
 								c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 								return
 							}
 
-							_, err = h.Service.CreateMatchingAnswer(c.Request.Context(), tx, &MatchingAnswerRequest{
+							_, err = h.Service.CreateMatchingAnswer(c, tx, &MatchingAnswerRequest{
 								MatchingAnswer: MatchingAnswer{
 									PromptID: prompt.ID,
 									OptionID: option.ID,
@@ -1246,7 +1258,7 @@ func (h *Handler) UpdateQuiz(c *gin.Context) {
 
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(), tx)
+	h.Service.CommitTransaction(c, tx)
 
 	c.JSON(http.StatusCreated, &QuizResponse{
 		Quiz: Quiz{
@@ -1287,27 +1299,27 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		return
 	}
 
-	tx, err := h.Service.BeginTransaction(c.Request.Context())
+	tx, err := h.Service.BeginTransaction(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	questionPoolData, err := h.Service.GetQuestionPoolsByQuizID(c.Request.Context(), quizID)
+	questionPoolData, err := h.Service.GetQuestionPoolsByQuizID(c, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	for _, questionPool := range questionPoolData {
-		err := h.Service.DeleteQuestionPool(c.Request.Context(), tx, questionPool.ID)
+		err := h.Service.DeleteQuestionPool(c, tx, questionPool.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	questionData, err := h.Service.GetQuestionsByQuizID(c.Request.Context(), quizID)
+	questionData, err := h.Service.GetQuestionsByQuizID(c, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1316,14 +1328,14 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 	for _, question := range questionData {
 
 		if question.Type == util.Choice || question.Type == util.TrueFalse {
-			choiceOptionData, err := h.Service.GetChoiceOptionsByQuestionID(c.Request.Context(), question.ID)
+			choiceOptionData, err := h.Service.GetChoiceOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, choice := range choiceOptionData {
-				err := h.Service.DeleteChoiceOption(c.Request.Context(), tx, choice.ID)
+				err := h.Service.DeleteChoiceOption(c, tx, choice.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1333,14 +1345,14 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		}
 
 		if question.Type == util.FillBlank || question.Type == util.Paragraph {
-			textOptionData, err := h.Service.GetTextOptionsByQuestionID(c.Request.Context(), question.ID)
+			textOptionData, err := h.Service.GetTextOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, text := range textOptionData {
-				err := h.Service.DeleteTextOption(c.Request.Context(), tx, text.ID)
+				err := h.Service.DeleteTextOption(c, tx, text.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1349,20 +1361,20 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 		}
 
 		if question.Type == util.Matching {
-			matchingOptionData, err := h.Service.GetMatchingOptionsByQuestionID(c.Request.Context(), question.ID)
+			matchingOptionData, err := h.Service.GetMatchingOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			matchinAnswerData, err := h.Service.GetMatchingAnswersByQuestionID(c.Request.Context(), question.ID)
+			matchinAnswerData, err := h.Service.GetMatchingAnswersByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, matchingOption := range matchingOptionData {
-				err := h.Service.DeleteMatchingOption(c.Request.Context(), tx, matchingOption.ID)
+				err := h.Service.DeleteMatchingOption(c, tx, matchingOption.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1370,7 +1382,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 			}
 
 			for _, matchingAnswer := range matchinAnswerData {
-				err := h.Service.DeleteMatchingAnswer(c.Request.Context(), tx, matchingAnswer.ID)
+				err := h.Service.DeleteMatchingAnswer(c, tx, matchingAnswer.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1378,7 +1390,7 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 			}
 		}
 
-		err := h.Service.DeleteQuestion(c.Request.Context(), tx, question.ID)
+		err := h.Service.DeleteQuestion(c, tx, question.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1386,13 +1398,13 @@ func (h *Handler) DeleteQuiz(c *gin.Context) {
 
 	}
 
-	err = h.Service.DeleteQuiz(c.Request.Context(), tx, quizID)
+	err = h.Service.DeleteQuiz(c, tx, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(), tx)
+	h.Service.CommitTransaction(c, tx)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "successfully deleted",
@@ -1412,27 +1424,27 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 		return
 	}
 
-	tx, err := h.Service.BeginTransaction(c.Request.Context())
+	tx, err := h.Service.BeginTransaction(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	questionPoolData, err := h.Service.GetDeleteQuestionPoolsByQuizID(c.Request.Context(), quizID)
+	questionPoolData, err := h.Service.GetDeleteQuestionPoolsByQuizID(c, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	for _, questionPool := range questionPoolData {
-		err := h.Service.RestoreQuestionPool(c.Request.Context(), tx, questionPool.ID)
+		err := h.Service.RestoreQuestionPool(c, tx, questionPool.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	questionData, err := h.Service.GetDeleteQuestionsByQuizID(c.Request.Context(), quizID)
+	questionData, err := h.Service.GetDeleteQuestionsByQuizID(c, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1441,14 +1453,14 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 	for _, question := range questionData {
 
 		if question.Type == util.Choice || question.Type == util.TrueFalse {
-			choiceOptionData, err := h.Service.GetDeleteChoiceOptionsByQuestionID(c.Request.Context(), question.ID)
+			choiceOptionData, err := h.Service.GetDeleteChoiceOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, choice := range choiceOptionData {
-				err := h.Service.RestoreChoiceOption(c.Request.Context(), tx, choice.ID)
+				err := h.Service.RestoreChoiceOption(c, tx, choice.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1458,14 +1470,14 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 		}
 
 		if question.Type == util.FillBlank || question.Type == util.Paragraph {
-			textOptionData, err := h.Service.GetDeleteTextOptionsByQuestionID(c.Request.Context(), question.ID)
+			textOptionData, err := h.Service.GetDeleteTextOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, text := range textOptionData {
-				err := h.Service.RestoreTextOption(c.Request.Context(), tx, text.ID)
+				err := h.Service.RestoreTextOption(c, tx, text.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1474,20 +1486,20 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 		}
 
 		if question.Type == util.Matching {
-			matchingOptionData, err := h.Service.GetDeleteMatchingOptionsByQuestionID(c.Request.Context(), question.ID)
+			matchingOptionData, err := h.Service.GetDeleteMatchingOptionsByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			matchinAnswerData, err := h.Service.GetDeleteMatchingAnswersByQuestionID(c.Request.Context(), question.ID)
+			matchinAnswerData, err := h.Service.GetDeleteMatchingAnswersByQuestionID(c, question.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
 			for _, matchingOption := range matchingOptionData {
-				err := h.Service.RestoreMatchingOption(c.Request.Context(), tx, matchingOption.ID)
+				err := h.Service.RestoreMatchingOption(c, tx, matchingOption.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1495,7 +1507,7 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 			}
 
 			for _, matchingAnswer := range matchinAnswerData {
-				err := h.Service.RestoreMatchingAnswer(c.Request.Context(), tx, matchingAnswer.ID)
+				err := h.Service.RestoreMatchingAnswer(c, tx, matchingAnswer.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1503,7 +1515,7 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 			}
 		}
 
-		err := h.Service.RestoreQuestion(c.Request.Context(), tx, question.ID)
+		err := h.Service.RestoreQuestion(c, tx, question.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1511,13 +1523,13 @@ func (h *Handler) RestoreQuiz(c *gin.Context) {
 
 	}
 
-	err = h.Service.RestoreQuiz(c.Request.Context(), tx, quizID)
+	err = h.Service.RestoreQuiz(c, tx, quizID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	h.Service.CommitTransaction(c.Request.Context(), tx)
+	h.Service.CommitTransaction(c, tx)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Successfully Restore Quiz",
@@ -1538,7 +1550,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.GetQuizHistories(c.Request.Context(), userID)
+	res, err := h.Service.GetQuizHistories(c, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1547,7 +1559,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 	r := make([]QuizHistoryResponse, 0)
 
 	for _, q := range res {
-		userInfo, err := h.userService.GetUserByID(c.Request.Context(), q.CreatorID)
+		userInfo, err := h.userService.GetUserByID(c, q.CreatorID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1555,7 +1567,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 
 		q.CreatorName = userInfo.Name
 
-		qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), q.ID)
+		qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c, q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1587,7 +1599,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 			})
 		}
 
-		qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), q.ID)
+		qRes, err := h.Service.GetQuestionHistoriesByQuizID(c, q.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -1596,7 +1608,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 		for _, qr := range qRes {
 
 			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
-				ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1650,7 +1662,7 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 					Options: oc,
 				})
 			} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
-				otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1702,13 +1714,13 @@ func (h *Handler) GetQuizHistories(c *gin.Context) {
 					Options: ot,
 				})
 			} else if qr.Type == util.Matching {
-				omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 				}
 
-				amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c.Request.Context(), qr.ID)
+				amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c, qr.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -1819,13 +1831,13 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		return
 	}
 
-	res, err := h.Service.GetQuizHistoryByID(c.Request.Context(), id, userID)
+	res, err := h.Service.GetQuizHistoryByID(c, id, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, err := h.userService.GetUserByID(c.Request.Context(), res.CreatorID)
+	userInfo, err := h.userService.GetUserByID(c, res.CreatorID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1833,7 +1845,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 
 	res.CreatorName = userInfo.Name
 
-	qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c.Request.Context(), res.ID)
+	qpRes, err := h.Service.GetQuestionPoolHistoriesByQuizID(c, res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1865,7 +1877,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 		})
 	}
 
-	qRes, err := h.Service.GetQuestionHistoriesByQuizID(c.Request.Context(), res.ID)
+	qRes, err := h.Service.GetQuestionHistoriesByQuizID(c, res.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1873,7 +1885,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 
 	for _, qr := range qRes {
 		if qr.Type == util.Choice || qr.Type == util.TrueFalse {
-			ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			ocRes, err := h.Service.GetChoiceOptionHistoriesByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -1926,7 +1938,7 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 				Options: oc,
 			})
 		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
-			otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			otRes, err := h.Service.GetTextOptionHistoriesByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -1978,13 +1990,13 @@ func (h *Handler) GetQuizHistoryByID(c *gin.Context) {
 				Options: ot,
 			})
 		} else if qr.Type == util.Matching {
-			omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			omRes, err := h.Service.GetMatchingOptionHistoriesByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 
-			amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c.Request.Context(), qr.ID)
+			amRes, err := h.Service.GetMatchingAnswerHistoriesByQuestionID(c, qr.ID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
