@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	if os.Getenv("USE_ENV_FILE") == "TRUE" {
+	if os.Getenv("USE_ENV_FILE") == "" {
 		env.Initialize()
 	}
 
