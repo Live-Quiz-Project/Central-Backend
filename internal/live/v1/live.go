@@ -327,4 +327,11 @@ type Service interface {
 	// ---------- Leaderboard related service methods ---------- //
 	GetLeaderboard(ctx context.Context, lqsID uuid.UUID) ([]Participant, error)
 	GetRank(ctx context.Context, lqsID uuid.UUID, pid uuid.UUID) (int, error)
+
+	// ---------- Client related service methods ---------- //
+	// EndLiveQuizSession(ctx context.Context, code string, uid uuid.UUID) error
+	// CheckLiveQuizSessionAvailability()
+	// JoinLiveQuizSession()
+	// InterruptCountdown()
+	// UpdateModerator()
 }

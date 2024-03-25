@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	u "github.com/Live-Quiz-Project/Backend/internal/user/v1"
+
 	"github.com/Live-Quiz-Project/Backend/internal/util"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -12,12 +14,14 @@ import (
 
 type service struct {
 	Repository
-	timeout time.Duration
+	timeout  time.Duration
+	userRepo u.Repository
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository, uRepo u.Repository) Service {
 	return &service{
 		Repository: repo,
+		userRepo:   uRepo,
 		timeout:    time.Duration(5) * time.Second,
 	}
 }
@@ -115,7 +119,7 @@ func (s *service) CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRe
 	}, nil
 }
 
-func (s *service) GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error) {
+func (s *service) GetQuizzes(ctx context.Context, uid uuid.UUID) ([]GetQuizzesResponse, error) {
 	c, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -124,28 +128,20 @@ func (s *service) GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse
 		return nil, err
 	}
 
-	var res []QuizResponse
+	var res []GetQuizzesResponse
 	for _, q := range quizzes {
-		res = append(res, QuizResponse{
-			Quiz: Quiz{
-				ID:             q.ID,
-				CreatorID:      q.CreatorID,
-				Title:          q.Title,
-				Description:    q.Description,
-				CoverImage:     q.CoverImage,
-				Visibility:     q.Visibility,
-				TimeLimit:      q.TimeLimit,
-				HaveTimeFactor: q.HaveTimeFactor,
-				TimeFactor:     q.TimeFactor,
-				FontSize:       q.FontSize,
-				Mark:           q.Mark,
-				SelectMin:      q.SelectMin,
-				SelectMax:      q.SelectMax,
-				CaseSensitive:  q.CaseSensitive,
-				CreatedAt:      q.CreatedAt,
-				UpdatedAt:      q.UpdatedAt,
-				DeletedAt:      q.DeletedAt,
-			},
+		u, err := s.userRepo.GetUserByID(c, q.CreatorID)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, GetQuizzesResponse{
+			ID:          q.ID,
+			CoverImage:  q.CoverImage,
+			Title:       q.Title,
+			CreatorName: u.Name,
+			Description: q.Description,
+			UpdatedAt:   q.UpdatedAt,
 		})
 	}
 
@@ -161,27 +157,249 @@ func (s *service) GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) 
 		return nil, err
 	}
 
-	return &QuizResponse{
-		Quiz: Quiz{
-			ID:             quiz.ID,
-			CreatorID:      quiz.CreatorID,
-			Title:          quiz.Title,
-			Description:    quiz.Description,
-			CoverImage:     quiz.CoverImage,
-			Visibility:     quiz.Visibility,
-			TimeLimit:      quiz.TimeLimit,
-			HaveTimeFactor: quiz.HaveTimeFactor,
-			TimeFactor:     quiz.TimeFactor,
-			FontSize:       quiz.FontSize,
-			Mark:           quiz.Mark,
-			SelectMin:      quiz.SelectMin,
-			SelectMax:      quiz.SelectMax,
-			CaseSensitive:  quiz.CaseSensitive,
-			CreatedAt:      quiz.CreatedAt,
-			UpdatedAt:      quiz.UpdatedAt,
-			DeletedAt:      quiz.DeletedAt,
-		},
-	}, nil
+	u, err := s.userRepo.GetUserByID(c, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &QuizResponse{
+		Quiz:        *quiz,
+		CreatorName: u.Name,
+	}
+
+	qpRes, err := s.GetQuestionPoolsByQuizID(c, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Put All Question Pools Data in Questions Response
+	for _, qpr := range qpRes {
+		res.Questions = append(res.Questions, QuestionResponse{
+			Question: Question{
+				ID:        qpr.ID,
+				QuizID:    qpr.QuizID,
+				Type:      "POOL",
+				Order:     qpr.Order,
+				PoolOrder: qpr.PoolOrder,
+				// PoolRequired:   qpr.PoolRequired,
+				Content:        qpr.Content,
+				Note:           qpr.Note,
+				Media:          qpr.Media,
+				MediaType:      qpr.MediaType,
+				TimeLimit:      qpr.TimeLimit,
+				HaveTimeFactor: qpr.HaveTimeFactor,
+				TimeFactor:     qpr.TimeFactor,
+				FontSize:       qpr.FontSize,
+				CreatedAt:      qpr.CreatedAt,
+				UpdatedAt:      qpr.UpdatedAt,
+				DeletedAt:      qpr.DeletedAt,
+			},
+		})
+	}
+
+	qRes, err := s.GetQuestionsByQuizID(c, res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, qr := range qRes {
+		if qr.Type == util.Choice || qr.Type == util.TrueFalse {
+			ocRes, err := s.GetChoiceOptionsByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var oc []any
+			for _, ocr := range ocRes {
+				oc = append(oc, ChoiceOptionResponse{
+					ChoiceOption: ChoiceOption{
+						ID:         ocr.ID,
+						QuestionID: ocr.QuestionID,
+						Order:      ocr.Order,
+						Content:    ocr.Content,
+						Mark:       ocr.Mark,
+						Color:      ocr.Color,
+						Correct:    ocr.Correct,
+						CreatedAt:  ocr.CreatedAt,
+						UpdatedAt:  ocr.UpdatedAt,
+						DeletedAt:  ocr.DeletedAt,
+					},
+				})
+			}
+
+			res.Questions = append(res.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: oc,
+			})
+		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
+			otRes, err := s.GetTextOptionsByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var ot []any
+			for _, otr := range otRes {
+				ot = append(ot, TextOptionResponse{
+					TextOption: TextOption{
+						ID:            otr.ID,
+						QuestionID:    otr.QuestionID,
+						Order:         otr.Order,
+						Content:       otr.Content,
+						Mark:          otr.Mark,
+						CaseSensitive: otr.CaseSensitive,
+						CreatedAt:     otr.CreatedAt,
+						UpdatedAt:     otr.UpdatedAt,
+						DeletedAt:     otr.DeletedAt,
+					},
+				})
+			}
+
+			res.Questions = append(res.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: ot,
+			})
+		} else if qr.Type == util.Matching {
+			omRes, err := s.GetMatchingOptionsByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			amRes, err := s.GetMatchingAnswersByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var o []any
+			for _, omr := range omRes {
+				order := omr.Order
+				content := omr.Content
+				color := omr.Color
+
+				o = append(o, MatchingOptionAndAnswerResponse{
+					ID:         omr.ID,
+					QuestionID: omr.QuestionID,
+					Type:       omr.Type,
+					Order:      &order,
+					Content:    &content,
+					Color:      &color,
+					Eliminate:  omr.Eliminate,
+					CreatedAt:  omr.CreatedAt,
+					UpdatedAt:  omr.UpdatedAt,
+					DeletedAt:  omr.DeletedAt,
+				})
+			}
+
+			for _, amr := range amRes {
+				prompt, err := s.GetMatchingOptionByID(c, amr.PromptID)
+				if err != nil {
+					return nil, err
+				}
+
+				option, err := s.GetMatchingOptionByID(c, amr.OptionID)
+				if err != nil {
+					return nil, err
+				}
+
+				mark := amr.Mark
+
+				o = append(o, MatchingOptionAndAnswerResponse{
+					ID:          amr.ID,
+					QuestionID:  amr.QuestionID,
+					Type:        "MATCHING_ANSWER",
+					Eliminate:   false,
+					PromptOrder: &prompt.Order,
+					OptionOrder: &option.Order,
+					Mark:        &mark,
+					CreatedAt:   amr.CreatedAt,
+					UpdatedAt:   amr.UpdatedAt,
+					DeletedAt:   amr.DeletedAt,
+				})
+			}
+
+			res.Questions = append(res.Questions, QuestionResponse{
+				Question: Question{
+					ID:             qr.ID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: o,
+			})
+		}
+	}
+
+	// Bubble Sort the Questions and Question Pool by Order
+	n := len(res.Questions)
+	for i := 0; i < n-1; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if res.Questions[j].Order > res.Questions[j+1].Order {
+				res.Questions[j], res.Questions[j+1] = res.Questions[j+1], res.Questions[j]
+			}
+		}
+	}
+
+	return res, nil
 }
 
 func (s *service) GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error) {
@@ -194,25 +412,7 @@ func (s *service) GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.
 	}
 
 	return &QuizResponse{
-		Quiz: Quiz{
-			ID:             quiz.ID,
-			CreatorID:      quiz.CreatorID,
-			Title:          quiz.Title,
-			Description:    quiz.Description,
-			CoverImage:     quiz.CoverImage,
-			Visibility:     quiz.Visibility,
-			TimeLimit:      quiz.TimeLimit,
-			HaveTimeFactor: quiz.HaveTimeFactor,
-			TimeFactor:     quiz.TimeFactor,
-			FontSize:       quiz.FontSize,
-			Mark:           quiz.Mark,
-			SelectMin:      quiz.SelectMin,
-			SelectMax:      quiz.SelectMax,
-			CaseSensitive:  quiz.CaseSensitive,
-			CreatedAt:      quiz.CreatedAt,
-			UpdatedAt:      quiz.UpdatedAt,
-			DeletedAt:      quiz.DeletedAt,
-		},
+		Quiz: *quiz,
 	}, nil
 }
 
@@ -227,28 +427,250 @@ func (s *service) GetQuizHistories(ctx context.Context, uid uuid.UUID) ([]QuizHi
 
 	var res []QuizHistoryResponse
 	for _, q := range quizHistories {
-		res = append(res, QuizHistoryResponse{
-			QuizHistory: QuizHistory{
-				ID:             q.ID,
-				QuizID:         q.QuizID,
-				CreatorID:      q.CreatorID,
-				Title:          q.Title,
-				Description:    q.Description,
-				CoverImage:     q.CoverImage,
-				Visibility:     q.Visibility,
-				TimeLimit:      q.TimeLimit,
-				HaveTimeFactor: q.HaveTimeFactor,
-				TimeFactor:     q.TimeFactor,
-				FontSize:       q.FontSize,
-				Mark:           q.Mark,
-				SelectMin:      q.SelectMin,
-				SelectMax:      q.SelectMax,
-				CaseSensitive:  q.CaseSensitive,
-				CreatedAt:      q.CreatedAt,
-				UpdatedAt:      q.UpdatedAt,
-				DeletedAt:      q.DeletedAt,
-			},
-		})
+		res = append(res, QuizHistoryResponse{QuizHistory: q})
+	}
+
+	for _, q := range res {
+		userInfo, err := s.userRepo.GetUserByID(c, q.CreatorID)
+		if err != nil {
+			return nil, err
+		}
+
+		q.CreatorName = userInfo.Name
+
+		qpRes, err := s.GetQuestionPoolHistoriesByQuizID(c, q.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Put All Question Pools Data in Questions Response
+		for _, qpr := range qpRes {
+			q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:         qpr.ID,
+					QuestionID: qpr.QuestionPoolID, //This Put QuestionPoolID in QuestionID instead
+					QuizID:     qpr.QuizID,
+					Type:       "POOL",
+					Order:      qpr.Order,
+					PoolOrder:  qpr.PoolOrder,
+					// PoolRequired:   qpr.PoolRequired,
+					Content:        qpr.Content,
+					Note:           qpr.Note,
+					Media:          qpr.Media,
+					MediaType:      qpr.MediaType,
+					TimeLimit:      qpr.TimeLimit,
+					HaveTimeFactor: qpr.HaveTimeFactor,
+					TimeFactor:     qpr.TimeFactor,
+					FontSize:       qpr.FontSize,
+					CreatedAt:      qpr.CreatedAt,
+					UpdatedAt:      qpr.UpdatedAt,
+					DeletedAt:      qpr.DeletedAt,
+				},
+			})
+		}
+
+		qRes, err := s.GetQuestionHistoriesByQuizID(c, q.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, qr := range qRes {
+			if qr.Type == util.Choice || qr.Type == util.TrueFalse {
+				ocRes, err := s.GetChoiceOptionHistoriesByQuestionID(c, qr.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				var oc []any
+				for _, ocr := range ocRes {
+					oc = append(oc, ChoiceOptionHistoryResponse{
+						ChoiceOptionHistory: ChoiceOptionHistory{
+							ID:             ocr.ID,
+							ChoiceOptionID: ocr.ChoiceOptionID,
+							QuestionID:     ocr.QuestionID,
+							Order:          ocr.Order,
+							Content:        ocr.Content,
+							Mark:           ocr.Mark,
+							Color:          ocr.Color,
+							Correct:        ocr.Correct,
+							CreatedAt:      ocr.CreatedAt,
+							UpdatedAt:      ocr.UpdatedAt,
+							DeletedAt:      ocr.DeletedAt,
+						},
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						PoolOrder:      qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						MediaType:      qr.MediaType,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+
+					Options: oc,
+				})
+			} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
+				otRes, err := s.GetTextOptionHistoriesByQuestionID(c, qr.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				var ot []any
+				for _, otr := range otRes {
+					ot = append(ot, TextOptionHistoryResponse{
+						TextOptionHistory: TextOptionHistory{
+							ID:            otr.ID,
+							OptionTextID:  otr.OptionTextID,
+							QuestionID:    otr.QuestionID,
+							Order:         otr.Order,
+							Mark:          otr.Mark,
+							CaseSensitive: otr.CaseSensitive,
+							Content:       otr.Content,
+							CreatedAt:     otr.CreatedAt,
+							UpdatedAt:     otr.UpdatedAt,
+							DeletedAt:     otr.DeletedAt,
+						},
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						PoolOrder:      qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						MediaType:      qr.MediaType,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: ot,
+				})
+			} else if qr.Type == util.Matching {
+				omRes, err := s.GetMatchingOptionHistoriesByQuestionID(c, qr.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				amRes, err := s.GetMatchingAnswerHistoriesByQuestionID(c, qr.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				var o []any
+				for _, omr := range omRes {
+					o = append(o, MatchingOptionAndAnswerHistoryResponse{
+						ID:               omr.ID,
+						OptionMatchingID: &omr.OptionMatchingID,
+						QuestionID:       omr.QuestionID,
+						Type:             omr.Type,
+						Order:            &omr.Order,
+						Content:          &omr.Content,
+						Color:            &omr.Color,
+						Eliminate:        omr.Eliminate,
+						PromptID:         nil,
+						OptionID:         nil,
+						Mark:             nil,
+						CreatedAt:        omr.CreatedAt,
+						UpdatedAt:        omr.UpdatedAt,
+						DeletedAt:        omr.DeletedAt,
+					})
+				}
+
+				for _, amr := range amRes {
+					o = append(o, MatchingOptionAndAnswerResponse{
+						ID:         amr.ID,
+						QuestionID: amr.QuestionID,
+						Type:       "MATCHING_ANSWER",
+						Order:      nil,
+						Content:    nil,
+						Color:      nil,
+						Eliminate:  false,
+						PromptID:   &amr.PromptID,
+						OptionID:   &amr.OptionID,
+						Mark:       &amr.Mark,
+						CreatedAt:  amr.CreatedAt,
+						UpdatedAt:  amr.UpdatedAt,
+						DeletedAt:  amr.DeletedAt,
+					})
+				}
+
+				q.QuestionHistory = append(q.QuestionHistory, QuestionHistoryResponse{
+					QuestionHistory: QuestionHistory{
+						ID:             qr.ID,
+						QuestionID:     qr.QuestionID,
+						QuizID:         qr.QuizID,
+						QuestionPoolID: qr.QuestionPoolID,
+						Type:           qr.Type,
+						Order:          qr.Order,
+						PoolOrder:      qr.PoolOrder,
+						PoolRequired:   qr.PoolRequired,
+						Content:        qr.Content,
+						Note:           qr.Note,
+						Media:          qr.Media,
+						MediaType:      qr.MediaType,
+						UseTemplate:    qr.UseTemplate,
+						TimeLimit:      qr.TimeLimit,
+						HaveTimeFactor: qr.HaveTimeFactor,
+						TimeFactor:     qr.TimeFactor,
+						FontSize:       qr.FontSize,
+						LayoutIdx:      qr.LayoutIdx,
+						SelectMin:      qr.SelectMin,
+						SelectMax:      qr.SelectMax,
+						CreatedAt:      qr.CreatedAt,
+						UpdatedAt:      qr.UpdatedAt,
+					},
+					Options: o,
+				})
+			}
+		}
+
+		res = append(res, q)
+	}
+
+	// Bubble Sort the Questions and Question Pool by Order
+	for _, res := range res {
+		n := len(res.QuestionHistory)
+		for i := 0; i < n-1; i++ {
+			for j := 0; j < n-i-1; j++ {
+				if res.QuestionHistory[j].Order > res.QuestionHistory[j+1].Order {
+					res.QuestionHistory[j], res.QuestionHistory[j+1] = res.QuestionHistory[j+1], res.QuestionHistory[j]
+				}
+			}
+		}
 	}
 
 	return res, nil
@@ -263,28 +685,247 @@ func (s *service) GetQuizHistoryByID(ctx context.Context, id uuid.UUID, uid uuid
 		return nil, err
 	}
 
-	return &QuizHistoryResponse{
-		QuizHistory: QuizHistory{
-			ID:             quiz.ID,
-			QuizID:         quiz.QuizID,
-			CreatorID:      quiz.CreatorID,
-			Title:          quiz.Title,
-			Description:    quiz.Description,
-			CoverImage:     quiz.CoverImage,
-			Visibility:     quiz.Visibility,
-			TimeLimit:      quiz.TimeLimit,
-			HaveTimeFactor: quiz.HaveTimeFactor,
-			TimeFactor:     quiz.TimeFactor,
-			FontSize:       quiz.FontSize,
-			Mark:           quiz.Mark,
-			SelectMin:      quiz.SelectMin,
-			SelectMax:      quiz.SelectMax,
-			CaseSensitive:  quiz.CaseSensitive,
-			CreatedAt:      quiz.CreatedAt,
-			UpdatedAt:      quiz.UpdatedAt,
-			DeletedAt:      quiz.DeletedAt,
-		},
-	}, nil
+	u, err := s.userRepo.GetUserByID(c, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &QuizHistoryResponse{
+		QuizHistory: *quiz,
+		CreatorName: u.Name,
+	}
+
+	qpRes, err := s.GetQuestionPoolHistoriesByQuizID(c, res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Put All Question Pools Data in Questions Response
+	for _, qpr := range qpRes {
+		res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+			QuestionHistory: QuestionHistory{
+				ID:         qpr.ID,
+				QuestionID: qpr.QuestionPoolID,
+				QuizID:     qpr.QuizID,
+				Type:       "POOL",
+				Order:      qpr.Order,
+				PoolOrder:  qpr.PoolOrder,
+				// PoolRequired:   qpr.PoolRequired,
+				Content:        qpr.Content,
+				Note:           qpr.Note,
+				Media:          qpr.Media,
+				MediaType:      qpr.MediaType,
+				TimeLimit:      qpr.TimeLimit,
+				HaveTimeFactor: qpr.HaveTimeFactor,
+				TimeFactor:     qpr.TimeFactor,
+				FontSize:       qpr.FontSize,
+				CreatedAt:      qpr.CreatedAt,
+				UpdatedAt:      qpr.UpdatedAt,
+				DeletedAt:      qpr.DeletedAt,
+			},
+		})
+	}
+
+	qRes, err := s.GetQuestionHistoriesByQuizID(c, res.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, qr := range qRes {
+		if qr.Type == util.Choice || qr.Type == util.TrueFalse {
+			ocRes, err := s.GetChoiceOptionHistoriesByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var oc []any
+			for _, ocr := range ocRes {
+				oc = append(oc, ChoiceOptionHistoryResponse{
+					ChoiceOptionHistory: ChoiceOptionHistory{
+						ID:             ocr.ID,
+						ChoiceOptionID: ocr.ChoiceOptionID,
+						QuestionID:     ocr.QuestionID,
+						Order:          ocr.Order,
+						Content:        ocr.Content,
+						Mark:           ocr.Mark,
+						Color:          ocr.Color,
+						Correct:        ocr.Correct,
+						CreatedAt:      ocr.CreatedAt,
+						UpdatedAt:      ocr.UpdatedAt,
+						DeletedAt:      ocr.DeletedAt,
+					},
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:     qr.QuestionID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: oc,
+			})
+		} else if qr.Type == util.FillBlank || qr.Type == util.Paragraph {
+			otRes, err := s.GetTextOptionHistoriesByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var ot []any
+			for _, otr := range otRes {
+				ot = append(ot, TextOptionHistoryResponse{
+					TextOptionHistory: TextOptionHistory{
+						ID:            otr.ID,
+						OptionTextID:  otr.OptionTextID,
+						QuestionID:    otr.QuestionID,
+						Order:         otr.Order,
+						Content:       otr.Content,
+						Mark:          otr.Mark,
+						CaseSensitive: otr.CaseSensitive,
+						CreatedAt:     otr.CreatedAt,
+						UpdatedAt:     otr.UpdatedAt,
+						DeletedAt:     otr.DeletedAt,
+					},
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:     qr.QuestionID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: ot,
+			})
+		} else if qr.Type == util.Matching {
+			omRes, err := s.GetMatchingOptionHistoriesByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			amRes, err := s.GetMatchingAnswerHistoriesByQuestionID(c, qr.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			var o []any
+			for _, omr := range omRes {
+				o = append(o, MatchingOptionAndAnswerHistoryResponse{
+					ID:               omr.ID,
+					OptionMatchingID: &omr.OptionMatchingID,
+					QuestionID:       omr.QuestionID,
+					Type:             omr.Type,
+					Order:            &omr.Order,
+					Content:          &omr.Content,
+					Color:            &omr.Color,
+					Eliminate:        omr.Eliminate,
+					PromptID:         nil,
+					OptionID:         nil,
+					Mark:             nil,
+					CreatedAt:        omr.CreatedAt,
+					UpdatedAt:        omr.UpdatedAt,
+					DeletedAt:        omr.DeletedAt,
+				})
+			}
+
+			for _, amr := range amRes {
+				o = append(o, MatchingOptionAndAnswerHistoryResponse{
+					ID:               amr.ID,
+					AmswerMatchingID: &amr.AnswerMatchingID,
+					QuestionID:       amr.QuestionID,
+					Type:             "MATCHING_ANSWER",
+					Order:            nil,
+					Content:          nil,
+					Color:            nil,
+					Eliminate:        false,
+					PromptID:         &amr.PromptID,
+					OptionID:         &amr.OptionID,
+					Mark:             &amr.Mark,
+					CreatedAt:        amr.CreatedAt,
+					UpdatedAt:        amr.UpdatedAt,
+					DeletedAt:        amr.DeletedAt,
+				})
+			}
+
+			res.QuestionHistory = append(res.QuestionHistory, QuestionHistoryResponse{
+				QuestionHistory: QuestionHistory{
+					ID:             qr.ID,
+					QuestionID:     qr.QuestionID,
+					QuizID:         qr.QuizID,
+					QuestionPoolID: qr.QuestionPoolID,
+					Type:           qr.Type,
+					Order:          qr.Order,
+					PoolOrder:      qr.PoolOrder,
+					PoolRequired:   qr.PoolRequired,
+					Content:        qr.Content,
+					Note:           qr.Note,
+					Media:          qr.Media,
+					MediaType:      qr.MediaType,
+					UseTemplate:    qr.UseTemplate,
+					TimeLimit:      qr.TimeLimit,
+					HaveTimeFactor: qr.HaveTimeFactor,
+					TimeFactor:     qr.TimeFactor,
+					FontSize:       qr.FontSize,
+					LayoutIdx:      qr.LayoutIdx,
+					SelectMin:      qr.SelectMin,
+					SelectMax:      qr.SelectMax,
+					CreatedAt:      qr.CreatedAt,
+					UpdatedAt:      qr.UpdatedAt,
+				},
+				Options: o,
+			})
+		}
+	}
+
+	// Bubble Sort the Questions and Question Pool by Order
+	n := len(res.QuestionHistory)
+	for i := 0; i < n-1; i++ {
+		for j := 0; j < n-i-1; j++ {
+			if res.QuestionHistory[j].Order > res.QuestionHistory[j+1].Order {
+				res.QuestionHistory[j], res.QuestionHistory[j+1] = res.QuestionHistory[j+1], res.QuestionHistory[j]
+			}
+		}
+	}
+
+	return res, nil
 }
 
 func (s *service) UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRequest, uid uuid.UUID, id uuid.UUID) (*UpdateQuizResponse, error) {
@@ -2196,8 +2837,9 @@ func (s *service) UpdateMatchingAnswer(ctx context.Context, tx *gorm.DB, req *Ma
 	if req.OptionID != uuid.Nil {
 		answerMatching.OptionID = req.OptionID
 	}
-
-	answerMatching.Mark = req.Mark
+	if req.Mark != 0 {
+		answerMatching.Mark = req.Mark
+	}
 
 	amh := &MatchingAnswerHistory{
 		ID:               uuid.New(),

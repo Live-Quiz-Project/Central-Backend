@@ -1020,6 +1020,15 @@ func (r *repository) GetMatchingAnswersByQuestionID(ctx context.Context, questio
 	return answerMatchings, nil
 }
 
+func (r *repository) GetMatchingAnswerByPromptID(ctx context.Context, promptID uuid.UUID) (*MatchingAnswer, error) {
+	var answerMatching MatchingAnswer
+	res := r.db.WithContext(ctx).Where("prompt_id = ?", promptID).Find(&answerMatching)
+	if res.Error != nil {
+		return &MatchingAnswer{}, res.Error
+	}
+	return &answerMatching, nil
+}
+
 func (r *repository) GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error) {
 	var answerMatchings []MatchingAnswer
 	res := r.db.WithContext(ctx).Unscoped().Where("question_id = ?", questionID).Find(&answerMatchings)
@@ -1050,6 +1059,15 @@ func (r *repository) GetMatchingAnswerHistoriesByQuestionID(ctx context.Context,
 func (r *repository) GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error) {
 	var answerMatchingHistory MatchingAnswerHistory
 	res := r.db.WithContext(ctx).Where("prompt_id = ? AND option_id = ?", promptID, optionID).Find(&answerMatchingHistory)
+	if res.Error != nil {
+		return &MatchingAnswerHistory{}, res.Error
+	}
+	return &answerMatchingHistory, nil
+}
+
+func (r *repository) GetMatchingAnswerHistoryByPromptID(ctx context.Context, promptID uuid.UUID) (*MatchingAnswerHistory, error) {
+	var answerMatchingHistory MatchingAnswerHistory
+	res := r.db.WithContext(ctx).Where("prompt_id = ?", promptID).Find(&answerMatchingHistory)
 	if res.Error != nil {
 		return &MatchingAnswerHistory{}, res.Error
 	}

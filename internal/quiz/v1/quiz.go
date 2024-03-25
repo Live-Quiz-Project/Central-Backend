@@ -418,10 +418,12 @@ type Repository interface {
 	RestoreMatchingAnswer(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswerByID(ctx context.Context, id uuid.UUID) (*MatchingAnswer, error)
 	GetMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
+	GetMatchingAnswerByPromptID(ctx context.Context, promptID uuid.UUID) (*MatchingAnswer, error)
 	GetDeleteMatchingAnswersByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswer, error)
 	CreateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoriesByQuestionID(ctx context.Context, questionID uuid.UUID) ([]MatchingAnswerHistory, error)
 	GetMatchingAnswerHistoryByPromptIDAndOptionID(ctx context.Context, promptID uuid.UUID, optionID uuid.UUID) (*MatchingAnswerHistory, error)
+	GetMatchingAnswerHistoryByPromptID(ctx context.Context, promptID uuid.UUID) (*MatchingAnswerHistory, error)
 	UpdateMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, answerMatchingHistory *MatchingAnswerHistory) (*MatchingAnswerHistory, error)
 	DeleteMatchingAnswerHistory(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
 }
@@ -442,6 +444,15 @@ type CreateQuizRequest struct {
 type CreateQuizResponse struct {
 	QuizResponse
 	QuizHistoryID uuid.UUID `json:"quiz_history_id"`
+}
+
+type GetQuizzesResponse struct {
+	ID          uuid.UUID `json:"id"`
+	CoverImage  string    `json:"cover_image"`
+	Title       string    `json:"title"`
+	CreatorName string    `json:"creator_name"`
+	Description string    `json:"description"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type UpdateQuizResponse struct {
@@ -640,7 +651,7 @@ type Service interface {
 
 	// ---------- Quiz related service methods ---------- //
 	CreateQuiz(ctx context.Context, tx *gorm.DB, req *CreateQuizRequest, uid uuid.UUID) (*CreateQuizResponse, error)
-	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]QuizResponse, error)
+	GetQuizzes(ctx context.Context, uid uuid.UUID) ([]GetQuizzesResponse, error)
 	GetQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	GetDeleteQuizByID(ctx context.Context, id uuid.UUID, uid uuid.UUID) (*QuizResponse, error)
 	UpdateQuiz(ctx context.Context, tx *gorm.DB, req *UpdateQuizRequest, id uuid.UUID, uid uuid.UUID) (*UpdateQuizResponse, error)
