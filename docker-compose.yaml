@@ -1,7 +1,43 @@
-version: "3.8"
-
+version: '3.8'
 services:
-  db:
+  backend:
+    restart: always
+    build:
+      context: ./Central-Backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgresql
+      - redis
+    env_file:
+      - ./.secrets/backend.env
+
+  mgmt-frontend:
+    build:
+      context: ./Management-Frontend
+      dockerfile: Dockerfile
+    ports:
+    - "5173:5173"
+    depends_on:
+      - postgresql
+      - redis
+    env_file:
+      - ./.secrets/mgmt-frontend.env
+
+  live-frontend:
+    build:
+      context: ./Live-Quiz-Frontend
+      dockerfile: Dockerfile
+    ports:
+    - "3000:3000"
+    depends_on:
+      - postgresql
+      - redis
+    env_file:
+      - ./.secrets/live-frontend.env
+
+  postgresql:
     image: postgres:16.0
     container_name: postgresql
     environment:
@@ -12,11 +48,13 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres:/var/lib/postgresql/data
+      - ./Central-Backend/internal/db/init_table.sql:/docker-entrypoint-initdb.d/init.sql
+
   redis:
     image: redis:latest
     container_name: redis
     ports:
     - "6379:6379"
-
+  
 volumes:
   postgres_data:
